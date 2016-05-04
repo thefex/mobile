@@ -520,29 +520,31 @@ namespace Toggl.Phoebe.Reactive
         static DataSyncMsg<AppState> NoUserState(AppState state, DataMsg msg)
         {
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-
-            var userData = new UserData();
             var workspaces = new Dictionary<Guid, IWorkspaceData>();
 
-            var wsGuid = Guid.NewGuid();
-            var userId = Guid.NewGuid();
-            Console.WriteLine("userID: {0}, wsGuid: {1}", userId, wsGuid);
-            userData.Id = userId;
-            userData.Name = "testUser";
-            userData.StartOfWeek = DayOfWeek.Monday;
-            userData.Locale = "";
-            userData.Email = "test.user@toggl.com";
-            userData.Timezone = Time.TimeZoneId;
-            userData.DefaultWorkspaceId = wsGuid;
+            var workspace = WorkspaceData.Create(x =>
+            {
+                x.Id = Guid.NewGuid();
+                x.Name = "Workspace";
+                x.IsPremium = false;
+                x.IsAdmin = true;
+            });
 
-            var workspace = new WorkspaceData();
-            workspace.Id = wsGuid;
-            workspace.Name = "testWorkspace";
-            workspace.IsPremium = false;
-            workspace.IsAdmin = false;
+            workspaces.Add(workspace.Id, workspace);
 
-            workspaces.Add(wsGuid, workspace);
-//            dataStore.Table<WorkspaceData>().ForEach(x => workspaces.Add(x.Id, x));
+            var userData = UserData.Create(x =>
+            {
+                x.Id = Guid.NewGuid();
+                x.Name = "John Doe";
+                x.Email = "support@toggl.com";
+                x.Locale = "locale";
+                x.StartOfWeek = DayOfWeek.Monday;
+                x.Timezone = Time.TimeZoneId;;
+                x.DefaultWorkspaceId = workspace.Id;
+            });
+
+            dataStore.Update(ctx => { ctx.Put(userData); });
+            dataStore.Update(ctx => { ctx.Put(workspace); });
 
             return DataSyncMsg.Create(state.With(
                                           requestInfo: state.RequestInfo.With(authResult: AuthResult.Success),

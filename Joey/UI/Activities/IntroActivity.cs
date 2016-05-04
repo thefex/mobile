@@ -27,7 +27,7 @@ namespace Toggl.Joey.UI.Activities
          ScreenOrientation = ScreenOrientation.Portrait,
          WindowSoftInputMode = SoftInput.StateHidden,
          Theme = "@style/Theme.Toggl.Intro")]
-    public class IntroActivity : BaseActivity
+    public class IntroActivity : FragmentActivity
     {
         private const string LogTag = "IntroActivity";
         private Button LoginButton;
@@ -37,9 +37,9 @@ namespace Toggl.Joey.UI.Activities
 
         public IntroVM ViewModel { get; private set; }
 
-        protected override void OnCreateActivity(Bundle state)
+        protected override void OnCreate(Bundle state)
         {
-            base.OnCreateActivity(state);
+            base.OnCreate(state);
             SetContentView(Resource.Layout.IntroActivity);
             FindViewById<TextView> (Resource.Id.IntroTitle).SetFont(Font.DINMedium);
             FindViewById<TextView> (Resource.Id.IntroLoginText).SetFont(Font.DINMedium);
@@ -80,34 +80,6 @@ namespace Toggl.Joey.UI.Activities
         {
             ServiceContainer.Resolve<ITracker>().SendIntroModeEvent(UserMode.NoUserMode);
             ViewModel.SetUpNoUser();
-            StartAuthActivity();
-        }
-
-        private void StartAuth()
-        {
-            StartAuthActivity();
-        }
-
-        protected override void OnStart()
-        {
-            base.OnStart();
-            ServiceContainer.Resolve<ITracker> ().CurrentScreen = "Intro";
-        }
-
-        protected override bool StartAuthActivity()
-        {
-            if (ViewModel == null)
-                return false;
-
-            if (ViewModel.AuthResult == AuthResult.Success)
-            {
-                var intent = new Intent(this, typeof(MainDrawerActivity));
-                intent.AddFlags(ActivityFlags.ClearTop);
-                StartActivity(intent);
-                Finish();
-                return true;
-            }
-            return false;
         }
     }
 }
