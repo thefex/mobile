@@ -53,6 +53,13 @@ namespace Toggl.Joey.UI.Adapters
             viewModel.ContinueTimeEntry(viewHolder.AdapterPosition);
         }
 
+        public bool IsNoUserMode
+        {
+            get
+            {
+                return viewModel.IsNoUserMode;
+            }
+        }
         protected override RecyclerView.ViewHolder GetViewHolder(ViewGroup parent, int viewType)
         {
             View view;
@@ -449,7 +456,7 @@ namespace Toggl.Joey.UI.Adapters
                 var entryData = datasource.Entry.Data;
                 var ctx = ServiceContainer.Resolve<Context> ();
 
-                if (LogTimeEntriesAdapter.isNoUserMode || (entryData.RemoteId.HasValue && entryData.SyncState == SyncState.Synced))
+                if (((LogTimeEntriesAdapter)owner).IsNoUserMode || (entryData.RemoteId.HasValue && entryData.SyncState == SyncState.Synced))
                 {
                     NotSyncedView.Visibility = ViewStates.Gone;
                 }

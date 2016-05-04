@@ -235,5 +235,14 @@ namespace Toggl.Phoebe.ViewModels
                 Duration = TimeSpan.FromSeconds(0).ToString().Substring(0, 8);
             }
         }
+
+        public bool IsNoUserMode
+        {
+            get
+            {
+                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
+            }
+        }
+
     }
 }

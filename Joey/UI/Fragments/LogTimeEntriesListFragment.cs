@@ -233,7 +233,7 @@ namespace Toggl.Joey.UI.Fragments
         #region Sync
         public void OnRefresh()
         {
-            if (!isNoUserMode)
+            if (!ViewModel.IsNoUserMode)
                 ViewModel.TriggerFullSync();
             else
                 swipeLayout.Refreshing = false;
@@ -249,14 +249,6 @@ namespace Toggl.Joey.UI.Fragments
                 intent.PutStringArrayListExtra(EditTimeEntryActivity.ExtraGroupedTimeEntriesGuids, ids);
                 intent.PutExtra(EditTimeEntryActivity.IsGrouped,  false);
                 StartActivity(intent);
-            }
-        }
-
-        bool isNoUserMode
-        {
-            get
-            {
-                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
             }
         }
 
@@ -278,7 +270,7 @@ namespace Toggl.Joey.UI.Fragments
         private void SetFooterState()
         {
             var info = ViewModel.LoadInfo;
-            if (isNoUserMode || (!info.HasMore && !info.HadErrors))
+            if (ViewModel.IsNoUserMode || (!info.HasMore && !info.HadErrors))
             {
                 logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Finished);
             }
