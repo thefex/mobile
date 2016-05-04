@@ -42,6 +42,9 @@ namespace Toggl.Joey.UI.Fragments
         private FrameLayout syncErrorBar;
         private ImageButton syncRetry;
         private Animator currentAnimation;
+        private LinearLayout reportsContainer;
+        private LinearLayout nouserDisclaimer;
+        private Button noUserRegisterButton;
 
         public ZoomLevel ZoomLevel
         {
@@ -134,6 +137,9 @@ namespace Toggl.Joey.UI.Fragments
             nextPeriod = view.FindViewById(Resource.Id.NextFrameLayout);
             syncErrorBar = view.FindViewById<FrameLayout> (Resource.Id.ReportsSyncBar);
             syncRetry = view.FindViewById<ImageButton> (Resource.Id.ReportsSyncRetryButton);
+            reportsContainer = view.FindViewById<LinearLayout> (Resource.Id.ReportsContainer);
+            nouserDisclaimer = view.FindViewById<LinearLayout> (Resource.Id.NoUserDisclaimer);
+            noUserRegisterButton = view.FindViewById<Button> (Resource.Id.ReportsRegisterButton);
 
             previousPeriod.Click += (sender, e) => NavigatePage(-1);
             nextPeriod.Click += (sender, e) => NavigatePage(1);
@@ -151,7 +157,18 @@ namespace Toggl.Joey.UI.Fragments
             // find a correct way
             viewPager.CurrentItem = StoreManager.Singleton.AppState.Settings.ReportsCurrentItem;
 
+            nouserDisclaimer.Visibility = isNoUserMode ? ViewStates.Visible : ViewStates.Gone;
+            reportsContainer.Visibility = isNoUserMode ? ViewStates.Gone : ViewStates.Visible;
+
             return view;
+        }
+
+        bool isNoUserMode
+        {
+            get
+            {
+                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
+            }
         }
 
         public override void OnDestroyView()

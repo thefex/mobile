@@ -21,6 +21,9 @@ namespace Toggl.Joey.UI.Fragments
         private ImageButton feedbackNegativeButton;
         private Button submitFeedbackButton;
         private EditText feedbackMessageEditText;
+        private LinearLayout feedbackContainer;
+        private LinearLayout disclaimerContainer;
+        private Button noUserRegisterButton;
         private int userRating;
         private String userMessage;
         private bool isSendingFeedback;
@@ -49,6 +52,10 @@ namespace Toggl.Joey.UI.Fragments
             submitFeedbackButton = view.FindViewById<Button> (Resource.Id.SendFeedbackButton).SetFont(Font.Roboto);
             submitFeedbackButton.Click += OnSendClick;
 
+            feedbackContainer = view.FindViewById<LinearLayout> (Resource.Id.FeedbackContainer);
+            disclaimerContainer = view.FindViewById<LinearLayout> (Resource.Id.FeedbackDisclaimer);
+            noUserRegisterButton = view.FindViewById<Button> (Resource.Id.FeedbackRegisterButton);
+
             SetRating(userRating);
 
             return view;
@@ -58,6 +65,9 @@ namespace Toggl.Joey.UI.Fragments
         {
             base.OnViewCreated(view, savedInstanceState);
             ViewModel = new FeedbackVM(StoreManager.Singleton.AppState);
+
+            disclaimerContainer.Visibility = ViewModel.IsNoUserMode ? ViewStates.Visible : ViewStates.Gone;
+            feedbackContainer.Visibility = ViewModel.IsNoUserMode ? ViewStates.Gone : ViewStates.Visible;
         }
 
         public override void OnCreate(Bundle savedInstanceState)

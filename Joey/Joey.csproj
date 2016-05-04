@@ -822,6 +822,14 @@
     <AndroidResource Include="Resources\drawable-mdpi\IcReportsOverflow.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\IcReportsOverflow.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\IcReportsOverflow.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\img_reports.png" />
     <AndroidResource Include="Resources\menu\ReportsToolbarMenu.axml" />
     <AndroidResource Include="Resources\drawable\splash_drawable.xml" />
   </ItemGroup>

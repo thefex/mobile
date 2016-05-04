@@ -120,6 +120,14 @@ namespace Toggl.Phoebe.ViewModels
             sb.AppendLine();
             sb.AppendLine();
         }
+
+        public bool IsNoUserMode
+        {
+            get
+            {
+                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
+            }
+        }
     }
 }
 

@@ -241,4 +241,9 @@
     <string name="IntroStartTracking">Get started</string>
     <string name="IntroLoginButtonText">Sign in</string>
     <string name="IntroLoginText">Already have an account?</string>
+    <string name="ReportsDisclaimerTitle">Boost your productivity!</string>
+    <string name="ReportsDisclaimerText">Sign up to get access to your reports.</string>
+    <string name="FeedbackDisclaimerTitle">Oh no!</string>
+    <string name="FeedbackDisclaimerText">You don\'t have access yet.\nSign up to get in touch with us!</string>
+    <string name="NoUserSignupText">Sign up for free</string>
 </resources>
