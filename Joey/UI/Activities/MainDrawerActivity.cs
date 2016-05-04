@@ -62,7 +62,13 @@ namespace Toggl.Joey.UI.Activities
         private FrameLayout DrawerSyncView { get; set; }
 
         public Toolbar MainToolbar { get; set; }
-
+        bool isNoUserMode
+        {
+            get
+            {
+                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
+            }
+        }
         protected override void OnCreateActivity(Bundle state)
         {
             base.OnCreateActivity(state);
@@ -75,7 +81,8 @@ namespace Toggl.Joey.UI.Activities
             DrawerUserName = DrawerUserView.FindViewById<TextView> (Resource.Id.TitleTextView);
             DrawerEmail = DrawerUserView.FindViewById<TextView> (Resource.Id.EmailTextView);
             DrawerImage = DrawerUserView.FindViewById<ProfileImageView> (Resource.Id.IconProfileImageView);
-            DrawerListView.AddHeaderView(DrawerUserView);
+            if (!isNoUserMode)
+                DrawerListView.AddHeaderView(DrawerUserView);
             DrawerListView.Adapter = drawerAdapter = new DrawerListAdapter();
             DrawerListView.ItemClick += OnDrawerListViewItemClick;
 

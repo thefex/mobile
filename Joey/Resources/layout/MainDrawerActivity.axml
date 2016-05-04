@@ -44,6 +44,7 @@
             android:layout_height="wrap_content"
             android:divider="@null"
             android:choiceMode="singleChoice"
+            android:layout_marginTop="8dp"
             android:paddingBottom="48dp" />
     </FrameLayout>
 </android.support.v4.widget.DrawerLayout>
