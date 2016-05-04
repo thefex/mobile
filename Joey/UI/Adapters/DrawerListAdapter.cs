@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Android.Views;
 using Android.Widget;
 using Toggl.Joey.UI.Utils;
@@ -14,6 +16,8 @@ namespace Toggl.Joey.UI.Adapters
         public static readonly int SettingsPageId = 2;
         public static readonly int LogoutPageId = 3;
         public static readonly int FeedbackPageId = 4;
+        public static readonly int RegisterUserPageId = 5;
+        public static readonly int LoginPageId = 6;
         private List<DrawerItem> rowItems;
 
         public DrawerListAdapter()
@@ -54,8 +58,36 @@ namespace Toggl.Joey.UI.Adapters
                     TextResId = Resource.String.MainDrawerLogout,
                     ImageResId = Resource.Drawable.IcNavLogout,
                     IsEnabled = true,
+                    VMode = VisibilityMode.Normal,
+                },
+                new DrawerItem()
+                {
+                    Id = LoginPageId,
+                    TextResId = Resource.String.MainDrawerLogin,
+                    ImageResId = Resource.Drawable.IcNavLogout,
+                    IsEnabled = true,
+                    VMode = VisibilityMode.Offline,
                 }
             };
+            rowItems = FilterVisible(rowItems);
+        }
+
+        bool isNoUserMode
+        {
+            get
+            {
+                return String.IsNullOrEmpty(Phoebe.Reactive.StoreManager.Singleton.AppState.User.ApiToken);
+            }
+        }
+
+        private List<DrawerItem> FilterVisible(List<DrawerItem> list)
+        {
+            Func<DrawerItem, bool> filter = item =>
+                                            !(item.VMode == VisibilityMode.Normal && isNoUserMode) &&
+                                            !(item.VMode == VisibilityMode.Offline && !isNoUserMode);
+
+            return list.Where(filter)
+                   .ToList();
         }
 
         public override View GetView(int position, View convertView, ViewGroup parent)
@@ -113,6 +145,22 @@ namespace Toggl.Joey.UI.Adapters
             public int ImageResId;
             public int ChildOf = 0;
             public bool IsEnabled;
+            public bool Expanded = false;
+            public VisibilityMode VMode = VisibilityMode.Both;
+
+            public DrawerItem With(List<DrawerItem> subItems)
+            {
+                return new DrawerItem
+                {
+                    Id = this.Id,
+                    TextResId = this.TextResId,
+                    ImageResId = this.ImageResId,
+                    ChildOf = this.ChildOf,
+                    IsEnabled = this.IsEnabled,
+                    Expanded = this.Expanded,
+                    VMode = this.VMode,
+                };
+            }
         }
 
         private class DrawerItemViewHolder : BindableViewHolder<DrawerItem>
@@ -138,6 +186,12 @@ namespace Toggl.Joey.UI.Adapters
                 TitleTextView.SetText(DataSource.TextResId);
                 TitleTextView.Enabled = DataSource.IsEnabled;
             }
+        }
+        public enum VisibilityMode
+        {
+            Normal,
+            Offline,
+            Both
         }
     }
 }

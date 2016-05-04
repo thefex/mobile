@@ -102,6 +102,12 @@
     <style name="Login">
     </style>
 
+    <style name="Login.TextInputLayout" parent="@android:style/TextAppearance">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">#ffffff</item>
+        <item name="android:textColorHint">#ffffff</item>
+    </style>
+
     <style name="Login.Input" parent="@android:style/TextAppearance">
         <item name="android:textSize">18sp</item>
         <item name="android:textColor">#ffffff</item>

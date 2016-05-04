@@ -17,6 +17,7 @@ using Toggl.Phoebe.Reactive;
 using ActionBarDrawerToggle = Android.Support.V7.App.ActionBarDrawerToggle;
 using Fragment = Android.Support.V4.App.Fragment;
 using Toolbar = Android.Support.V7.Widget.Toolbar;
+using Android.Content;
 
 namespace Toggl.Joey.UI.Activities
 {
@@ -298,10 +299,18 @@ namespace Toggl.Joey.UI.Activities
             {
                 OpenPage(DrawerListAdapter.FeedbackPageId);
             }
+            else if (e.Id == DrawerListAdapter.LoginPageId)
+            {
+                OpenLogin();
+            }
 
             DrawerLayout.CloseDrawers();
         }
-
+        public void OpenLogin()
+        {
+            var intent = new Intent(this, typeof(LoginActivity));
+            StartActivityForResult(intent, LoginActivity.LoginRequestCode);
+        }
         public TimerComponent Timer
         {
             get { return barTimer; }

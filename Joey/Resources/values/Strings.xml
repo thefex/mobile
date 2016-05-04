@@ -117,6 +117,7 @@
     <string name="MainDrawerFeedback">Feedback</string>
     <string name="MainDrawerSettings">Settings</string>
     <string name="MainDrawerLogout">Log out</string>
+    <string name="MainDrawerLogin">Log in</string>
     <string name="ChangeTimeEntryDurationDialogTitle">Set duration</string>
     <string name="ChangeTimeEntryDurationDialogCancel">Cancel</string>
     <string name="ChangeTimeEntryDurationDialogOk">Ok</string>

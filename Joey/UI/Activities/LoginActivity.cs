@@ -25,6 +25,8 @@ using Android.Gms.Auth.Api;
 using Android.Support.V4.App;
 using Toggl.Phoebe.Net;
 using Toggl.Phoebe.Helpers;
+using Activity = Android.Support.V7.App.AppCompatActivity;
+using Toolbar = Android.Support.V7.Widget.Toolbar;
 
 namespace Toggl.Joey.UI.Activities
 {
@@ -33,7 +35,7 @@ namespace Toggl.Joey.UI.Activities
          ScreenOrientation = ScreenOrientation.Portrait,
          WindowSoftInputMode = SoftInput.StateHidden,
          Theme = "@style/Theme.Toggl.Login")]
-    public class LoginActivity : FragmentActivity, ViewTreeObserver.IOnGlobalLayoutListener,
+    public class LoginActivity : Activity, ViewTreeObserver.IOnGlobalLayoutListener,
         GoogleApiClient.IConnectionCallbacks, GoogleApiClient.IOnConnectionFailedListener
     {
         const string LogTag = "LoginActivity";
@@ -42,6 +44,7 @@ namespace Toggl.Joey.UI.Activities
         const string KEY_IS_RESOLVING = "is_resolving";
         const string KEY_SHOULD_RESOLVE = "should_resolve";
         const string ExtraShowPassword = "com.toggl.timer.show_password";
+        public const int LoginRequestCode = 10;
 
         private GoogleApiClient mGoogleApiClient;
         // State variables for Google Login, not exactly needed.
@@ -63,6 +66,7 @@ namespace Toggl.Joey.UI.Activities
         protected Button LoginButton { get; private set; }
         protected TextView LegalTextView { get; private set; }
         protected Button GoogleLoginButton { get; private set; }
+        protected Toolbar LoginToolbar { get; private set; }
 
         private Binding<bool, bool> isAuthencticatedBinding, isAuthenticatingBinding;
         private Binding<LoginVM.LoginMode, LoginVM.LoginMode> modeBinding;
@@ -106,6 +110,7 @@ namespace Toggl.Joey.UI.Activities
             LoginButton = FindViewById<Button> (Resource.Id.LoginButton).SetFont(Font.Roboto);
             LegalTextView = FindViewById<TextView> (Resource.Id.LegalTextView).SetFont(Font.RobotoLight);
             GoogleLoginButton = FindViewById<Button> (Resource.Id.GoogleLoginButton).SetFont(Font.Roboto);
+            LoginToolbar = FindViewById<Toolbar> (Resource.Id.LoginActivityToolbar);
 
             ScrollView.ViewTreeObserver.AddOnGlobalLayoutListener(this);
 
@@ -119,6 +124,10 @@ namespace Toggl.Joey.UI.Activities
             SwitchModeButton.Click += OnModeToggleButtonClick;
             hasGoogleAccounts = GoogleAccounts.Count > 0;
             GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+            SetSupportActionBar(LoginToolbar);
+            SupportActionBar.SetDisplayHomeAsUpEnabled(true);
+            SupportActionBar.SetDisplayShowTitleEnabled(false);
+
 
             if (savedInstanceState != null)
             {
@@ -272,6 +281,12 @@ namespace Toggl.Joey.UI.Activities
             }
         }
         #endregion
+
+        public override bool OnOptionsItemSelected(IMenuItem item)
+        {
+            OnBackPressed();
+            return base.OnOptionsItemSelected(item);
+        }
 
         #region Btn events
         private void OnLoginButtonClick(object sender, EventArgs e)

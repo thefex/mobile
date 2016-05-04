@@ -830,6 +830,10 @@
     <AndroidResource Include="Resources\drawable-mdpi\img_reports.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\img_reports.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\IcGoogleWhite.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\IcGoogleWhite.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\IcGoogleWhite.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\IcGoogleWhite.png" />
     <AndroidResource Include="Resources\menu\ReportsToolbarMenu.axml" />
     <AndroidResource Include="Resources\drawable\splash_drawable.xml" />
   </ItemGroup>
