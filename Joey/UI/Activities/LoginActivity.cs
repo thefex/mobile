@@ -240,7 +240,7 @@ namespace Toggl.Joey.UI.Activities
         {
             LoginButton.Enabled = !ViewModel.IsAuthenticating &&
                                   ViewModel.IsEmailValid(EmailEditText.Text) &&
-                                  ViewModel.IsPassValid(PasswordEditText.Text);
+                                  (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login || ViewModel.IsPassValid(PasswordEditText.Text));
         }
 
         private void SetPasswordVisibility()
