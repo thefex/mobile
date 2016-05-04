@@ -1,7 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using GalaSoft.MvvmLight;
 using PropertyChanged;
 using Toggl.Phoebe.Analytics;
@@ -11,8 +13,6 @@ using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels.Timer;
 using XPlatUtils;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace Toggl.Phoebe.ViewModels

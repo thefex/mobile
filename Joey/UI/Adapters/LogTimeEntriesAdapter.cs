@@ -11,6 +11,7 @@ using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels;
 using Toggl.Phoebe.ViewModels.Timer;
 using XPlatUtils;
@@ -124,6 +125,14 @@ namespace Toggl.Joey.UI.Adapters
             }
             footerState = state;
             NotifyItemChanged(ItemCount - 1);
+        }
+
+        public static bool isNoUserMode
+        {
+            get
+            {
+                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
+            }
         }
 
         #region IUndo interface implementation
@@ -440,7 +449,7 @@ namespace Toggl.Joey.UI.Adapters
                 var entryData = datasource.Entry.Data;
                 var ctx = ServiceContainer.Resolve<Context> ();
 
-                if (entryData.RemoteId.HasValue && entryData.SyncState == SyncState.Synced)
+                if (LogTimeEntriesAdapter.isNoUserMode || (entryData.RemoteId.HasValue && entryData.SyncState == SyncState.Synced))
                 {
                     NotSyncedView.Visibility = ViewStates.Gone;
                 }

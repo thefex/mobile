@@ -233,7 +233,10 @@ namespace Toggl.Joey.UI.Fragments
         #region Sync
         public void OnRefresh()
         {
-            ViewModel.TriggerFullSync();
+            if (!isNoUserMode)
+                ViewModel.TriggerFullSync();
+            else
+                swipeLayout.Refreshing = false;
         }
 
         private void OnActiveEntryChanged()
@@ -246,6 +249,14 @@ namespace Toggl.Joey.UI.Fragments
                 intent.PutStringArrayListExtra(EditTimeEntryActivity.ExtraGroupedTimeEntriesGuids, ids);
                 intent.PutExtra(EditTimeEntryActivity.IsGrouped,  false);
                 StartActivity(intent);
+            }
+        }
+
+        bool isNoUserMode
+        {
+            get
+            {
+                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
             }
         }
 
@@ -267,17 +278,17 @@ namespace Toggl.Joey.UI.Fragments
         private void SetFooterState()
         {
             var info = ViewModel.LoadInfo;
-            if (info.HasMore && !info.HadErrors)
+            if (isNoUserMode || (!info.HasMore && !info.HadErrors))
+            {
+                logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Finished);
+            }
+            else if (info.HasMore && !info.HadErrors)
             {
                 logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Loading);
             }
             else if (info.HasMore && info.HadErrors)
             {
                 logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Retry);
-            }
-            else if (!info.HasMore && !info.HadErrors)
-            {
-                logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Finished);
             }
         }
 
