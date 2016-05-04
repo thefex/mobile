@@ -77,6 +77,10 @@ namespace Toggl.Phoebe.Data
             new ServerResponse(new Data.ServerRequest.CRUD(new ICommonData[] { }), data);
         }
 
+        public sealed class NoUserState : DataMsg
+        {
+        }
+
         public sealed class ResetState : DataMsg
         {
         }

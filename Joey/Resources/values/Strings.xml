@@ -237,4 +237,8 @@
     <string name="TimeEntriesListFooterTryAgain">Try again</string>
     <string name="EditTimeEntrySyncFailed">This time entry has failed to sync correctly</string>
 	<string name="Experiment93Text">Start your timer here.</string>
+    <string name="IntroTitle">New to toggl?</string>
+    <string name="IntroStartTracking">Get started</string>
+    <string name="IntroLoginButtonText">Sign in</string>
+    <string name="IntroLoginText">Already have an account?</string>
 </resources>

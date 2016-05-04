@@ -67,7 +67,7 @@ namespace Toggl.Joey.UI.Fragments
         {
             var view = inflater.Inflate(Resource.Layout.LogTimeEntriesListFragment, container, false);
             view.FindViewById<TextView> (Resource.Id.EmptyTextTextView).SetFont(Font.RobotoLight);
-
+            var user = Phoebe.Reactive.StoreManager.Singleton.AppState.User;
             coordinatorLayout = view.FindViewById<CoordinatorLayout> (Resource.Id.logCoordinatorLayout);
             experimentEmptyView = view.FindViewById<View> (Resource.Id.ExperimentEmptyMessageView);
             emptyMessageView = view.FindViewById<View> (Resource.Id.EmptyMessageView);

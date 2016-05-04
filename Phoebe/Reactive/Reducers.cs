@@ -90,6 +90,7 @@ namespace Toggl.Phoebe.Reactive
                    .Add(typeof(DataMsg.ClientDataPut), ClientDataPut)
                    .Add(typeof(DataMsg.ProjectDataPut), ProjectDataPut)
                    .Add(typeof(DataMsg.UserDataPut), UserDataPut)
+                   .Add(typeof(DataMsg.NoUserState), NoUserState)
                    .Add(typeof(DataMsg.ResetState), Reset)
                    .Add(typeof(DataMsg.InitStateAfterMigration), InitStateAfterMigration)
                    .Add(typeof(DataMsg.UpdateSetting), UpdateSettings)
@@ -514,6 +515,41 @@ namespace Toggl.Phoebe.Reactive
             })));
             // TODO: Check updated.Count == 1?
             return DataSyncMsg.Create(updated, state.With(timeEntries: state.UpdateTimeEntries(updated)));
+        }
+
+        static DataSyncMsg<AppState> NoUserState(AppState state, DataMsg msg)
+        {
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+
+            var userData = new UserData();
+            var workspaces = new Dictionary<Guid, IWorkspaceData>();
+
+            var wsGuid = Guid.NewGuid();
+            var userId = Guid.NewGuid();
+            Console.WriteLine("userID: {0}, wsGuid: {1}", userId, wsGuid);
+            userData.Id = userId;
+            userData.Name = "testUser";
+            userData.StartOfWeek = DayOfWeek.Monday;
+            userData.Locale = "";
+            userData.Email = "test.user@toggl.com";
+            userData.Timezone = Time.TimeZoneId;
+            userData.DefaultWorkspaceId = wsGuid;
+
+            var workspace = new WorkspaceData();
+            workspace.Id = wsGuid;
+            workspace.Name = "testWorkspace";
+            workspace.IsPremium = false;
+            workspace.IsAdmin = false;
+
+            workspaces.Add(wsGuid, workspace);
+//            dataStore.Table<WorkspaceData>().ForEach(x => workspaces.Add(x.Id, x));
+
+            return DataSyncMsg.Create(state.With(
+                                          requestInfo: state.RequestInfo.With(authResult: AuthResult.Success),
+                                          user: userData,
+                                          workspaces: workspaces,
+                                          settings: state.Settings.With(userId: userData.Id)
+                                      ));
         }
 
         static DataSyncMsg<AppState> Reset(AppState state, DataMsg msg)

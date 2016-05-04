@@ -177,7 +177,11 @@ namespace Toggl.Joey.UI.Fragments
                               .ConvertSourceToTarget(dateTime => dateTime.ToDeviceTimeString());
             projectBinding = this.SetBinding(() => ViewModel.ProjectName, () => ProjectField.TextField.Text);
             clientBinding = this.SetBinding(() => ViewModel.ClientName, () => ProjectField.AssistViewTitle);
-            tagBinding = this.SetBinding(() => ViewModel.Tags, () => TagsField.TagNames);
+            tagBinding = this.SetBinding(() => ViewModel.Tags).WhenSourceChanges(() =>
+            {
+                TagsField.TagNames = ViewModel.Tags;
+            }
+                                                                                );
             descriptionBinding = this.SetBinding(() => ViewModel.Description, () => DescriptionField.TextField.Text);
             isPremiumBinding = this.SetBinding(() => ViewModel.IsPremium, () => BillableCheckBox.Visibility)
                                .ConvertSourceToTarget(isVisible => isVisible ? ViewStates.Visible : ViewStates.Gone);

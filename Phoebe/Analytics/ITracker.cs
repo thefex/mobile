@@ -16,5 +16,10 @@ namespace Toggl.Phoebe.Analytics
         void SendAccountLogoutEvent();
         void SendTimerStartEvent(TimerStartSource startSource);
         void SendTimerStopEvent(TimerStopSource stopSource);
+
+        // No user mode events
+        void SendIntroModeEvent(UserMode mode);
+        void SendToRegisterScreenEvent(RegisterSource source);
+        void SendRegisterEvent(AccountCredentials credentialsType);
     }
 }

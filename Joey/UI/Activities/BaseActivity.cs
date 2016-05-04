@@ -27,7 +27,7 @@ namespace Toggl.Joey.UI.Activities
             var user = Phoebe.Reactive.StoreManager.Singleton.AppState.User;
             if (user.Id == Guid.Empty)
             {
-                var intent = new Intent(this, typeof(LoginActivity));
+                var intent = new Intent(this, typeof(IntroActivity));
                 intent.AddFlags(ActivityFlags.ClearTop);
                 StartActivity(intent);
                 Finish();

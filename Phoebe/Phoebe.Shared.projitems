@@ -18,6 +18,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\ProjectsCollectionVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\TagListVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\TimeEntryCollectionVM.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\IntroVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\Timer\DateHolder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\Timer\TimeEntryGroup.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\Timer\TimeEntryHolder.cs" />
@@ -125,6 +126,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Data\DatabaseMigrator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Data\DatabaseHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Misc\IOldSettingsStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Analytics\RegisterSource.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Analytics\UserMode.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Data\Models\Old\" />
