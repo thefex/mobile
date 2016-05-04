@@ -543,8 +543,11 @@ namespace Toggl.Phoebe.Reactive
                 x.DefaultWorkspaceId = workspace.Id;
             });
 
-            dataStore.Update(ctx => { ctx.Put(userData); });
-            dataStore.Update(ctx => { ctx.Put(workspace); });
+            dataStore.Update(ctx =>
+            {
+                ctx.Put(userData);
+                ctx.Put(workspace);
+            });
 
             return DataSyncMsg.Create(state.With(
                                           requestInfo: state.RequestInfo.With(authResult: AuthResult.Success),
