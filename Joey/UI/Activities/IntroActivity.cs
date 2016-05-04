@@ -1,21 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Support.V4.App;
-using Android.Support.V4.View;
 using Android.Views;
 using Android.Widget;
 using GalaSoft.MvvmLight.Helpers;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Analytics;
-using Toggl.Phoebe.ViewModels;
-using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Net;
+using Toggl.Phoebe.ViewModels;
 using XPlatUtils;
 using Fragment = Android.Support.V4.App.Fragment;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
@@ -65,9 +61,14 @@ namespace Toggl.Joey.UI.Activities
                         StartActivity(intent);
                         Finish();
                         break;
-
                 }
             });
+        }
+
+        protected override void OnStart()
+        {
+            base.OnStart();
+            ServiceContainer.Resolve<ITracker> ().CurrentScreen = "Intro";
         }
 
         private void LoginButtonClick(object sender, EventArgs e)

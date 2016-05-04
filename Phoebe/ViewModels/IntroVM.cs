@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Threading.Tasks;
-using GalaSoft.MvvmLight;
-using PropertyChanged;
-using Toggl.Phoebe.Analytics;
-using Toggl.Phoebe.Logging;
-using Toggl.Phoebe.Net;
-using XPlatUtils;
-using Toggl.Phoebe.Reactive;
-using Toggl.Phoebe.Data;
 using System.Reactive.Linq;
 using System.Threading;
+using GalaSoft.MvvmLight;
+using PropertyChanged;
+using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Helpers;
+using Toggl.Phoebe.Net;
+using Toggl.Phoebe.Reactive;
 
 namespace Toggl.Phoebe.ViewModels
 {
