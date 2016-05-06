@@ -1,50 +1,44 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Android.Accounts;
 using Android.App;
+using Android.App;
 using Android.Content;
-using Android.Content.PM;
 using Android.Gms.Auth;
+using Android.Gms.Auth.Api;
+using Android.Gms.Auth.Api.SignIn;
 using Android.Gms.Common;
+using Android.Gms.Common.Apis;
 using Android.OS;
 using Android.Text;
 using Android.Text.Style;
 using Android.Views;
 using Android.Widget;
+using GalaSoft.MvvmLight.Helpers;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
+using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Logging;
+using Toggl.Phoebe.Net;
+using Toggl.Phoebe.ViewModels;
 using XPlatUtils;
 using DialogFragment = Android.Support.V4.App.DialogFragment;
-using Toggl.Phoebe.ViewModels;
-using GalaSoft.MvvmLight.Helpers;
-using Android.Gms.Common.Apis;
-using Android.Gms.Auth.Api.SignIn;
-using Android.Gms.Auth.Api;
-using Android.Support.V4.App;
-using Toggl.Phoebe.Net;
-using Toggl.Phoebe.Helpers;
-using Activity = Android.Support.V7.App.AppCompatActivity;
-using Toolbar = Android.Support.V7.Widget.Toolbar;
+using Fragment = Android.Support.V4.App.Fragment;
+using FragmentManager = Android.Support.V4.App.FragmentManager;
 
-namespace Toggl.Joey.UI.Activities
+namespace Toggl.Joey.UI.Fragments
 {
-    [Activity(
-         Exported = false,
-         ScreenOrientation = ScreenOrientation.Portrait,
-         WindowSoftInputMode = SoftInput.StateHidden,
-         Theme = "@style/Theme.Toggl.Login")]
-    public class LoginActivity : Activity, ViewTreeObserver.IOnGlobalLayoutListener,
-        GoogleApiClient.IConnectionCallbacks, GoogleApiClient.IOnConnectionFailedListener
+    public class LoginFragment : Fragment,
+        GoogleApiClient.IConnectionCallbacks,
+        GoogleApiClient.IOnConnectionFailedListener
     {
-        const string LogTag = "LoginActivity";
+        const string LogTag = "LoginFragment";
 
         const int RC_SIGN_IN = 9001;
         const string KEY_IS_RESOLVING = "is_resolving";
         const string KEY_SHOULD_RESOLVE = "should_resolve";
         const string ExtraShowPassword = "com.toggl.timer.show_password";
-        public const int LoginRequestCode = 10;
 
         private GoogleApiClient mGoogleApiClient;
         // State variables for Google Login, not exactly needed.
@@ -63,7 +57,7 @@ namespace Toggl.Joey.UI.Activities
         protected AutoCompleteTextView EmailEditText { get; private set; }
         protected EditText PasswordEditText { get; private set; }
         protected Button PasswordToggleButton { get; private set; }
-        protected Button LoginButton { get; private set; }
+        protected Button SubmitButton { get; private set; }
         protected TextView LegalTextView { get; private set; }
         protected Button GoogleLoginButton { get; private set; }
         protected Toolbar LoginToolbar { get; private set; }
@@ -74,47 +68,29 @@ namespace Toggl.Joey.UI.Activities
 
         private ArrayAdapter<string> MakeEmailsAdapter()
         {
-            var am = AccountManager.Get(this);
+            var am = AccountManager.Get(Activity);
             var emails = am.GetAccounts()
                          .Select(a => a.Name)
                          .Where(a => a.Contains("@"))
                          .Distinct()
                          .ToList();
-            return new ArrayAdapter<string> (this, Android.Resource.Layout.SelectDialogItem, emails);
+            return new ArrayAdapter<string> (Activity, Android.Resource.Layout.SelectDialogItem, emails);
         }
 
-        void ViewTreeObserver.IOnGlobalLayoutListener.OnGlobalLayout()
+        public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
-            // Move scroll and let the logo visible.
-            var position = new int[2];
-            bigLogo.GetLocationInWindow(position);
-            if (topLogoPosition == 0 && position[1] != 0)
-            {
-                topLogoPosition = position[1] + Convert.ToInt32(bigLogo.Height * 0.2);
-            }
-            ScrollView.SmoothScrollTo(0, topLogoPosition);
-        }
+            var view = inflater.Inflate(Resource.Layout.ConnectLayout, container, false);
 
-        protected override void OnCreate(Bundle savedInstanceState)
-        {
-            base.OnCreate(savedInstanceState);
+//            view.FindViewById<TextView> (Resource.Id.SwitchViewText).SetFont(Font.RobotoLight);
+            SwitchModeButton = view.FindViewById<Button> (Resource.Id.SwitchViewButton);
+            EmailEditText = view.FindViewById<AutoCompleteTextView> (Resource.Id.EmailAutoCompleteTextView).SetFont(Font.RobotoLight);
+            PasswordEditText = view.FindViewById<EditText> (Resource.Id.PasswordEditText).SetFont(Font.RobotoLight);
+            PasswordToggleButton = view.FindViewById<Button> (Resource.Id.PasswordToggleButton).SetFont(Font.Roboto);
+            SubmitButton = view.FindViewById<Button> (Resource.Id.SubmitButton).SetFont(Font.Roboto);
+            LegalTextView = view.FindViewById<TextView> (Resource.Id.LegalTextView).SetFont(Font.RobotoLight);
+            GoogleLoginButton = view.FindViewById<Button> (Resource.Id.GoogleLoginButton).SetFont(Font.Roboto);
 
-            SetContentView(Resource.Layout.LoginActivity);
-            ScrollView = FindViewById<ScrollView> (Resource.Id.ScrollView);
-            FindViewById<TextView> (Resource.Id.SwitchViewText).SetFont(Font.RobotoLight);
-            bigLogo = FindViewById<ImageView> (Resource.Id.MainLogoLoginScreen);
-            SwitchModeButton = FindViewById<Button> (Resource.Id.SwitchViewButton);
-            EmailEditText = FindViewById<AutoCompleteTextView> (Resource.Id.EmailAutoCompleteTextView).SetFont(Font.RobotoLight);
-            PasswordEditText = FindViewById<EditText> (Resource.Id.PasswordEditText).SetFont(Font.RobotoLight);
-            PasswordToggleButton = FindViewById<Button> (Resource.Id.PasswordToggleButton).SetFont(Font.Roboto);
-            LoginButton = FindViewById<Button> (Resource.Id.LoginButton).SetFont(Font.Roboto);
-            LegalTextView = FindViewById<TextView> (Resource.Id.LegalTextView).SetFont(Font.RobotoLight);
-            GoogleLoginButton = FindViewById<Button> (Resource.Id.GoogleLoginButton).SetFont(Font.Roboto);
-            LoginToolbar = FindViewById<Toolbar> (Resource.Id.LoginActivityToolbar);
-
-            ScrollView.ViewTreeObserver.AddOnGlobalLayoutListener(this);
-
-            LoginButton.Click += OnLoginButtonClick;
+            SubmitButton.Click += OnLoginButtonClick;
             GoogleLoginButton.Click += OnGoogleLoginButtonClick;
             EmailEditText.Adapter = MakeEmailsAdapter();
             EmailEditText.Threshold = 1;
@@ -124,10 +100,6 @@ namespace Toggl.Joey.UI.Activities
             SwitchModeButton.Click += OnModeToggleButtonClick;
             hasGoogleAccounts = GoogleAccounts.Count > 0;
             GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
-            SetSupportActionBar(LoginToolbar);
-            SupportActionBar.SetDisplayHomeAsUpEnabled(true);
-            SupportActionBar.SetDisplayShowTitleEnabled(false);
-
 
             if (savedInstanceState != null)
             {
@@ -140,19 +112,21 @@ namespace Toggl.Joey.UI.Activities
             GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DefaultSignIn)
             .RequestEmail()
             .Build();
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-            .EnableAutoManage(this, this)
+            mGoogleApiClient = new GoogleApiClient.Builder(Activity)
+            .EnableAutoManage(Activity, this)
             .AddConnectionCallbacks(this)
             .AddOnConnectionFailedListener(this)
             .AddApi(Auth.GOOGLE_SIGN_IN_API, gso)
             .Build();
 
             ViewModel = new LoginVM();
+
+            return view;
         }
 
-        protected override void OnStart()
+        public override void OnViewCreated(View view, Bundle savedInstanceState)
         {
-            base.OnStart();
+            base.OnViewCreated(view, savedInstanceState);
 
             isAuthenticatingBinding = this.SetBinding(() => ViewModel.IsAuthenticating).WhenSourceChanges(SetViewState);
             modeBinding = this.SetBinding(() => ViewModel.CurrentLoginMode).WhenSourceChanges(SetViewState);
@@ -166,12 +140,6 @@ namespace Toggl.Joey.UI.Activities
                         break;
 
                     case AuthResult.Success:
-                        // TODO RX: Start the initial sync for the user
-                        //ServiceContainer.Resolve<ISyncManager> ().Run ();
-                        var intent = new Intent(this, typeof(MainDrawerActivity));
-                        intent.AddFlags(ActivityFlags.ClearTop);
-                        StartActivity(intent);
-                        Finish();
                         break;
 
                     // Error cases
@@ -194,9 +162,9 @@ namespace Toggl.Joey.UI.Activities
             });
         }
 
-        protected override void OnSaveInstanceState(Bundle outState)
+        public override void OnSaveInstanceState(Bundle outState)
         {
-            base.OnSaveInstanceState(outState);
+//            base.OnSaveInstanceState(outState);
             outState.PutBoolean(ExtraShowPassword, showPassword);
             outState.PutBoolean(KEY_IS_RESOLVING, mIsResolving);
             outState.PutBoolean(KEY_SHOULD_RESOLVE, mIsResolving);
@@ -206,21 +174,21 @@ namespace Toggl.Joey.UI.Activities
         private void SetViewState()
         {
             // Views not loaded yet/anymore?
-            if (LoginButton == null)
+            if (SubmitButton == null)
             {
                 return;
             }
 
             if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
             {
-                LoginButton.SetText(ViewModel.IsAuthenticating ? Resource.String.LoginButtonProgressText : Resource.String.LoginButtonText);
+                SubmitButton.SetText(ViewModel.IsAuthenticating ? Resource.String.LoginButtonProgressText : Resource.String.LoginButtonText);
                 LegalTextView.Visibility = ViewStates.Gone;
                 GoogleLoginButton.SetText(Resource.String.LoginGoogleButtonText);
                 SwitchModeButton.SetText(Resource.String.SignupViewButtonText);
             }
             else
             {
-                LoginButton.SetText(ViewModel.IsAuthenticating ? Resource.String.LoginButtonSignupProgressText : Resource.String.LoginSignupButtonText);
+                SubmitButton.SetText(ViewModel.IsAuthenticating ? Resource.String.LoginButtonSignupProgressText : Resource.String.LoginSignupButtonText);
                 LegalTextView.SetText(FormattedLegalText, TextView.BufferType.Spannable);
                 LegalTextView.MovementMethod = Android.Text.Method.LinkMovementMethod.Instance;
                 LegalTextView.Visibility = ViewStates.Visible;
@@ -238,9 +206,9 @@ namespace Toggl.Joey.UI.Activities
 
         private void SetLoginBtnState()
         {
-            LoginButton.Enabled = !ViewModel.IsAuthenticating &&
-                                  ViewModel.IsEmailValid(EmailEditText.Text) &&
-                                  (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login || ViewModel.IsPassValid(PasswordEditText.Text));
+            SubmitButton.Enabled = !ViewModel.IsAuthenticating &&
+                                   ViewModel.IsEmailValid(EmailEditText.Text) &&
+                                   (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login || ViewModel.IsPassValid(PasswordEditText.Text));
         }
 
         private void SetPasswordVisibility()
@@ -280,15 +248,7 @@ namespace Toggl.Joey.UI.Activities
                 PasswordEditText.SetSelection(selectionStart, selectionEnd);
             }
         }
-        #endregion
 
-        public override bool OnOptionsItemSelected(IMenuItem item)
-        {
-            OnBackPressed();
-            return base.OnOptionsItemSelected(item);
-        }
-
-        #region Btn events
         private void OnLoginButtonClick(object sender, EventArgs e)
         {
             // Small UI trick to permit OBM testers
@@ -298,7 +258,7 @@ namespace Toggl.Joey.UI.Activities
                 var isStaging = !Settings.IsStaging;
                 Settings.IsStaging = isStaging;
                 var msg = !isStaging ? "You're in Normal Mode" : "You're in Staging Mode";
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(Activity)
                 .SetTitle("Staging Mode")
                 .SetMessage(msg + "\nRestart the app to continue.")
                 .SetPositiveButton("Ok", (EventHandler<DialogClickEventArgs>)null)
@@ -313,7 +273,7 @@ namespace Toggl.Joey.UI.Activities
         {
             mShouldResolve = true;
             Intent signInIntent = Auth.GoogleSignInApi.GetSignInIntent(mGoogleApiClient);
-            StartActivityForResult(signInIntent, RC_SIGN_IN);
+//            StartActivityForResult(signInIntent, RC_SIGN_IN);
         }
 
         private void OnModeToggleButtonClick(object sender, EventArgs e)
@@ -340,25 +300,35 @@ namespace Toggl.Joey.UI.Activities
         #endregion
 
         #region Google Login methods
-        protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
-        {
-            base.OnActivityResult(requestCode, resultCode, data);
 
-            if (requestCode == RC_SIGN_IN)
-            {
-                mIsResolving = false;
-                GoogleSignInResult result = Auth.GoogleSignInApi.GetSignInResultFromIntent(data);
-                if (result.IsSuccess)
-                {
-                    GoogleSignInAccount acct = result.SignInAccount;
-                    ViewModel.TryLoginWithGoogle(acct.Id);
-                }
-                else
-                {
-                    ShowAuthError(string.Empty, AuthResult.GoogleError, LoginVM.LoginMode.Login);
-                }
-            }
-        }
+//        public void Dispose ()
+//        {
+//        }
+//
+//        public IntPtr Handle {
+//            get {
+//                return IntPtr.Zero;
+//            }
+//        }
+//        protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
+//        {
+////            base.OnActivityResult(requestCode, resultCode, data);
+//
+//            if (requestCode == RC_SIGN_IN)
+//            {
+//                mIsResolving = false;
+//                GoogleSignInResult result = Auth.GoogleSignInApi.GetSignInResultFromIntent(data);
+//                if (result.IsSuccess)
+//                {
+//                    GoogleSignInAccount acct = result.SignInAccount;
+//                    ViewModel.TryLoginWithGoogle(acct.Id);
+//                }
+//                else
+//                {
+//                    ShowAuthError(string.Empty, AuthResult.GoogleError, LoginVM.LoginMode.Login);
+//                }
+//            }
+//        }
 
         public void OnConnected(Bundle connectionHint)
         {
@@ -383,7 +353,7 @@ namespace Toggl.Joey.UI.Activities
                 {
                     try
                     {
-                        result.StartResolutionForResult(this, RC_SIGN_IN);
+                        result.StartResolutionForResult(Activity, RC_SIGN_IN);
                         mIsResolving = true;
                     }
                     catch (IntentSender.SendIntentException e)
@@ -404,7 +374,7 @@ namespace Toggl.Joey.UI.Activities
         {
             get
             {
-                var am = AccountManager.Get(this);
+                var am = AccountManager.Get(Activity);
                 return am.GetAccounts()
                        .Where(a => a.Type == GoogleAuthUtil.GoogleAccountType)
                        .Select(a => a.Name)
@@ -449,13 +419,13 @@ namespace Toggl.Joey.UI.Activities
 
             if (dia != null)
             {
-                dia.Show(SupportFragmentManager, "auth_result_dialog");
+//                dia.Show(SupportFragmentManager, "auth_result_dialog");
             }
         }
 
         private void ShowMsgDialog(int title, int message)
         {
-            var dialog = new AlertDialog.Builder(this)
+            var dialog = new AlertDialog.Builder(Activity)
             .SetTitle(title)
             .SetMessage(message)
             .SetPositiveButton(Resource.String.LoginInvalidCredentialsDialogOk, delegate {})
@@ -537,9 +507,9 @@ namespace Toggl.Joey.UI.Activities
             {
                 if (formattedLegalText == null)
                 {
-                    var template = Resources.GetText(Resource.String.LoginSignupLegalText);
-                    var arg0 = Resources.GetText(Resource.String.LoginSignupLegalTermsText);
-                    var arg1 = Resources.GetText(Resource.String.LoginSignupLegalPrivacyText);
+                    var template = Activity.Resources.GetText(Resource.String.LoginSignupLegalText);
+                    var arg0 = Activity.Resources.GetText(Resource.String.LoginSignupLegalTermsText);
+                    var arg1 = Activity.Resources.GetText(Resource.String.LoginSignupLegalPrivacyText);
 
                     var arg0idx = string.Format(template, "{0}", arg1).IndexOf("{0}", StringComparison.Ordinal);
                     var arg1idx = string.Format(template, arg0, "{1}").IndexOf("{1}", StringComparison.Ordinal);

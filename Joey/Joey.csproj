@@ -189,7 +189,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UI\Activities\LoginActivity.cs" />
     <Compile Include="AndroidApp.cs" />
     <Compile Include="UI\Activities\BaseActivity.cs" />
     <Compile Include="AndroidNotificationManager.cs" />
@@ -262,6 +261,7 @@
     <Compile Include="Net\InstanceIdListenerService.cs" />
     <Compile Include="Net\GcmRegistrationIntentService.cs" />
     <Compile Include="Net\GcmListenerService.cs" />
+    <Compile Include="UI\Fragments\LoginFragment.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -274,7 +274,6 @@
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\values\Strings.xml" />
-    <AndroidResource Include="Resources\layout\LoginActivity.axml" />
     <AndroidResource Include="Resources\values\Plurals.xml" />
     <AndroidResource Include="Resources\drawable-hdpi\IcDialogAlertHoloLight.png" />
     <AndroidResource Include="Resources\drawable-mdpi\IcDialogAlertHoloLight.png" />
@@ -745,10 +744,6 @@
     <AndroidResource Include="Resources\drawable\DropShadowVerticalReverse.xml" />
     <AndroidResource Include="Resources\drawable-v21\play_button_background.xml" />
     <AndroidResource Include="Resources\drawable\play_button_background.xml" />
-    <AndroidResource Include="Resources\drawable-hdpi\bgLoginScreen.png" />
-    <AndroidResource Include="Resources\drawable-mdpi\bgLoginScreen.png" />
-    <AndroidResource Include="Resources\drawable-xhdpi\bgLoginScreen.png" />
-    <AndroidResource Include="Resources\drawable-xxhdpi\bgLoginScreen.png" />
     <AndroidResource Include="Resources\drawable\ButtonRed.xml" />
     <AndroidResource Include="Resources\drawable\ButtonRedDefault.xml" />
     <AndroidResource Include="Resources\drawable\ButtonRedDisabled.xml" />
@@ -757,7 +752,6 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\IcGoogle.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\IcGoogle.png" />
     <AndroidResource Include="Resources\color\ButtonRedTextColor.xml" />
-    <AndroidResource Include="Resources\drawable\LoginBackground.xml" />
     <AndroidResource Include="Resources\drawable\swipe_background_shape.xml" />
     <AndroidResource Include="Resources\drawable-xxhdpi\icTasks.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\icTasksSelected.png" />
@@ -834,6 +828,7 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\IcGoogleWhite.png" />
     <AndroidResource Include="Resources\menu\ReportsToolbarMenu.axml" />
     <AndroidResource Include="Resources\drawable\splash_drawable.xml" />
+    <AndroidResource Include="Resources\layout\ConnectLayout.axml" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>

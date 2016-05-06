@@ -41,6 +41,7 @@ namespace Toggl.Joey.UI.Activities
         private readonly Lazy<SettingsListFragment> settingsFragment = new Lazy<SettingsListFragment> ();
         private readonly Lazy<ReportsPagerFragment> reportFragment = new Lazy<ReportsPagerFragment> ();
         private readonly Lazy<FeedbackFragment> feedbackFragment = new Lazy<FeedbackFragment> ();
+        private readonly Lazy<LoginFragment> loginFragment = new Lazy<LoginFragment> ();
         private readonly List<int> pageStack = new List<int> ();
         private DrawerListAdapter drawerAdapter;
         private ToolbarModes toolbarMode;
@@ -62,6 +63,7 @@ namespace Toggl.Joey.UI.Activities
         private FrameLayout DrawerSyncView { get; set; }
 
         public Toolbar MainToolbar { get; set; }
+
         bool isNoUserMode
         {
             get
@@ -228,6 +230,11 @@ namespace Toggl.Joey.UI.Activities
                 SupportActionBar.SetTitle(Resource.String.MainDrawerFeedback);
                 OpenFragment(feedbackFragment.Value);
             }
+            else if (id == DrawerListAdapter.LoginPageId)
+            {
+                SupportActionBar.SetTitle(Resource.String.MainDrawerLogin);
+                OpenFragment(loginFragment.Value);
+            }
             else
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerTimer);
@@ -307,16 +314,12 @@ namespace Toggl.Joey.UI.Activities
             }
             else if (e.Id == DrawerListAdapter.LoginPageId)
             {
-                OpenLogin();
+                OpenPage(DrawerListAdapter.LoginPageId);
             }
 
             DrawerLayout.CloseDrawers();
         }
-        public void OpenLogin()
-        {
-            var intent = new Intent(this, typeof(LoginActivity));
-            StartActivityForResult(intent, LoginActivity.LoginRequestCode);
-        }
+
         public TimerComponent Timer
         {
             get { return barTimer; }
