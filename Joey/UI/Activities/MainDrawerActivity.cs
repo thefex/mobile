@@ -291,7 +291,6 @@ namespace Toggl.Joey.UI.Activities
             else if (e.Id == DrawerListAdapter.LogoutPageId)
             {
                 RxChain.Send(new DataMsg.ResetState());
-                StartAuthActivity();
             }
             else if (e.Id == DrawerListAdapter.ReportsPageId)
             {

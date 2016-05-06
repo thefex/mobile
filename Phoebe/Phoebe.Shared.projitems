@@ -18,7 +18,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\ProjectsCollectionVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\TagListVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\TimeEntryCollectionVM.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\IntroVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\Timer\DateHolder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\Timer\TimeEntryGroup.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\Timer\TimeEntryHolder.cs" />

@@ -90,7 +90,7 @@ namespace Toggl.Phoebe.Reactive
                    .Add(typeof(DataMsg.ClientDataPut), ClientDataPut)
                    .Add(typeof(DataMsg.ProjectDataPut), ProjectDataPut)
                    .Add(typeof(DataMsg.UserDataPut), UserDataPut)
-                   .Add(typeof(DataMsg.NoUserState), NoUserState)
+                   .Add(typeof(DataMsg.InitState), InitState)
                    .Add(typeof(DataMsg.ResetState), Reset)
                    .Add(typeof(DataMsg.InitStateAfterMigration), InitStateAfterMigration)
                    .Add(typeof(DataMsg.UpdateSetting), UpdateSettings)
@@ -517,7 +517,7 @@ namespace Toggl.Phoebe.Reactive
             return DataSyncMsg.Create(updated, state.With(timeEntries: state.UpdateTimeEntries(updated)));
         }
 
-        static DataSyncMsg<AppState> NoUserState(AppState state, DataMsg msg)
+        static DataSyncMsg<AppState> InitState(AppState state, DataMsg msg)
         {
             var workspace = WorkspaceData.Create(x =>
             {

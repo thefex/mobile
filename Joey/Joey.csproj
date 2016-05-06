@@ -190,7 +190,6 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UI\Activities\LoginActivity.cs" />
-    <Compile Include="UI\Activities\IntroActivity.cs" />
     <Compile Include="AndroidApp.cs" />
     <Compile Include="UI\Activities\BaseActivity.cs" />
     <Compile Include="AndroidNotificationManager.cs" />
@@ -276,7 +275,6 @@
   <ItemGroup>
     <AndroidResource Include="Resources\values\Strings.xml" />
     <AndroidResource Include="Resources\layout\LoginActivity.axml" />
-    <AndroidResource Include="Resources\layout\IntroActivity.axml" />
     <AndroidResource Include="Resources\values\Plurals.xml" />
     <AndroidResource Include="Resources\drawable-hdpi\IcDialogAlertHoloLight.png" />
     <AndroidResource Include="Resources\drawable-mdpi\IcDialogAlertHoloLight.png" />

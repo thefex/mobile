@@ -2,6 +2,8 @@
 using System.IO;
 using Android.Content;
 using Android.OS;
+using Toggl.Phoebe.Data;
+using Toggl.Phoebe.Reactive;
 using Activity = Android.Support.V7.App.AppCompatActivity;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
 
@@ -27,7 +29,8 @@ namespace Toggl.Joey.UI.Activities
             var user = Phoebe.Reactive.StoreManager.Singleton.AppState.User;
             if (user.Id == Guid.Empty)
             {
-                var intent = new Intent(this, typeof(IntroActivity));
+                RxChain.Send(new DataMsg.InitState());
+                var intent = new Intent(this, typeof(MainDrawerActivity));
                 intent.AddFlags(ActivityFlags.ClearTop);
                 StartActivity(intent);
                 Finish();
@@ -74,11 +77,6 @@ namespace Toggl.Joey.UI.Activities
                 }, 5000);
             }
             app.MarkLaunched();
-        }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
         }
 
         public new FragmentManager FragmentManager

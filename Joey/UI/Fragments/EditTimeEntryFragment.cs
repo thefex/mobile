@@ -10,13 +10,12 @@ using GalaSoft.MvvmLight.Helpers;
 using Toggl.Joey.UI.Activities;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
+using Toggl.Phoebe.Reactive;
+using Toggl.Phoebe.ViewModels;
 using ActionBar = Android.Support.V7.App.ActionBar;
 using Activity = Android.Support.V7.App.AppCompatActivity;
 using Fragment = Android.Support.V4.App.Fragment;
 using Toolbar = Android.Support.V7.Widget.Toolbar;
-using Toggl.Phoebe.ViewModels;
-using Toggl.Phoebe.Reactive;
-using Toggl.Phoebe.Data.Models;
 
 namespace Toggl.Joey.UI.Fragments
 {
