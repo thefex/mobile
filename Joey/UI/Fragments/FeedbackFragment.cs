@@ -4,13 +4,15 @@ using Android.Content;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
-using XPlatUtils;
+using Toggl.Joey.UI.Activities;
+using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
+using Toggl.Phoebe.Reactive;
+using Toggl.Phoebe.ViewModels;
+using XPlatUtils;
 using Fragment = Android.Support.V4.App.Fragment;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
-using Toggl.Phoebe.ViewModels;
-using Toggl.Phoebe.Reactive;
 
 namespace Toggl.Joey.UI.Fragments
 {
@@ -23,7 +25,7 @@ namespace Toggl.Joey.UI.Fragments
         private EditText feedbackMessageEditText;
         private LinearLayout feedbackContainer;
         private LinearLayout disclaimerContainer;
-        private Button noUserRegisterButton;
+        private Button CTALoginButton;
         private int userRating;
         private String userMessage;
         private bool isSendingFeedback;
@@ -54,7 +56,10 @@ namespace Toggl.Joey.UI.Fragments
 
             feedbackContainer = view.FindViewById<LinearLayout> (Resource.Id.FeedbackContainer);
             disclaimerContainer = view.FindViewById<LinearLayout> (Resource.Id.FeedbackDisclaimer);
-            noUserRegisterButton = view.FindViewById<Button> (Resource.Id.FeedbackRegisterButton);
+            CTALoginButton = view.FindViewById<Button> (Resource.Id.FeedbackRegisterButton);
+
+            var activity = (MainDrawerActivity)Activity;
+            CTALoginButton.Click += (sender, e) => activity.OpenPage(DrawerListAdapter.LoginPageId);
 
             SetRating(userRating);
 

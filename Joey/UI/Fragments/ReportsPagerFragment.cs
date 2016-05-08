@@ -7,13 +7,14 @@ using Android.OS;
 using Android.Views;
 using Android.Widget;
 using Toggl.Joey.UI.Activities;
+using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Utils;
 using Toggl.Phoebe;
+using Toggl.Phoebe.Analytics;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.Reports;
-using Toggl.Phoebe.Analytics;
 using XPlatUtils;
 using Fragment = Android.Support.V4.App.Fragment;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
@@ -44,7 +45,7 @@ namespace Toggl.Joey.UI.Fragments
         private Animator currentAnimation;
         private LinearLayout reportsContainer;
         private LinearLayout nouserDisclaimer;
-        private Button noUserRegisterButton;
+        private Button CTALoginButton;
 
         public ZoomLevel ZoomLevel
         {
@@ -139,14 +140,15 @@ namespace Toggl.Joey.UI.Fragments
             syncRetry = view.FindViewById<ImageButton> (Resource.Id.ReportsSyncRetryButton);
             reportsContainer = view.FindViewById<LinearLayout> (Resource.Id.ReportsContainer);
             nouserDisclaimer = view.FindViewById<LinearLayout> (Resource.Id.NoUserDisclaimer);
-            noUserRegisterButton = view.FindViewById<Button> (Resource.Id.ReportsRegisterButton);
+            CTALoginButton = view.FindViewById<Button> (Resource.Id.ReportsRegisterButton);
+
+            var activity = (MainDrawerActivity)Activity;
+            toolbar = activity.MainToolbar;
 
             previousPeriod.Click += (sender, e) => NavigatePage(-1);
             nextPeriod.Click += (sender, e) => NavigatePage(1);
             syncRetry.Click += async(sender, e) => await ReloadCurrent();
-
-            var activity = (MainDrawerActivity)Activity;
-            toolbar = activity.MainToolbar;
+            CTALoginButton.Click += (sender, e) => activity.OpenPage(DrawerListAdapter.LoginPageId);
 
             HasOptionsMenu = true;
 

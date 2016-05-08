@@ -202,7 +202,7 @@ namespace Toggl.Joey.UI.Activities
             DrawerListView.SetItemChecked(pos, true);
         }
 
-        private void OpenPage(int id)
+        public void OpenPage(int id)
         {
             if (id == DrawerListAdapter.SettingsPageId)
             {
