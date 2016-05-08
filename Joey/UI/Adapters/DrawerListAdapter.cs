@@ -119,7 +119,7 @@ namespace Toggl.Joey.UI.Adapters
         public int GetItemPosition(int id)
         {
             var idx = rowItems.FindIndex(i => i.Id == id);
-            return idx >= 0 ? idx + 1 : -1;
+            return idx >= 0 ? idx : -1;
         }
 
         private DrawerItem GetDrawerItem(int position)
