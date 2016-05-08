@@ -81,7 +81,7 @@ namespace Toggl.Joey.UI.Fragments
         {
             var view = inflater.Inflate(Resource.Layout.ConnectLayout, container, false);
 
-//            view.FindViewById<TextView> (Resource.Id.SwitchViewText).SetFont(Font.RobotoLight);
+            view.FindViewById<TextView> (Resource.Id.SwitchViewText).SetFont(Font.RobotoLight);
             SwitchModeButton = view.FindViewById<Button> (Resource.Id.SwitchViewButton);
             EmailEditText = view.FindViewById<AutoCompleteTextView> (Resource.Id.EmailAutoCompleteTextView).SetFont(Font.RobotoLight);
             PasswordEditText = view.FindViewById<EditText> (Resource.Id.PasswordEditText).SetFont(Font.RobotoLight);
