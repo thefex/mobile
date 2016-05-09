@@ -44,8 +44,6 @@ namespace Toggl.Joey.UI.Fragments
         private ImageButton syncRetry;
         private Animator currentAnimation;
         private LinearLayout reportsContainer;
-        private LinearLayout nouserDisclaimer;
-        private Button CTALoginButton;
 
         public ZoomLevel ZoomLevel
         {
@@ -139,38 +137,16 @@ namespace Toggl.Joey.UI.Fragments
             syncErrorBar = view.FindViewById<FrameLayout> (Resource.Id.ReportsSyncBar);
             syncRetry = view.FindViewById<ImageButton> (Resource.Id.ReportsSyncRetryButton);
             reportsContainer = view.FindViewById<LinearLayout> (Resource.Id.ReportsContainer);
-            nouserDisclaimer = view.FindViewById<LinearLayout> (Resource.Id.NoUserDisclaimer);
-            CTALoginButton = view.FindViewById<Button> (Resource.Id.ReportsRegisterButton);
-
-            var activity = (MainDrawerActivity)Activity;
-            toolbar = activity.MainToolbar;
-
             previousPeriod.Click += (sender, e) => NavigatePage(-1);
             nextPeriod.Click += (sender, e) => NavigatePage(1);
             syncRetry.Click += async(sender, e) => await ReloadCurrent();
-            CTALoginButton.Click += (sender, e) => activity.OpenPage(DrawerListAdapter.LoginPageId);
-
             HasOptionsMenu = true;
 
             ResetAdapter();
             UpdatePeriod();
 
-            // TODO Rx Settings.
-            // find a correct way
             viewPager.CurrentItem = StoreManager.Singleton.AppState.Settings.ReportsCurrentItem;
-
-            nouserDisclaimer.Visibility = isNoUserMode ? ViewStates.Visible : ViewStates.Gone;
-            reportsContainer.Visibility = isNoUserMode ? ViewStates.Gone : ViewStates.Visible;
-
             return view;
-        }
-
-        bool isNoUserMode
-        {
-            get
-            {
-                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
-            }
         }
 
         public override void OnDestroyView()
@@ -366,11 +342,11 @@ namespace Toggl.Joey.UI.Fragments
                 if (ZoomLevel == ZoomLevel.Week)
                 {
                     var endDate = ResolveEndDate(startDate);
-                    return String.Format("{0:MMM dd}th - {1:MMM dd}th", startDate, endDate);
+                    return string.Format("{0:MMM dd}th - {1:MMM dd}th", startDate, endDate);
                 }
                 else if (ZoomLevel == ZoomLevel.Month)
                 {
-                    return String.Format("{0:M}", startDate);
+                    return string.Format("{0:M}", startDate);
                 }
                 return startDate.Year.ToString();
             }

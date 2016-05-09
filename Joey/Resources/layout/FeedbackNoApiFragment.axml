@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ScrollView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout
+        android:id="@+id/FeedbackDisclaimer"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#D94E4E4E"
+        android:padding="15dp"
+        android:gravity="center">
+        <ImageView
+            android:src="@drawable/ic_feedback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:text="@string/FeedbackDisclaimerTitle"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:textSize="32sp"
+            android:textColor="@android:color/white" />
+        <TextView
+            android:text="@string/FeedbackDisclaimerText"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:textSize="16sp"
+            android:textColor="@android:color/white" />
+        <Button
+            android:id="@+id/FeedbackRegisterButton"
+            android:text="@string/NoUserSignupText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="35dp"
+            style="@style/Intro.Button"
+            android:textAllCaps="true"
+            android:drawableRight="@drawable/ic_arrow"
+            android:drawablePadding="10dp"
+            android:background="@color/material_green"
+            android:layout_gravity="center"
+            android:paddingRight="30dp"
+            android:paddingLeft="30dp" />
+    </LinearLayout>
+</ScrollView>

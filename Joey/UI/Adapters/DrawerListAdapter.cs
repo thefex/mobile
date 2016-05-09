@@ -26,35 +26,35 @@ namespace Toggl.Joey.UI.Adapters
         {
             rowItems = new List<DrawerItem> ()
             {
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = TimerPageId,
                     TextResId = Resource.String.MainDrawerTimer,
                     ImageResId = Resource.Drawable.IcNavTimer,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = ReportsPageId,
                     TextResId = Resource.String.MainDrawerReports,
                     ImageResId = Resource.Drawable.IcNavReports,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = SettingsPageId,
                     TextResId = Resource.String.MainDrawerSettings,
                     ImageResId = Resource.Drawable.IcNavSettings,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = FeedbackPageId,
                     TextResId = Resource.String.MainDrawerFeedback,
                     ImageResId = Resource.Drawable.IcNavFeedback,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = LogoutPageId,
                     TextResId = Resource.String.MainDrawerLogout,
@@ -62,7 +62,7 @@ namespace Toggl.Joey.UI.Adapters
                     IsEnabled = true,
                     VMode = VisibilityMode.Normal,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = LoginPageId,
                     TextResId = Resource.String.MainDrawerLogin,
@@ -82,19 +82,11 @@ namespace Toggl.Joey.UI.Adapters
             rowItems = FilterVisible(rowItems);
         }
 
-        bool isNoUserMode
-        {
-            get
-            {
-                return String.IsNullOrEmpty(Phoebe.Reactive.StoreManager.Singleton.AppState.User.ApiToken);
-            }
-        }
-
         private List<DrawerItem> FilterVisible(List<DrawerItem> list)
         {
             Func<DrawerItem, bool> filter = item =>
-                                            !(item.VMode == VisibilityMode.Normal && isNoUserMode) &&
-                                            !(item.VMode == VisibilityMode.Offline && !isNoUserMode);
+                                            !(item.VMode == VisibilityMode.Normal) &&
+                                            !(item.VMode == VisibilityMode.Offline);
 
             return list.Where(filter)
                    .ToList();

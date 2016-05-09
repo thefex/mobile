@@ -5,47 +5,6 @@
     android:layout_height="match_parent"
     android:gravity="center_vertical">
     <LinearLayout
-        android:id="@+id/NoUserDisclaimer"
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/img_reports"
-        android:gravity="bottom"
-        android:layout_gravity="center_horizontal"
-        android:paddingBottom="40dp">
-        <TextView
-            android:text="@string/ReportsDisclaimerTitle"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:textSize="32sp"
-            android:textColor="@android:color/white" />
-        <TextView
-            android:text="@string/ReportsDisclaimerText"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:layout_marginTop="10dp"
-            android:textSize="16sp"
-            android:textColor="@android:color/white" />
-        <Button
-            android:id="@+id/ReportsRegisterButton"
-            android:text="@string/NoUserSignupText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="35dp"
-            style="@style/Intro.Button"
-            android:textAllCaps="true"
-            android:drawableRight="@drawable/ic_arrow"
-            android:drawablePadding="10dp"
-            android:background="@color/material_green"
-            android:layout_gravity="center"
-            android:paddingRight="30dp"
-            android:paddingLeft="30dp" />
-    </LinearLayout>
-    <LinearLayout
         android:id="@+id/ReportsContainer"
         android:orientation="vertical"
         android:layout_width="match_parent"

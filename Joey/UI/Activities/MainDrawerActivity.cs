@@ -40,38 +40,34 @@ namespace Toggl.Joey.UI.Activities
         private readonly TimerComponent barTimer = new TimerComponent();
         private readonly Lazy<LogTimeEntriesListFragment> trackingFragment = new Lazy<LogTimeEntriesListFragment> ();
         private readonly Lazy<SettingsListFragment> settingsFragment = new Lazy<SettingsListFragment> ();
-        private readonly Lazy<ReportsPagerFragment> reportFragment = new Lazy<ReportsPagerFragment> ();
-        private readonly Lazy<FeedbackFragment> feedbackFragment = new Lazy<FeedbackFragment> ();
         private readonly Lazy<LoginFragment> loginFragment = new Lazy<LoginFragment> ();
+        private readonly Lazy<ReportsPagerFragment> reportFragment = new Lazy<ReportsPagerFragment>();
+        private readonly Lazy<ReportsNoApiFragment> reportNoApiFragment = new Lazy<ReportsNoApiFragment> ();
+        private readonly Lazy<FeedbackFragment> feedbackFragment = new Lazy<FeedbackFragment>();
+        private readonly Lazy<FeedbackNoApiFragment> feedbackNoApiFragment = new Lazy<FeedbackNoApiFragment> ();
+
         private readonly List<int> pageStack = new List<int> ();
         private DrawerListAdapter drawerAdapter;
         private ToolbarModes toolbarMode;
 
         private ListView DrawerListView { get; set; }
-
         private TextView DrawerUserName { get; set; }
-
         private TextView DrawerEmail { get; set; }
-
         private ProfileImageView DrawerImage { get; set; }
-
         private View DrawerUserView { get; set; }
-
         private DrawerLayout DrawerLayout { get; set; }
-
         protected ActionBarDrawerToggle DrawerToggle { get; private set; }
-
         private FrameLayout DrawerSyncView { get; set; }
-
         public Toolbar MainToolbar { get; set; }
 
-        bool isNoUserMode
+        bool userWithoutApiToken
         {
             get
             {
-                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
+                return string.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
             }
         }
+
         protected override void OnCreateActivity(Bundle state)
         {
             base.OnCreateActivity(state);
@@ -84,14 +80,11 @@ namespace Toggl.Joey.UI.Activities
             DrawerUserName = DrawerUserView.FindViewById<TextView> (Resource.Id.TitleTextView);
             DrawerEmail = DrawerUserView.FindViewById<TextView> (Resource.Id.EmailTextView);
             DrawerImage = DrawerUserView.FindViewById<ProfileImageView> (Resource.Id.IconProfileImageView);
-            if (!isNoUserMode)
-                DrawerListView.AddHeaderView(DrawerUserView);
             DrawerListView.Adapter = drawerAdapter = new DrawerListAdapter();
             DrawerListView.ItemClick += OnDrawerListViewItemClick;
 
             DrawerLayout = FindViewById<DrawerLayout> (Resource.Id.DrawerLayout);
             DrawerToggle = new ActionBarDrawerToggle(this, DrawerLayout, MainToolbar, Resource.String.EntryName, Resource.String.EntryName);
-
             DrawerLayout.SetDrawerShadow(Resource.Drawable.drawershadow, (int)GravityFlags.Start);
             DrawerLayout.SetDrawerListener(DrawerToggle);
 
@@ -212,24 +205,29 @@ namespace Toggl.Joey.UI.Activities
             }
             else if (id == DrawerListAdapter.ReportsPageId)
             {
-                if (reportFragment.Value.ZoomLevel == ZoomLevel.Week)
+                if (userWithoutApiToken)
                 {
-                    SupportActionBar.SetTitle(Resource.String.MainDrawerReportsWeek);
-                }
-                else if (reportFragment.Value.ZoomLevel == ZoomLevel.Month)
-                {
-                    SupportActionBar.SetTitle(Resource.String.MainDrawerReportsMonth);
+                    SupportActionBar.SetTitle(Resource.String.MainDrawerReports);
+                    OpenFragment(reportNoApiFragment.Value);
                 }
                 else
                 {
-                    SupportActionBar.SetTitle(Resource.String.MainDrawerReportsYear);
+                    if (reportFragment.Value.ZoomLevel == ZoomLevel.Week)
+                        SupportActionBar.SetTitle(Resource.String.MainDrawerReportsWeek);
+                    else if (reportFragment.Value.ZoomLevel == ZoomLevel.Month)
+                        SupportActionBar.SetTitle(Resource.String.MainDrawerReportsMonth);
+                    else
+                        SupportActionBar.SetTitle(Resource.String.MainDrawerReportsYear);
+                    OpenFragment(reportFragment.Value);
                 }
-                OpenFragment(reportFragment.Value);
             }
             else if (id == DrawerListAdapter.FeedbackPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerFeedback);
-                OpenFragment(feedbackFragment.Value);
+                if (userWithoutApiToken)
+                    OpenFragment(feedbackNoApiFragment.Value);
+                else
+                    OpenFragment(feedbackFragment.Value);
             }
             else if (id == DrawerListAdapter.LoginPageId)
             {
@@ -281,6 +279,7 @@ namespace Toggl.Joey.UI.Activities
 
         private void OnDrawerListViewItemClick(object sender, ListView.ItemClickEventArgs e)
         {
+
             // If tap outside options just close drawer
             if (e.Id == -1)
             {
@@ -301,7 +300,6 @@ namespace Toggl.Joey.UI.Activities
             if (e.Id == DrawerListAdapter.TimerPageId)
             {
                 OpenPage(DrawerListAdapter.TimerPageId);
-
             }
             else if (e.Id == DrawerListAdapter.LogoutPageId)
             {
@@ -314,7 +312,6 @@ namespace Toggl.Joey.UI.Activities
             else if (e.Id == DrawerListAdapter.SettingsPageId)
             {
                 OpenPage(DrawerListAdapter.SettingsPageId);
-
             }
             else if (e.Id == DrawerListAdapter.FeedbackPageId)
             {

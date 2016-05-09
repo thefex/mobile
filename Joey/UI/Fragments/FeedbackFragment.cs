@@ -23,11 +23,8 @@ namespace Toggl.Joey.UI.Fragments
         private ImageButton feedbackNegativeButton;
         private Button submitFeedbackButton;
         private EditText feedbackMessageEditText;
-        private LinearLayout feedbackContainer;
-        private LinearLayout disclaimerContainer;
-        private Button CTALoginButton;
         private int userRating;
-        private String userMessage;
+        private string userMessage;
         private bool isSendingFeedback;
 
         private static readonly int ratingNotSet = 0;
@@ -53,16 +50,7 @@ namespace Toggl.Joey.UI.Fragments
 
             submitFeedbackButton = view.FindViewById<Button> (Resource.Id.SendFeedbackButton).SetFont(Font.Roboto);
             submitFeedbackButton.Click += OnSendClick;
-
-            feedbackContainer = view.FindViewById<LinearLayout> (Resource.Id.FeedbackContainer);
-            disclaimerContainer = view.FindViewById<LinearLayout> (Resource.Id.FeedbackDisclaimer);
-            CTALoginButton = view.FindViewById<Button> (Resource.Id.FeedbackRegisterButton);
-
-            var activity = (MainDrawerActivity)Activity;
-            CTALoginButton.Click += (sender, e) => activity.OpenPage(DrawerListAdapter.LoginPageId);
-
             SetRating(userRating);
-
             return view;
         }
 
@@ -70,9 +58,6 @@ namespace Toggl.Joey.UI.Fragments
         {
             base.OnViewCreated(view, savedInstanceState);
             ViewModel = new FeedbackVM(StoreManager.Singleton.AppState);
-
-            disclaimerContainer.Visibility = ViewModel.IsNoUserMode ? ViewStates.Visible : ViewStates.Gone;
-            feedbackContainer.Visibility = ViewModel.IsNoUserMode ? ViewStates.Gone : ViewStates.Visible;
         }
 
         public override void OnCreate(Bundle savedInstanceState)
