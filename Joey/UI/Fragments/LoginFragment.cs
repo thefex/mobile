@@ -48,18 +48,14 @@ namespace Toggl.Joey.UI.Fragments
         private bool hasGoogleAccounts;
         private bool showPassword;
         private ISpannable formattedLegalText;
-        private int topLogoPosition;
-        private ImageView bigLogo;
-
         protected LoginVM ViewModel { get; private set; }
         protected ScrollView ScrollView { get; private set; }
-        protected Button SwitchModeButton { get; private set; }
         protected AutoCompleteTextView EmailEditText { get; private set; }
         protected EditText PasswordEditText { get; private set; }
         protected Button PasswordToggleButton { get; private set; }
         protected Button SubmitButton { get; private set; }
         protected TextView LegalTextView { get; private set; }
-        protected Button GoogleLoginButton { get; private set; }
+        protected TextView GoogleLoginText { get; private set; }
         protected Toolbar LoginToolbar { get; private set; }
 
         private Binding<bool, bool> isAuthencticatedBinding, isAuthenticatingBinding;
@@ -81,25 +77,22 @@ namespace Toggl.Joey.UI.Fragments
         {
             var view = inflater.Inflate(Resource.Layout.ConnectLayout, container, false);
 
-            view.FindViewById<TextView> (Resource.Id.SwitchViewText).SetFont(Font.RobotoLight);
-            SwitchModeButton = view.FindViewById<Button> (Resource.Id.SwitchViewButton);
             EmailEditText = view.FindViewById<AutoCompleteTextView> (Resource.Id.EmailAutoCompleteTextView).SetFont(Font.RobotoLight);
             PasswordEditText = view.FindViewById<EditText> (Resource.Id.PasswordEditText).SetFont(Font.RobotoLight);
             PasswordToggleButton = view.FindViewById<Button> (Resource.Id.PasswordToggleButton).SetFont(Font.Roboto);
             SubmitButton = view.FindViewById<Button> (Resource.Id.SubmitButton).SetFont(Font.Roboto);
             LegalTextView = view.FindViewById<TextView> (Resource.Id.LegalTextView).SetFont(Font.RobotoLight);
-            GoogleLoginButton = view.FindViewById<Button> (Resource.Id.GoogleLoginButton).SetFont(Font.Roboto);
+            GoogleLoginText = view.FindViewById<TextView> (Resource.Id.GoogleLoginButton).SetFont(Font.Roboto);
 
             SubmitButton.Click += OnLoginButtonClick;
-            GoogleLoginButton.Click += OnGoogleLoginButtonClick;
+            GoogleLoginText.Click += OnGoogleLoginButtonClick;
             EmailEditText.Adapter = MakeEmailsAdapter();
             EmailEditText.Threshold = 1;
             EmailEditText.TextChanged += OnEmailEditTextTextChanged;
             PasswordEditText.TextChanged += OnPasswordEditTextTextChanged;
             PasswordToggleButton.Click += OnPasswordToggleButtonClick;
-            SwitchModeButton.Click += OnModeToggleButtonClick;
             hasGoogleAccounts = GoogleAccounts.Count > 0;
-            GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+            GoogleLoginText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
 
             if (savedInstanceState != null)
             {
@@ -183,8 +176,7 @@ namespace Toggl.Joey.UI.Fragments
             {
                 SubmitButton.SetText(ViewModel.IsAuthenticating ? Resource.String.LoginButtonProgressText : Resource.String.LoginButtonText);
                 LegalTextView.Visibility = ViewStates.Gone;
-                GoogleLoginButton.SetText(Resource.String.LoginGoogleButtonText);
-                SwitchModeButton.SetText(Resource.String.SignupViewButtonText);
+                GoogleLoginText.SetText(Resource.String.LoginGoogleButtonText);
             }
             else
             {
@@ -192,13 +184,12 @@ namespace Toggl.Joey.UI.Fragments
                 LegalTextView.SetText(FormattedLegalText, TextView.BufferType.Spannable);
                 LegalTextView.MovementMethod = Android.Text.Method.LinkMovementMethod.Instance;
                 LegalTextView.Visibility = ViewStates.Visible;
-                GoogleLoginButton.SetText(Resource.String.LoginSignupGoogleButtonText);
-                SwitchModeButton.SetText(Resource.String.LoginViewButtonText);
+                GoogleLoginText.SetText(Resource.String.LoginSignupGoogleButtonText);
             }
 
             EmailEditText.Enabled = !ViewModel.IsAuthenticating;
             PasswordEditText.Enabled = !ViewModel.IsAuthenticating;
-            GoogleLoginButton.Enabled = !ViewModel.IsAuthenticating;
+            GoogleLoginText.Enabled = !ViewModel.IsAuthenticating;
 
             SetLoginBtnState();
             SetPasswordVisibility();
@@ -274,11 +265,6 @@ namespace Toggl.Joey.UI.Fragments
             mShouldResolve = true;
             Intent signInIntent = Auth.GoogleSignInApi.GetSignInIntent(mGoogleApiClient);
 //            StartActivityForResult(signInIntent, RC_SIGN_IN);
-        }
-
-        private void OnModeToggleButtonClick(object sender, EventArgs e)
-        {
-            ViewModel.ChangeLoginMode();
         }
 
         private void OnEmailEditTextTextChanged(object sender, TextChangedEventArgs e)
@@ -495,8 +481,7 @@ namespace Toggl.Joey.UI.Fragments
             public override void UpdateDrawState(TextPaint ds)
             {
                 base.UpdateDrawState(ds);
-                ds.UnderlineText = false;
-                ds.SetTypeface(Android.Graphics.Typeface.DefaultBold);
+                ds.UnderlineText = true;
             }
         }
 
