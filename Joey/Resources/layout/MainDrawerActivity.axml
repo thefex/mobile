@@ -38,13 +38,46 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@drawable/BgArrowsFull">
-        <ListView
-            android:id="@+id/DrawerListView"
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:divider="@null"
-            android:choiceMode="singleChoice"
-            android:layout_marginTop="8dp"
-            android:paddingBottom="48dp" />
+            android:layout_height="match_parent">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <Toggl.Joey.UI.Views.ProfileImageView
+                    android:id="@+id/IconProfileImageView"
+                    android:layout_height="56dp"
+                    android:layout_width="match_parent"
+                    android:gravity="center_horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:layout_marginTop="16dp" />
+                <TextView
+                    android:id="@+id/TitleTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:gravity="center_horizontal"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#de4e4e4e" />
+                <TextView
+                    android:id="@+id/EmailTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:gravity="center_horizontal"
+                    android:layout_marginBottom="14dp"
+                    android:textColor="#de4e4e4e" />
+            </LinearLayout>
+            <ListView
+                android:id="@+id/DrawerListView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@null"
+                android:choiceMode="singleChoice"
+                android:layout_marginTop="8dp"
+                android:paddingBottom="48dp" />
+        </LinearLayout>
     </FrameLayout>
 </android.support.v4.widget.DrawerLayout>

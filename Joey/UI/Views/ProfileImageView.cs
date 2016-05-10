@@ -28,8 +28,7 @@ namespace Toggl.Joey.UI.Views
         {
         }
 
-        private string imageUrl;
-
+        private string imageUrl = "noimage";
         public string ImageUrl
         {
             get { return imageUrl; }
@@ -127,7 +126,14 @@ namespace Toggl.Joey.UI.Views
             this.imageUrl = imageUrl;
 
             Bitmap bitmap = null;
-            if (imageUrl != null)
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                bitmap = BitmapFactory.DecodeResource(Resources, Resource.Drawable.profile);
+                bitmap = ScaleImage(bitmap, Resources.DisplayMetrics);
+                bitmap = CropImage(bitmap);
+                bitmap = MakeImageRound(bitmap);
+            }
+            else
             {
                 bitmap = await GetImage(imageUrl);
             }

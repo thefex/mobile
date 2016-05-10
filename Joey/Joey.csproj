@@ -385,7 +385,6 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\DividerVerticalLeftOpaque.9.png" />
     <AndroidResource Include="Resources\layout\TimeTrackingFragment.axml" />
     <AndroidResource Include="Resources\layout\MainDrawerListItem.axml" />
-    <AndroidResource Include="Resources\layout\MainDrawerListHeader.axml" />
     <AndroidResource Include="Resources\layout\MainDrawerActivity.axml" />
     <AndroidResource Include="Resources\drawable-hdpi\DrawerShadow.9.png" />
     <AndroidResource Include="Resources\drawable-mdpi\DrawerShadow.9.png" />
@@ -833,6 +832,11 @@
     <AndroidResource Include="Resources\layout\ConnectLayout.axml" />
     <AndroidResource Include="Resources\layout\ReportsNoApiFragment.axml" />
     <AndroidResource Include="Resources\layout\FeedbackNoApiFragment.axml" />
+    <AndroidResource Include="Resources\drawable-ldpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\profile.png" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>
@@ -846,6 +850,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\drawable-ldpi\" />
   </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" />
   <Import Project="..\packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\dotnet\Fody.targets')" />

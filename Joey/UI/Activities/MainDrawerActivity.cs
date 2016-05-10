@@ -54,7 +54,6 @@ namespace Toggl.Joey.UI.Activities
         private TextView DrawerUserName { get; set; }
         private TextView DrawerEmail { get; set; }
         private ProfileImageView DrawerImage { get; set; }
-        private View DrawerUserView { get; set; }
         private DrawerLayout DrawerLayout { get; set; }
         protected ActionBarDrawerToggle DrawerToggle { get; private set; }
         private FrameLayout DrawerSyncView { get; set; }
@@ -76,10 +75,9 @@ namespace Toggl.Joey.UI.Activities
 
             MainToolbar = FindViewById<Toolbar> (Resource.Id.MainToolbar);
             DrawerListView = FindViewById<ListView> (Resource.Id.DrawerListView);
-            DrawerUserView = LayoutInflater.Inflate(Resource.Layout.MainDrawerListHeader, null);
-            DrawerUserName = DrawerUserView.FindViewById<TextView> (Resource.Id.TitleTextView);
-            DrawerEmail = DrawerUserView.FindViewById<TextView> (Resource.Id.EmailTextView);
-            DrawerImage = DrawerUserView.FindViewById<ProfileImageView> (Resource.Id.IconProfileImageView);
+            DrawerUserName = FindViewById<TextView> (Resource.Id.TitleTextView);
+            DrawerEmail = FindViewById<TextView> (Resource.Id.EmailTextView);
+            DrawerImage = FindViewById<ProfileImageView> (Resource.Id.IconProfileImageView);
             DrawerListView.Adapter = drawerAdapter = new DrawerListAdapter();
             DrawerListView.ItemClick += OnDrawerListViewItemClick;
 
@@ -126,7 +124,6 @@ namespace Toggl.Joey.UI.Activities
             DrawerImage.ImageUrl = userData.ImageUrl;
 
             // Make sure that the user will see newest data when they start the activity
-            //ServiceContainer.Resolve<ISyncManager> ().Run ();
             RxChain.Send(new ServerRequest.GetChanges());
         }
 
