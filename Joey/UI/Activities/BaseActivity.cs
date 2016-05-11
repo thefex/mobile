@@ -17,7 +17,6 @@ namespace Toggl.Joey.UI.Activities
 
         private const int SyncErrorMenuItemId = 0;
         protected readonly Handler Handler = new Handler();
-        private int syncCount;
 
         /// <summary>
         /// The activity that is currently in the foreground.

@@ -90,7 +90,6 @@ namespace Toggl.Phoebe.Reactive
                    .Add(typeof(DataMsg.ClientDataPut), ClientDataPut)
                    .Add(typeof(DataMsg.ProjectDataPut), ProjectDataPut)
                    .Add(typeof(DataMsg.UserDataPut), UserDataPut)
-                   .Add(typeof(DataMsg.InitState), InitState)
                    .Add(typeof(DataMsg.ResetState), Reset)
                    .Add(typeof(DataMsg.InitStateAfterMigration), InitStateAfterMigration)
                    .Add(typeof(DataMsg.UpdateSetting), UpdateSettings)
@@ -515,42 +514,6 @@ namespace Toggl.Phoebe.Reactive
             })));
             // TODO: Check updated.Count == 1?
             return DataSyncMsg.Create(updated, state.With(timeEntries: state.UpdateTimeEntries(updated)));
-        }
-
-        static DataSyncMsg<AppState> InitState(AppState state, DataMsg msg)
-        {
-            var workspace = WorkspaceData.Create(x =>
-            {
-                x.Id = Guid.NewGuid();
-                x.Name = "Workspace";
-                x.IsPremium = false;
-                x.IsAdmin = true;
-            });
-
-            var userData = UserData.Create(x =>
-            {
-                x.Id = Guid.NewGuid();
-                x.Name = "John Doe";
-                x.Email = "support@toggl.com";
-                x.Locale = "locale";
-                x.StartOfWeek = DayOfWeek.Monday;
-                x.Timezone = Time.TimeZoneId;;
-                x.DefaultWorkspaceId = workspace.Id;
-            });
-
-            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-
-            var updated = dataStore.Update(ctx =>
-            {
-                ctx.Put(userData);
-                ctx.Put(workspace);
-            });
-
-            return DataSyncMsg.Create(state.With(
-                                          user: userData,
-                                          workspaces: state.Update(state.Workspaces, updated),
-                                          settings: state.Settings.With(userId: userData.Id)
-                                      ));
         }
 
         static DataSyncMsg<AppState> Reset(AppState state, DataMsg msg)
