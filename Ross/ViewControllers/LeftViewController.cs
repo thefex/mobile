@@ -57,7 +57,7 @@ namespace Toggl.Ross.ViewControllers
                 (feedbackButton = new UIButton()),
                 (signOutButton = new UIButton()),
             };
-            logButton.SetTitle("LeftPanelMenuLog".Tr(), UIControlState.Normal);
+            logButton.SetTitle(NSBundle.MainBundle.InfoDictionary["CFBundleShortVersionString"].ToString(), UIControlState.Normal);
             logButton.SetImage(Image.TimerButton, UIControlState.Normal);
             logButton.SetImage(Image.TimerButtonPressed, UIControlState.Highlighted);
 
