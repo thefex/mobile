@@ -60,7 +60,7 @@ namespace Toggl.Joey.UI.Adapters
                     TextResId = Resource.String.MainDrawerLogout,
                     ImageResId = Resource.Drawable.IcNavLogout,
                     IsEnabled = true,
-                    VMode = VisibilityMode.Normal,
+                    //VMode = VisibilityMode.Normal,
                 },
                 new DrawerItem
                 {
