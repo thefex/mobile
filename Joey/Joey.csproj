@@ -837,6 +837,18 @@
     <AndroidResource Include="Resources\drawable-xhdpi\profile.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\profile.png" />
     <AndroidResource Include="Resources\drawable-hdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_toggler.png" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>
@@ -844,6 +856,7 @@
     <AndroidAsset Include="Assets\fonts\Roboto-Medium.ttf" />
     <AndroidAsset Include="Assets\fonts\Roboto-Regular.ttf" />
     <AndroidAsset Include="Assets\fonts\DIN-Medium.ttf" />
+    <AndroidAsset Include="Assets\fonts\TektonPro-Cond.otf" />
   </ItemGroup>
   <ItemGroup>
     <ProguardConfiguration Include="Proguard.cfg" />

@@ -255,4 +255,7 @@
     <string name="RegisterSuccessButton">Go to timer</string>
     <string name="LoginPasswordError">6 or more letters</string>
     <string name="LoginEmailError">not a valid email</string>
+	<string name="WelcomeSignInCoahMark">Already got an account? Log in</string>
+    <string name="WelcomeTogglerHello">Hey there!</string>
+    <string name="WelcomeStartCoachMark">New to Toggl? \nStart tracking</string>
 </resources>
