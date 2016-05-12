@@ -300,6 +300,7 @@ namespace Toggl.Joey.UI.Activities
             }
             else if (e.Id == DrawerListAdapter.LogoutPageId)
             {
+                OpenPage(DrawerListAdapter.TimerPageId);
                 RxChain.Send(new DataMsg.ResetState());
             }
             else if (e.Id == DrawerListAdapter.ReportsPageId)
