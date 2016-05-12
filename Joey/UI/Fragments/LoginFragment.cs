@@ -11,6 +11,7 @@ using Android.Gms.Auth.Api.SignIn;
 using Android.Gms.Common;
 using Android.Gms.Common.Apis;
 using Android.OS;
+using Android.Support.Design.Widget;
 using Android.Text;
 using Android.Text.Style;
 using Android.Views;
@@ -50,14 +51,19 @@ namespace Toggl.Joey.UI.Fragments
         private ISpannable formattedLegalText;
         protected LoginVM ViewModel { get; private set; }
         protected ScrollView ScrollView { get; private set; }
+        protected TextInputLayout EmailInputLayout { get; private set; }
+        protected TextInputLayout PasswordInputLayout { get; private set; }
         protected AutoCompleteTextView EmailEditText { get; private set; }
         protected EditText PasswordEditText { get; private set; }
         protected Button PasswordToggleButton { get; private set; }
         protected Button SubmitButton { get; private set; }
         protected TextView LegalTextView { get; private set; }
+        protected FrameLayout GoogleLoginButton { get; private set; }
         protected TextView GoogleLoginText { get; private set; }
+        protected TextView GoogleIntroText { get; private set; }
         protected Toolbar LoginToolbar { get; private set; }
 
+        private LoginVM.LoginMode mode = LoginVM.LoginMode.Login;
         private Binding<bool, bool> isAuthencticatedBinding, isAuthenticatingBinding;
         private Binding<LoginVM.LoginMode, LoginVM.LoginMode> modeBinding;
         private Binding<AuthResult, AuthResult> resultBinding;
@@ -77,22 +83,33 @@ namespace Toggl.Joey.UI.Fragments
         {
             var view = inflater.Inflate(Resource.Layout.ConnectLayout, container, false);
 
+            EmailInputLayout = view.FindViewById<TextInputLayout> (Resource.Id.EmailInputLayout);
             EmailEditText = view.FindViewById<AutoCompleteTextView> (Resource.Id.EmailAutoCompleteTextView).SetFont(Font.RobotoLight);
+            PasswordInputLayout = view.FindViewById<TextInputLayout> (Resource.Id.PasswordInputLayout);
             PasswordEditText = view.FindViewById<EditText> (Resource.Id.PasswordEditText).SetFont(Font.RobotoLight);
             PasswordToggleButton = view.FindViewById<Button> (Resource.Id.PasswordToggleButton).SetFont(Font.Roboto);
             SubmitButton = view.FindViewById<Button> (Resource.Id.SubmitButton).SetFont(Font.Roboto);
             LegalTextView = view.FindViewById<TextView> (Resource.Id.LegalTextView).SetFont(Font.RobotoLight);
-            GoogleLoginText = view.FindViewById<TextView> (Resource.Id.GoogleLoginButton).SetFont(Font.Roboto);
+            GoogleLoginButton = view.FindViewById<FrameLayout> (Resource.Id.GoogleLoginButton);
+            GoogleLoginText = view.FindViewById<TextView> (Resource.Id.GoogleLoginText).SetFont(Font.Roboto);
+            GoogleIntroText = view.FindViewById<TextView> (Resource.Id.GoogleIntroText);
+
+            EmailInputLayout.HintEnabled = false;
+            EmailInputLayout.ErrorEnabled = true;
+            PasswordInputLayout.HintEnabled = false;
+            PasswordInputLayout.ErrorEnabled = true;
 
             SubmitButton.Click += OnLoginButtonClick;
-            GoogleLoginText.Click += OnGoogleLoginButtonClick;
+            GoogleLoginButton.Click += OnGoogleLoginButtonClick;
             EmailEditText.Adapter = MakeEmailsAdapter();
             EmailEditText.Threshold = 1;
-            EmailEditText.TextChanged += OnEmailEditTextTextChanged;
+            EmailEditText.FocusChange += (sender, e) => ValidateEmailField();
             PasswordEditText.TextChanged += OnPasswordEditTextTextChanged;
+            PasswordEditText.FocusChange += (sender, e) => ValidatePasswordField();
             PasswordToggleButton.Click += OnPasswordToggleButtonClick;
             hasGoogleAccounts = GoogleAccounts.Count > 0;
-            GoogleLoginText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+            GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+            GoogleIntroText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
 
             if (savedInstanceState != null)
             {
@@ -113,7 +130,7 @@ namespace Toggl.Joey.UI.Fragments
             .Build();
 
             ViewModel = new LoginVM();
-
+            ViewModel.ChangeLoginMode(mode);
             return view;
         }
 
@@ -157,13 +174,34 @@ namespace Toggl.Joey.UI.Fragments
 
         public override void OnSaveInstanceState(Bundle outState)
         {
-//            base.OnSaveInstanceState(outState);
+            base.OnSaveInstanceState(outState);
             outState.PutBoolean(ExtraShowPassword, showPassword);
             outState.PutBoolean(KEY_IS_RESOLVING, mIsResolving);
             outState.PutBoolean(KEY_SHOULD_RESOLVE, mIsResolving);
         }
 
         #region View state utils
+
+        public LoginVM.LoginMode Mode
+        {
+            get
+            {
+                return ViewModel.CurrentLoginMode;
+            }
+            set
+            {
+                if (mode == value)
+                    return;
+                mode = value;
+
+                if (ViewModel != null)
+                {
+                    ViewModel.ChangeLoginMode(mode);
+                    SetViewState();
+                }
+            }
+        }
+
         private void SetViewState()
         {
             // Views not loaded yet/anymore?
@@ -189,17 +227,36 @@ namespace Toggl.Joey.UI.Fragments
 
             EmailEditText.Enabled = !ViewModel.IsAuthenticating;
             PasswordEditText.Enabled = !ViewModel.IsAuthenticating;
-            GoogleLoginText.Enabled = !ViewModel.IsAuthenticating;
+            GoogleLoginButton.Enabled = !ViewModel.IsAuthenticating;
 
-            SetLoginBtnState();
             SetPasswordVisibility();
+            ValidateEmailField();
+            ValidatePasswordField();
         }
 
-        private void SetLoginBtnState()
+        private void ValidateEmailField(bool tolerateEmpty = true)
         {
-            SubmitButton.Enabled = !ViewModel.IsAuthenticating &&
-                                   ViewModel.IsEmailValid(EmailEditText.Text) &&
-                                   (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login || ViewModel.IsPassValid(PasswordEditText.Text));
+
+            if (EmailEditText.Text.Length == 0 && tolerateEmpty)
+            {
+                EmailInputLayout.Error = null;
+                return;
+            }
+
+            bool isError = !ViewModel.IsEmailValid(EmailEditText.Text);
+
+            EmailInputLayout.Error = isError ? GetText(Resource.String.LoginEmailError) : null;
+        }
+
+        private void ValidatePasswordField(bool tolerateEmpty = true)
+        {
+            if (PasswordEditText.Text.Length == 0 && tolerateEmpty)
+            {
+                PasswordInputLayout.Error = null;
+                return;
+            }
+            bool isError = (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Signup && !ViewModel.IsPassValid(PasswordEditText.Text));
+            PasswordInputLayout.Error = isError ? GetText(Resource.String.LoginPasswordError) : null;
         }
 
         private void SetPasswordVisibility()
@@ -257,25 +314,53 @@ namespace Toggl.Joey.UI.Fragments
                 return;
             }
 
-            ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
+            if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
+            {
+                if (ViewModel.IsEmailValid(EmailEditText.Text))
+                {
+                    ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
+                }
+                else
+                {
+                    ValidateEmailField(false);
+                    ValidatePasswordField();
+                }
+            }
+            else if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Signup)
+            {
+                if (ViewModel.IsPassValid(PasswordEditText.Text) && ViewModel.IsEmailValid(EmailEditText.Text))
+                {
+                    ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
+                }
+                else
+                {
+                    ValidatePasswordField(false);
+                    ValidateEmailField(false);
+                }
+
+            }
         }
 
         private void OnGoogleLoginButtonClick(object sender, EventArgs e)
         {
             mShouldResolve = true;
             Intent signInIntent = Auth.GoogleSignInApi.GetSignInIntent(mGoogleApiClient);
-//            StartActivityForResult(signInIntent, RC_SIGN_IN);
-        }
-
-        private void OnEmailEditTextTextChanged(object sender, TextChangedEventArgs e)
-        {
-            SetLoginBtnState();
+            StartActivityForResult(signInIntent, RC_SIGN_IN);
         }
 
         private void OnPasswordEditTextTextChanged(object sender, TextChangedEventArgs e)
         {
             SetPasswordVisibility();
-            SetLoginBtnState();
+        }
+
+        private void OnEmailFocusChange(object sender, Android.Views.View.FocusChangeEventArgs e)
+        {
+            ValidateEmailField();
+        }
+
+        private void OnPasswordFocusChange(object sender, Android.Views.View.FocusChangeEventArgs e)
+        {
+            ValidatePasswordField();
         }
 
         private void OnPasswordToggleButtonClick(object sender, EventArgs e)
@@ -287,34 +372,24 @@ namespace Toggl.Joey.UI.Fragments
 
         #region Google Login methods
 
-//        public void Dispose ()
-//        {
-//        }
-//
-//        public IntPtr Handle {
-//            get {
-//                return IntPtr.Zero;
-//            }
-//        }
-//        protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
-//        {
-////            base.OnActivityResult(requestCode, resultCode, data);
-//
-//            if (requestCode == RC_SIGN_IN)
-//            {
-//                mIsResolving = false;
-//                GoogleSignInResult result = Auth.GoogleSignInApi.GetSignInResultFromIntent(data);
-//                if (result.IsSuccess)
-//                {
-//                    GoogleSignInAccount acct = result.SignInAccount;
-//                    ViewModel.TryLoginWithGoogle(acct.Id);
-//                }
-//                else
-//                {
-//                    ShowAuthError(string.Empty, AuthResult.GoogleError, LoginVM.LoginMode.Login);
-//                }
-//            }
-//        }
+        public override void OnActivityResult(int requestCode, int resultCode, Intent data)
+        {
+            base.OnActivityResult(requestCode, resultCode, data);
+            if (requestCode == RC_SIGN_IN)
+            {
+                mIsResolving = false;
+                GoogleSignInResult result = Auth.GoogleSignInApi.GetSignInResultFromIntent(data);
+                if (result.IsSuccess)
+                {
+                    GoogleSignInAccount acct = result.SignInAccount;
+                    ViewModel.TryLoginWithGoogle(acct.Id);
+                }
+                else
+                {
+                    ShowAuthError(string.Empty, AuthResult.GoogleError, LoginVM.LoginMode.Login);
+                }
+            }
+        }
 
         public void OnConnected(Bundle connectionHint)
         {
@@ -405,7 +480,7 @@ namespace Toggl.Joey.UI.Fragments
 
             if (dia != null)
             {
-//                dia.Show(SupportFragmentManager, "auth_result_dialog");
+                dia.Show(Activity.SupportFragmentManager, "auth_result_dialog");
             }
         }
 

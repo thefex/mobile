@@ -21,6 +21,13 @@
         <item name="selectableItemBackgroundBorderless">@drawable/play_button_background</item>
         <item name="android:selectableItemBackgroundBorderless">@drawable/play_button_background</item>
     </style>
+
+    <style name="Theme.Toggl.Main" parent="Theme.Toggl.App">
+        <item name="colorControlNormal">#d9d9d9</item>
+        <item name="colorControlActivated">#4dd965</item>
+        <item name="colorControlHighlight">#4dd965</item>
+    </style>
+
     <style name="Theme.Toggl.ListView" parent="@android:style/Widget.ListView">
         <item name="android:divider">@android:color/transparent</item>
         <item name="android:listSelector">@android:color/transparent</item>

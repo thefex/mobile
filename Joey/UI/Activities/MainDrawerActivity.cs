@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Support.V4.App;
@@ -14,10 +15,10 @@ using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Reactive;
+using Toggl.Phoebe.ViewModels;
 using ActionBarDrawerToggle = Android.Support.V7.App.ActionBarDrawerToggle;
 using Fragment = Android.Support.V4.App.Fragment;
 using Toolbar = Android.Support.V7.Widget.Toolbar;
-using Android.Content;
 
 namespace Toggl.Joey.UI.Activities
 {
@@ -30,7 +31,7 @@ namespace Toggl.Joey.UI.Activities
          // The actual entry-point is defined in manifest via activity-alias, this here is just to
          // make adb launch the activity automatically when developing.
 #endif
-         Theme = "@style/Theme.Toggl.App")]
+         Theme = "@style/Theme.Toggl.Main")]
     public class MainDrawerActivity : BaseActivity
     {
         private const string PageStackExtra = "com.toggl.timer.page_stack";
@@ -233,6 +234,13 @@ namespace Toggl.Joey.UI.Activities
             else if (id == DrawerListAdapter.LoginPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerLogin);
+                loginFragment.Value.Mode = LoginVM.LoginMode.Login;
+                OpenFragment(loginFragment.Value);
+            }
+            else if (id == DrawerListAdapter.SignupPageId)
+            {
+                SupportActionBar.SetTitle(Resource.String.MainDrawerSignup);
+                loginFragment.Value.Mode = LoginVM.LoginMode.Signup;
                 OpenFragment(loginFragment.Value);
             }
             else
@@ -315,6 +323,10 @@ namespace Toggl.Joey.UI.Activities
             else if (e.Id == DrawerListAdapter.LoginPageId)
             {
                 OpenPage(DrawerListAdapter.LoginPageId);
+            }
+            else if (e.Id == DrawerListAdapter.SignupPageId)
+            {
+                OpenPage(DrawerListAdapter.SignupPageId);
             }
 
             DrawerLayout.CloseDrawers();

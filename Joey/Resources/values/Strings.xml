@@ -253,4 +253,6 @@
     <string name="RegisterSuccessListItem2">Track together with your team</string>
     <string name="RegisterSuccessListItem3">Analyze your data in depth \nin Toggl web</string>
     <string name="RegisterSuccessButton">Go to timer</string>
+    <string name="LoginPasswordError">6 or more letters</string>
+    <string name="LoginEmailError">not a valid email</string>
 </resources>
