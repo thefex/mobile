@@ -244,7 +244,7 @@ namespace Toggl.Phoebe.Reactive
             return WorkspaceData.Create(x =>
             {
                 x.Id = Guid.NewGuid();
-                x.Name = "Workspace";
+                x.Name = "My first workspace";
                 x.IsPremium = false;
                 x.IsAdmin = true;
             });
@@ -277,11 +277,13 @@ namespace Toggl.Phoebe.Reactive
                     {
                         var draftWorkspace = GetWorkspaceDraft();
                         var draftUser = GetUserDraft(draftWorkspace.Id);
-                        var updated = dataStore.Update(ctx =>
+                        dataStore.Update(ctx =>
                         {
                             ctx.Put(draftWorkspace);
-                            ctx.Put(userData);
+                            ctx.Put(draftUser);
                         });
+                        // Save userId in settings.
+                        settings = settings.With(userId: draftUser.Id);
                     }
 
                     userData = dataStore.Table<UserData>().Single(x => x.Id == settings.UserId);

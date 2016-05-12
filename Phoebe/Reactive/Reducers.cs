@@ -134,11 +134,27 @@ namespace Toggl.Phoebe.Reactive
         static DataSyncMsg<AppState> ServerRequest(AppState state, DataMsg msg)
         {
             var req = (msg as DataMsg.ServerRequest).Data;
+            RequestInfo reqInfo;
 
-            var reqInfo = state.RequestInfo.With(
+            // ATTENTION If ApiToken doesn't exist and the request
+            // is not related with authentication, user is not connecte
+            // just return an empty and anyoying answer :)
+            if (!(req is ServerRequest.Authenticate) &&
+                    string.IsNullOrEmpty(state.User.ApiToken))
+            {
+                reqInfo = state.RequestInfo.With(
                               hadErrors: false,
                               errorInfo: null,
-                              running: state.RequestInfo.Running.Append(req).ToList());
+                              hasMore: false,
+                              running: new List<ServerRequest>());
+
+                return DataSyncMsg.Create(state.With(requestInfo: reqInfo));
+            }
+
+            reqInfo = state.RequestInfo.With(
+                          hadErrors: false,
+                          errorInfo: null,
+                          running: state.RequestInfo.Running.Append(req).ToList());
 
             if (req is ServerRequest.Authenticate)
                 reqInfo = reqInfo.With(authResult: AuthResult.None);
@@ -165,11 +181,28 @@ namespace Toggl.Phoebe.Reactive
                             .OrderByDescending(r => r.StartTime)
                             .ToList();
 
-            var req = new ServerRequest.DownloadEntries();
-            var reqInfo = state.RequestInfo.With(
-                              running: state.RequestInfo.Running.Append(req).ToList(),
-                              downloadFrom: endDate,
-                              nextDownloadFrom: dbEntries.Any() ? dbEntries.Min(x => x.StartTime) : endDate);
+            ServerRequest req;
+            RequestInfo reqInfo;
+
+            // ATTENTION If ApiToken doesn't exist and the request
+            // is not related with authentication, user is not connecte
+            // just return an empty and anyoying answer :)
+            if (string.IsNullOrEmpty(state.User.ApiToken))
+            {
+                reqInfo = state.RequestInfo.With(
+                              hadErrors: false,
+                              errorInfo: null,
+                              hasMore: false,
+                              running: new List<ServerRequest>());
+
+                return DataSyncMsg.Create(state.With(requestInfo: reqInfo));
+            }
+
+            req = new ServerRequest.DownloadEntries();
+            reqInfo = state.RequestInfo.With(
+                          running: state.RequestInfo.Running.Append(req).ToList(),
+                          downloadFrom: endDate,
+                          nextDownloadFrom: dbEntries.Any() ? dbEntries.Min(x => x.StartTime) : endDate);
 
             return DataSyncMsg.Create(req, state.With(
                                           requestInfo: reqInfo,
