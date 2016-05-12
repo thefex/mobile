@@ -205,6 +205,17 @@ namespace Toggl.Phoebe.Tests.Reactive
         {
             // Do nothing
         }
+
+        public void SendIntroModeEvent(UserMode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SendRegisterEvent(AccountCredentials credentialsType)
+        {
+            throw new NotImplementedException();
+        }
+
         public void SendSettingsChangeEvent(SettingName settingName)
         {
             // Do nothing
@@ -216,6 +227,11 @@ namespace Toggl.Phoebe.Tests.Reactive
         public void SendTimerStopEvent(TimerStopSource stopSource)
         {
             // Do nothing
+        }
+
+        public void SendToRegisterScreenEvent(RegisterSource source)
+        {
+            throw new NotImplementedException();
         }
     }
 
