@@ -16,9 +16,8 @@ namespace Toggl.Joey.UI.Adapters
         public static readonly int SettingsPageId = 2;
         public static readonly int LogoutPageId = 3;
         public static readonly int FeedbackPageId = 4;
-        public static readonly int RegisterUserPageId = 5;
-        public static readonly int LoginPageId = 6;
-        public static readonly int SignupPageId = 7;
+        public static readonly int LoginPageId = 5;
+        public static readonly int SignupPageId = 6;
 
         private List<DrawerItem> rowItems;
 

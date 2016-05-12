@@ -2,6 +2,8 @@
 using Android.OS;
 using Android.Views;
 using Android.Widget;
+using Toggl.Joey.UI.Activities;
+using Toggl.Joey.UI.Adapters;
 using Fragment = Android.Support.V4.App.Fragment;
 
 namespace Toggl.Joey.UI.Fragments
@@ -25,7 +27,7 @@ namespace Toggl.Joey.UI.Fragments
 
         private void OpenRegisterScreen(object sender, EventArgs e)
         {
-            //((MainDrawerActivity)Activity).OpenPage(DrawerListAdapter.RegisterUserPageId);
+            ((MainDrawerActivity)Activity).OpenPage(DrawerListAdapter.SignupPageId);
         }
     }
 }
