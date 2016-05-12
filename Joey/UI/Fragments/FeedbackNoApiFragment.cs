@@ -12,6 +12,14 @@ namespace Toggl.Joey.UI.Fragments
     {
         private Button noUserRegisterButton;
 
+        public FeedbackNoApiFragment()
+        {
+        }
+
+        public FeedbackNoApiFragment(IntPtr jref, Android.Runtime.JniHandleOwnership xfer) : base(jref, xfer)
+        {
+        }
+
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
             var view = inflater.Inflate(Resource.Layout.FeedbackNoApiFragment, container, false);

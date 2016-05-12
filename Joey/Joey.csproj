@@ -264,6 +264,7 @@
     <Compile Include="UI\Fragments\LoginFragment.cs" />
     <Compile Include="UI\Fragments\ReportsNoApiFragment.cs" />
     <Compile Include="UI\Fragments\FeedbackNoApiFragment.cs" />
+    <Compile Include="UI\Fragments\MigrationFragment.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -849,6 +850,7 @@
     <AndroidResource Include="Resources\drawable-mdpi\ic_hello_toggler.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_toggler.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\layout\MigrationFragment.axml" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>

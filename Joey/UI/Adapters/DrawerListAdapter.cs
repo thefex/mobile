@@ -21,7 +21,7 @@ namespace Toggl.Joey.UI.Adapters
 
         private List<DrawerItem> rowItems;
 
-        public DrawerListAdapter()
+        public DrawerListAdapter(bool withApiToken)
         {
             rowItems = new List<DrawerItem> ()
             {
@@ -59,7 +59,7 @@ namespace Toggl.Joey.UI.Adapters
                     TextResId = Resource.String.MainDrawerLogout,
                     ImageResId = Resource.Drawable.IcNavLogout,
                     IsEnabled = true,
-                    //VMode = VisibilityMode.Normal,
+                    VMode = VisibilityMode.Normal,
                 },
                 new DrawerItem
                 {
@@ -67,28 +67,20 @@ namespace Toggl.Joey.UI.Adapters
                     TextResId = Resource.String.MainDrawerLogin,
                     ImageResId = Resource.Drawable.IcNavLogout,
                     IsEnabled = true,
-                    VMode = VisibilityMode.Offline,
+                    VMode = VisibilityMode.NoApiToken,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = SignupPageId,
                     TextResId = Resource.String.MainDrawerSignup,
                     ImageResId = Resource.Drawable.IcNavLogout,
                     IsEnabled = true,
-                    VMode = VisibilityMode.Offline,
+                    VMode = VisibilityMode.NoApiToken,
                 }
             };
-            rowItems = FilterVisible(rowItems);
-        }
 
-        private List<DrawerItem> FilterVisible(List<DrawerItem> list)
-        {
-            Func<DrawerItem, bool> filter = item =>
-                                            !(item.VMode == VisibilityMode.Normal) &&
-                                            !(item.VMode == VisibilityMode.Offline);
-
-            return list.Where(filter)
-                   .ToList();
+            var visibility = withApiToken ? VisibilityMode.NoApiToken : VisibilityMode.Normal;
+            rowItems = rowItems.Where(item => (item.VMode == visibility || item.VMode == VisibilityMode.Both)).ToList();
         }
 
         public override View GetView(int position, View convertView, ViewGroup parent)
@@ -191,7 +183,7 @@ namespace Toggl.Joey.UI.Adapters
         public enum VisibilityMode
         {
             Normal,
-            Offline,
+            NoApiToken,
             Both
         }
     }
