@@ -851,6 +851,7 @@
     <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_toggler.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_toggler.png" />
     <AndroidResource Include="Resources\layout\MigrationFragment.axml" />
+    <AndroidResource Include="Resources\drawable\SplashBackground.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>
