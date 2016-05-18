@@ -211,6 +211,8 @@ namespace Toggl.Phoebe.Reactive
 
         static DataSyncMsg<AppState> ServerResponse(AppState state, DataMsg msg)
         {
+            Console.WriteLine("serverResponse");
+
             var serverMsg = msg as DataMsg.ServerResponse;
             return serverMsg.Data.Match(
                        receivedData => serverMsg.Request.MatchType(
@@ -225,6 +227,7 @@ namespace Toggl.Phoebe.Reactive
             },
             (ServerRequest.DownloadEntries req) =>
             {
+                Console.WriteLine("Download Entries");
                 state = UpdateStateWithNewData(state, receivedData);
                 var reqInfo = state.RequestInfo.With(
                                   errorInfo: null,
@@ -235,6 +238,7 @@ namespace Toggl.Phoebe.Reactive
             },
             (ServerRequest.GetChanges req) =>
             {
+                Console.WriteLine("GetChanges");
                 state = UpdateStateWithNewData(state, receivedData);
 
                 // Update user
@@ -263,18 +267,40 @@ namespace Toggl.Phoebe.Reactive
             },
             (ServerRequest.GetCurrentState req) =>
             {
+                Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
+
                 state = UpdateStateWithNewData(state, receivedData);
+
+                // print state of user and workspaces.
+                Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
+                foreach (var ws in state.Workspaces.Values)
+                {
+                    Console.WriteLine("ws.Name: {0}, ws.Id {1}", ws.Name, ws.Id);
+                }
 
                 // Update user
                 var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
                 UserData user = serverMsg.User;
                 user.Id = state.User.Id;
+                Console.WriteLine("user.defaultWorkspace: {0}", user.DefaultWorkspaceRemoteId);
                 user.DefaultWorkspaceId = state.Workspaces.Values.Single(x => x.RemoteId == user.DefaultWorkspaceRemoteId).Id;
                 // TODO: OBM data that comes in user object from this changes
                 // is totally wrong. In that way, we should keep this info before
                 // before process the object.
                 user.ExperimentIncluded = state.User.ExperimentIncluded;
                 user.ExperimentNumber = state.User.ExperimentNumber;
+
+
+                state = MergeOffline(state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id);
+
+                // print state of user and workspaces.
+                Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
+                foreach (var ws in state.Workspaces.Values)
+                {
+                    Console.WriteLine("ws.Name: {0}, ws.Id {1}", ws.Name, ws.Id);
+                }
+                Console.WriteLine("Count: {0}", state.TimeEntries.Values.First().Data.WorkspaceId);
+
 
                 var userUpdated = (UserData)dataStore.Update(ctx => ctx.Put(user)).Single();
 
@@ -416,10 +442,12 @@ namespace Toggl.Phoebe.Reactive
 
         static DataSyncMsg<AppState> UserDataPut(AppState state, DataMsg msg)
         {
+            Console.WriteLine("UserDataPut");
             return (msg as DataMsg.UserDataPut).Data.Match(
                        userData =>
             {
                 var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+
                 var updated = dataStore.Update(ctx => { ctx.Put(userData); });
                 var runningState = state.RequestInfo.Running.Where(x => !(x is ServerRequest.Authenticate)).ToList();
 
@@ -430,7 +458,7 @@ namespace Toggl.Phoebe.Reactive
                 // a request to get data state from server.
                 var req = new ServerRequest.GetCurrentState();
                 runningState.Add(req);
-
+                Console.WriteLine("UserInDb: {0}", userDataInDb.ApiToken, userDataInDb.Name, userDataInDb.DefaultWorkspaceRemoteId);
                 return DataSyncMsg.Create(req, state.With(
                                               user: userDataInDb,
                                               requestInfo: state.RequestInfo.With(authResult: AuthResult.Success, running: runningState),
@@ -667,6 +695,66 @@ namespace Toggl.Phoebe.Reactive
         }
 
         #region Util
+
+        static AppState MergeOffline(AppState state, Guid wsId, long remoteWsId, Guid userId)
+        {
+            var wsLocalId = wsId;
+            var wsRemoteId = remoteWsId;
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            Console.WriteLine("wsLocal: {0}, wsRemote: {1}, uId: {2}", wsLocalId, wsRemoteId, userId);
+
+            var updated = dataStore.Update(ctx =>
+            {
+
+                ctx.Connection.Table<ProjectData>().ForEach(x =>
+                {
+                    x.WorkspaceId = wsLocalId;
+                    x.WorkspaceRemoteId = wsRemoteId;
+                });
+                ctx.Connection.Table<ClientData>().ForEach(x =>
+                {
+                    x.WorkspaceId = wsLocalId;
+                    x.WorkspaceRemoteId = wsRemoteId;
+                });
+                ctx.Connection.Table<TagData>().ForEach(x =>
+                {
+                    x.WorkspaceId = wsLocalId;
+                    x.WorkspaceRemoteId = wsRemoteId;
+                });
+                ctx.Connection.Table<ProjectUserData>().ForEach(x => x.UserId = userId);
+                ctx.Connection.Table<WorkspaceUserData>().ForEach(x =>
+                {
+                    x.UserId = userId;
+                    x.WorkspaceId = wsLocalId;
+                    x.WorkspaceRemoteId = wsRemoteId;
+                });
+                ctx.Connection.Table<TimeEntryData>().ForEach(x =>
+                {
+                    x.UserId = userId;
+                    x.WorkspaceId = wsLocalId;
+                    x.WorkspaceRemoteId = wsRemoteId;
+                });
+
+                ctx.Connection.Table<WorkspaceData> ().Delete(x => x.Id != wsLocalId);
+                Console.WriteLine("UpdatedItems: {0}", ctx.UpdatedItems.Count);
+                foreach (var item in ctx.UpdatedItems)
+                {
+                    Console.WriteLine("id: {0}, type: {1}", item.Id, item.GetType());
+                }
+                state = state.With(
+                            workspaces: state.Update(state.Workspaces, ctx.UpdatedItems),
+                            projects: state.Update(state.Projects, ctx.UpdatedItems),
+                            workspaceUsers: state.Update(state.WorkspaceUsers, ctx.UpdatedItems),
+                            projectUsers: state.Update(state.ProjectUsers, ctx.UpdatedItems),
+                            clients: state.Update(state.Clients, ctx.UpdatedItems),
+                            tasks: state.Update(state.Tasks, ctx.UpdatedItems),
+                            tags: state.Update(state.Tags, ctx.UpdatedItems),
+                            timeEntries: state.UpdateTimeEntries(ctx.UpdatedItems)
+                        );
+            });
+            return state;
+        }
+
         static AppState UpdateStateWithNewData(AppState state, IEnumerable<CommonData> receivedData)
         {
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
