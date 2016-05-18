@@ -291,7 +291,8 @@ namespace Toggl.Phoebe.Reactive
                 user.ExperimentNumber = state.User.ExperimentNumber;
 
 
-                state = MergeOffline(state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id);
+                state = MergeOfflineDb(
+                    state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id, user.RemoteId);
 
                 // print state of user and workspaces.
                 Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
@@ -696,61 +697,120 @@ namespace Toggl.Phoebe.Reactive
 
         #region Util
 
-        static AppState MergeOffline(AppState state, Guid wsId, long remoteWsId, Guid userId)
+        static bool MergeOfflineTable<T>(ISyncDataStoreContext ctx, Tuple<Guid, long> ws = null, Tuple<Guid, long?> user = null)
+        where T : CommonData
         {
-            var wsLocalId = wsId;
-            var wsRemoteId = remoteWsId;
-            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-            Console.WriteLine("wsLocal: {0}, wsRemote: {1}, uId: {2}", wsLocalId, wsRemoteId, userId);
+            if (ctx == null) { throw new ArgumentNullException(nameof(ctx)); }
+            if (ws == null && user == null) { throw new ArgumentNullException($"{nameof(ws)} && {nameof(user)}"); }
 
-            var updated = dataStore.Update(ctx =>
+            var tableName = ctx.Connection.GetMapping<T>().TableName;
+
+            var sql = $"UPDATE {tableName} SET";
+            var args = new List<object>();
+
+            if (ws != null)
             {
+                var wsIdCol = Util.GetPropertyName<TimeEntryData, Guid>(x => x.WorkspaceId);
+                var wsRemoteIdCol = Util.GetPropertyName<TimeEntryData, long>(x => x.WorkspaceRemoteId);
+                sql += $", {wsIdCol}=?, {wsRemoteIdCol}=?";
+                args.Add(ws.Item1);
+                args.Add(ws.Item2);
+            }
 
-                ctx.Connection.Table<ProjectData>().ForEach(x =>
-                {
-                    x.WorkspaceId = wsLocalId;
-                    x.WorkspaceRemoteId = wsRemoteId;
-                });
-                ctx.Connection.Table<ClientData>().ForEach(x =>
-                {
-                    x.WorkspaceId = wsLocalId;
-                    x.WorkspaceRemoteId = wsRemoteId;
-                });
-                ctx.Connection.Table<TagData>().ForEach(x =>
-                {
-                    x.WorkspaceId = wsLocalId;
-                    x.WorkspaceRemoteId = wsRemoteId;
-                });
-                ctx.Connection.Table<ProjectUserData>().ForEach(x => x.UserId = userId);
-                ctx.Connection.Table<WorkspaceUserData>().ForEach(x =>
-                {
-                    x.UserId = userId;
-                    x.WorkspaceId = wsLocalId;
-                    x.WorkspaceRemoteId = wsRemoteId;
-                });
-                ctx.Connection.Table<TimeEntryData>().ForEach(x =>
-                {
-                    x.UserId = userId;
-                    x.WorkspaceId = wsLocalId;
-                    x.WorkspaceRemoteId = wsRemoteId;
-                });
+            if (user != null)
+            {
+                var userIdCol = Util.GetPropertyName<TimeEntryData, Guid>(x => x.UserId);
+                var userRemoteIdCol = Util.GetPropertyName<TimeEntryData, long>(x => x.UserRemoteId);
+                sql += $", {userIdCol}=?, {userRemoteIdCol}=?";
+                args.Add(user.Item1);
+                args.Add(user.Item2);
+            }
 
-                ctx.Connection.Table<WorkspaceData> ().Delete(x => x.Id != wsLocalId);
-                Console.WriteLine("UpdatedItems: {0}", ctx.UpdatedItems.Count);
-                foreach (var item in ctx.UpdatedItems)
-                {
-                    Console.WriteLine("id: {0}, type: {1}", item.Id, item.GetType());
-                }
+            return ctx.Connection.Execute(sql, args) > 0;
+        }
+
+        static IReadOnlyDictionary<Guid, T> MergeOfflineAppState<T>(
+            bool edit, IReadOnlyDictionary<Guid, T> oldItems, Func<T, Tuple<Guid, T>> mapper)
+        {
+            // If there've been no edits, return the state untouched
+            if (!edit)
+                return oldItems;
+
+            return oldItems.Values.Select(mapper).ToDictionary(x => x.Item1, x => x.Item2);
+        }
+
+        static AppState MergeOfflineDb(AppState state, Guid wsId, long wsRemoteId, Guid userId, long? userRemoteId)
+        {
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            Console.WriteLine($"wsLocal: {wsId}, wsRemote: {wsRemoteId}, uLocal: {userId}, uRemote: {userRemoteId}");
+
+            dataStore.Update(ctx =>
+            {
+                var ws = Tuple.Create(wsId, wsRemoteId);
+                var user = Tuple.Create(userId, userRemoteId);
+
+                // We're not using ctx.Put/Delete here so we need to update the state in-memory ourselves
+                // For performance, only touch the app state if there've been actual changes in the db
+                var edit1 = MergeOfflineTable<ProjectData>(ctx, ws);
+                var edit2 = MergeOfflineTable<ClientData>(ctx, ws);
+                var edit3 = MergeOfflineTable<TagData>(ctx, ws);
+                var edit4 = MergeOfflineTable<ProjectUserData>(ctx, user: user); // Attention, named parameter
+                var edit5 = MergeOfflineTable<WorkspaceUserData>(ctx, ws, user);
+                var edit6 = MergeOfflineTable<TimeEntryData>(ctx, ws, user);
+
+                ctx.Connection.Table<WorkspaceData> ().Delete(x => x.Id != wsId);
+
+                // Attention! We're modifying directly the objects in memory by unsafe casting
+                // This should be forbidden but there's no simple alternative in this case
                 state = state.With(
-                            workspaces: state.Update(state.Workspaces, ctx.UpdatedItems),
-                            projects: state.Update(state.Projects, ctx.UpdatedItems),
-                            workspaceUsers: state.Update(state.WorkspaceUsers, ctx.UpdatedItems),
-                            projectUsers: state.Update(state.ProjectUsers, ctx.UpdatedItems),
-                            clients: state.Update(state.Clients, ctx.UpdatedItems),
-                            tasks: state.Update(state.Tasks, ctx.UpdatedItems),
-                            tags: state.Update(state.Tags, ctx.UpdatedItems),
-                            timeEntries: state.UpdateTimeEntries(ctx.UpdatedItems)
-                        );
+                    projects: MergeOfflineAppState(edit1, state.Projects, x =>
+                {
+                    var y = (ProjectData)x;
+                    y.WorkspaceId = wsId;
+                    y.WorkspaceRemoteId = wsRemoteId;
+                    return Tuple.Create(y.Id, (IProjectData)y);
+                }),
+                    clients: MergeOfflineAppState(edit2, state.Clients, x =>
+                {
+                    var y = (ClientData)x;
+                    y.WorkspaceId = wsId;
+                    y.WorkspaceRemoteId = wsRemoteId;
+                    return Tuple.Create(y.Id, (IClientData)y);
+                }),
+                    tags: MergeOfflineAppState(edit3, state.Tags, x =>
+                {
+                    var y = (TagData)x;
+                    y.WorkspaceId = wsId;
+                    y.WorkspaceRemoteId = wsRemoteId;
+                    return Tuple.Create(y.Id, (ITagData)y);
+                }),
+                    projectUsers: MergeOfflineAppState(edit4, state.ProjectUsers, x =>
+                {
+                    var y = (ProjectUserData)x;
+                    y.UserId = userId;
+                    y.UserRemoteId = userRemoteId ?? 0;
+                    return Tuple.Create(y.Id, (IProjectUserData)y);
+                }),
+                    workspaceUsers: MergeOfflineAppState(edit5, state.WorkspaceUsers, x =>
+                {
+                    var y = (WorkspaceUserData)x;
+                    y.WorkspaceId = wsId;
+                    y.WorkspaceRemoteId = wsRemoteId;
+                    y.UserId = userId;
+                    y.UserRemoteId = userRemoteId ?? 0;
+                    return Tuple.Create(y.Id, (IWorkspaceUserData)y);
+                }),
+                    timeEntries: MergeOfflineAppState(edit6, state.TimeEntries, x =>
+                {
+                    var y = (TimeEntryData)x.Data;
+                    y.WorkspaceId = wsId;
+                    y.WorkspaceRemoteId = wsRemoteId;
+                    y.UserId = userId;
+                    y.UserRemoteId = userRemoteId ?? 0;
+                    return Tuple.Create(y.Id, new RichTimeEntry(y, x.Info));
+                }),
+                    workspaces: state.Workspaces.Values.Where(x => x.Id == wsId).ToDictionary(x => x.Id)
+                );
             });
             return state;
         }

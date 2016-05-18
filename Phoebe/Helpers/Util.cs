@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using Toggl.Phoebe.Logging;
 using XPlatUtils;
@@ -41,6 +43,17 @@ namespace Toggl.Phoebe.Helpers
         public static string GetName<T> (T enumCase)
         {
             return Enum.GetName(typeof(T), enumCase);
+        }
+
+        public static string GetPropertyName<T,TProp>(Expression<Func<T,TProp>> expr)
+        {
+            var memberExpr = expr.Body as MemberExpression;
+            var member = memberExpr?.Member as PropertyInfo;
+
+            if (memberExpr == null || member == null)
+                throw new ArgumentException($"Expression {expr} should be a property.");
+
+            return member.Name;
         }
 
         public static Task<bool> AwaitPredicate(Func<bool> predicate, double interval = 100, double timeout = 5000)
