@@ -705,14 +705,14 @@ namespace Toggl.Phoebe.Reactive
 
             var tableName = ctx.Connection.GetMapping<T>().TableName;
 
-            var sql = $"UPDATE {tableName} SET";
+            var sql = new List<string>();
             var args = new List<object>();
 
             if (ws != null)
             {
                 var wsIdCol = Util.GetPropertyName<TimeEntryData, Guid>(x => x.WorkspaceId);
                 var wsRemoteIdCol = Util.GetPropertyName<TimeEntryData, long>(x => x.WorkspaceRemoteId);
-                sql += $", {wsIdCol}=?, {wsRemoteIdCol}=?";
+                sql.Add($"{wsIdCol}=?, {wsRemoteIdCol}=?");
                 args.Add(ws.Item1);
                 args.Add(ws.Item2);
             }
@@ -721,12 +721,12 @@ namespace Toggl.Phoebe.Reactive
             {
                 var userIdCol = Util.GetPropertyName<TimeEntryData, Guid>(x => x.UserId);
                 var userRemoteIdCol = Util.GetPropertyName<TimeEntryData, long>(x => x.UserRemoteId);
-                sql += $", {userIdCol}=?, {userRemoteIdCol}=?";
+                sql.Add($"{userIdCol}=?, {userRemoteIdCol}=?");
                 args.Add(user.Item1);
                 args.Add(user.Item2);
             }
 
-            return ctx.Connection.Execute(sql, args) > 0;
+            return ctx.Connection.Execute($"UPDATE {tableName} SET {string.Join(", ", sql)}", args.ToArray()) > 0;
         }
 
         static IReadOnlyDictionary<Guid, T> MergeOfflineAppState<T>(
