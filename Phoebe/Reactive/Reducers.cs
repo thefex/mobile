@@ -184,9 +184,7 @@ namespace Toggl.Phoebe.Reactive
             ServerRequest req;
             RequestInfo reqInfo;
 
-            // ATTENTION If ApiToken doesn't exist and the request
-            // is not related with authentication, user is not connecte
-            // just return an empty and anyoying answer :)
+            // If ApiToken doesn't exist user is not connected
             if (string.IsNullOrEmpty(state.User.ApiToken))
             {
                 reqInfo = state.RequestInfo.With(
@@ -195,18 +193,22 @@ namespace Toggl.Phoebe.Reactive
                               hasMore: false,
                               running: new List<ServerRequest>());
 
-                return DataSyncMsg.Create(state.With(requestInfo: reqInfo));
+                return DataSyncMsg.Create(state.With(
+                                              requestInfo: reqInfo,
+                                              timeEntries: state.UpdateTimeEntries(dbEntries)));
             }
+            else
+            {
+                req = new ServerRequest.DownloadEntries();
+                reqInfo = state.RequestInfo.With(
+                              running: state.RequestInfo.Running.Append(req).ToList(),
+                              downloadFrom: endDate,
+                              nextDownloadFrom: dbEntries.Any() ? dbEntries.Min(x => x.StartTime) : endDate);
 
-            req = new ServerRequest.DownloadEntries();
-            reqInfo = state.RequestInfo.With(
-                          running: state.RequestInfo.Running.Append(req).ToList(),
-                          downloadFrom: endDate,
-                          nextDownloadFrom: dbEntries.Any() ? dbEntries.Min(x => x.StartTime) : endDate);
-
-            return DataSyncMsg.Create(req, state.With(
-                                          requestInfo: reqInfo,
-                                          timeEntries: state.UpdateTimeEntries(dbEntries)));
+                return DataSyncMsg.Create(req, state.With(
+                                              requestInfo: reqInfo,
+                                              timeEntries: state.UpdateTimeEntries(dbEntries)));
+            }
         }
 
         static DataSyncMsg<AppState> ServerResponse(AppState state, DataMsg msg)

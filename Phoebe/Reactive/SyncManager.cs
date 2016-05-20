@@ -177,21 +177,31 @@ namespace Toggl.Phoebe.Reactive
             var isConnected = networkPresence.IsNetworkPresent;
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
 
-            try
+            // Process messages only for logged users
+            if (!string.IsNullOrEmpty(syncMsg.State.User.ApiToken))
             {
-                // Try to empty queue first
-                var queueEmpty = await TryEmptyQueue(remoteObjects, syncMsg.State, isConnected, dataStore);
-
-                // Deal with messages
-                foreach (var data in syncMsg.ServerRequests.OfType<ServerRequest.CRUD>().SelectMany(x => x.Items))
+                try
                 {
-                    if (queueEmpty && isConnected)
+                    // Try to empty queue first
+                    var queueEmpty = await TryEmptyQueue(remoteObjects, syncMsg.State, isConnected, dataStore);
+
+                    // Deal with messages
+                    foreach (var data in syncMsg.ServerRequests.OfType<ServerRequest.CRUD>().SelectMany(x => x.Items))
                     {
-                        try
+                        if (queueEmpty && isConnected)
                         {
-                            await SendData(data, remoteObjects, syncMsg.State);
+                            try
+                            {
+                                await SendData(data, remoteObjects, syncMsg.State);
+                            }
+                            catch (Exception ex)
+                            {
+                                logError(ex);
+                                Enqueue(data, enqueuedItems, dataStore);
+                                queueEmpty = false;
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
                             // TODO After a bug, be optimistic and expect that
                             // everything will be ok again?
@@ -200,24 +210,20 @@ namespace Toggl.Phoebe.Reactive
                             logError(ex);
                         }
                     }
-                    else
-                    {
-                        Enqueue(data, enqueuedItems, dataStore);
-                        queueEmpty = false;
-                    }
-                }
 
-                // TODO: Try to empty queue again?
-            }
-            catch (Exception ex)
-            {
-                logError(ex, $"{nameof(SyncManager)} Queue");
+                    // TODO: Try to empty queue again?
+                }
+                catch (Exception ex)
+                {
+                    logError(ex, $"{nameof(SyncManager)} Queue");
+                }
             }
 
             // Return remote objects
             if (remoteObjects.Count > 0)
                 RxChain.Send(DataMsg.ServerResponse.CRUD(remoteObjects));
 
+            // Process other requests
             foreach (var req in syncMsg.ServerRequests.Where(x => x is ServerRequest.CRUD == false))
             {
                 await HandleRequest(req, syncMsg.State);
@@ -299,27 +305,28 @@ namespace Toggl.Phoebe.Reactive
 
         async Task PushOfflineChanges(ServerRequest request, AppState state)
         {
-            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-            await PushOfflineTable<TagData> (dataStore, state);
-            await PushOfflineTable<ClientData> (dataStore, state);
-            await PushOfflineTable<ProjectData> (dataStore, state);
-            await PushOfflineTable<TaskData> (dataStore, state);
-            await PushOfflineTable<TimeEntryData> (dataStore, state);
-
-            await GetChanges(request, state);
-        }
-
-        void PushOfflineTable<T> (ISyncDataStore dataStore, AppState state)
-        where T : CommonData, new()
-        {
-
             var remoteObjects = new List<CommonData> ();
-            Console.WriteLine("t: {0}", typeof(T));
-            dataStore.Table<T> ().Where(x => x.RemoteId == null).ForEach(async(x) => await SendData(x, remoteObjects, state));
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            await PushOfflineTable<TagData> (dataStore, state, remoteObjects);
+            await PushOfflineTable<ClientData> (dataStore, state, remoteObjects);
+            await PushOfflineTable<ProjectData> (dataStore, state, remoteObjects);
+            await PushOfflineTable<TaskData> (dataStore, state, remoteObjects);
+            await PushOfflineTable<TimeEntryData> (dataStore, state, remoteObjects);
 
             if (remoteObjects.Count > 0)
             {
                 RxChain.Send(DataMsg.ServerResponse.CRUD(remoteObjects));
+            }
+            await GetChanges(request, state);
+        }
+
+        async Task PushOfflineTable<T> (ISyncDataStore dataStore, AppState state, List<CommonData> remoteObjects)
+        where T : CommonData, new()
+        {
+            Console.WriteLine("Push offline changes for {0}", typeof(T).Name);
+            foreach (var item in dataStore.Table<T>().Where(x => x.RemoteId == null))
+            {
+                await SendData(item, remoteObjects, state);
             }
         }
 
