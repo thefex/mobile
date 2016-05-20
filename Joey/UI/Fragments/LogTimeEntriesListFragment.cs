@@ -235,6 +235,12 @@ namespace Toggl.Joey.UI.Fragments
         #region Sync
         public void OnRefresh()
         {
+            Console.WriteLine("isNouserMode: {0}, defaultWs: {1}", ViewModel.IsNoUserMode, StoreManager.Singleton.AppState.User.DefaultWorkspaceId);
+
+            foreach (var te in StoreManager.Singleton.AppState.TimeEntries)
+            {
+                Console.WriteLine("syncState: {0}, remoteId: {1}, wId: {2}, id: {3}", te.Value.Data.SyncState, te.Value.Data.RemoteId, te.Value.Data.WorkspaceId, te.Value.Data.Id);
+            }
             if (!ViewModel.IsNoUserMode)
                 ViewModel.TriggerFullSync();
             else

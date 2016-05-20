@@ -5,11 +5,11 @@ using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Json;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
+using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
 using System.Threading.Tasks.Dataflow;
@@ -297,6 +297,32 @@ namespace Toggl.Phoebe.Reactive
             }
         }
 
+        async Task PushOfflineChanges(ServerRequest request, AppState state)
+        {
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            await PushOfflineTable<TagData> (dataStore, state);
+            await PushOfflineTable<ClientData> (dataStore, state);
+            await PushOfflineTable<ProjectData> (dataStore, state);
+            await PushOfflineTable<TaskData> (dataStore, state);
+            await PushOfflineTable<TimeEntryData> (dataStore, state);
+
+            await GetChanges(request, state);
+        }
+
+        void PushOfflineTable<T> (ISyncDataStore dataStore, AppState state)
+        where T : CommonData, new()
+        {
+
+            var remoteObjects = new List<CommonData> ();
+            Console.WriteLine("t: {0}", typeof(T));
+            dataStore.Table<T> ().Where(x => x.RemoteId == null).ForEach(async(x) => await SendData(x, remoteObjects, state));
+
+            if (remoteObjects.Count > 0)
+            {
+                RxChain.Send(DataMsg.ServerResponse.CRUD(remoteObjects));
+            }
+        }
+
         void Enqueue(ICommonData data, List<QueueItem> enqueuedItems, ISyncDataStore dataStore)
         {
             try
@@ -570,7 +596,6 @@ namespace Toggl.Phoebe.Reactive
                            .Concat(changes.Tasks.Select(mapper.Map<TaskData>).Cast<CommonData> ())
                            .Concat(changes.TimeEntries.Select(mapper.Map<TimeEntryData>).Cast<CommonData> ())
                            .ToList();
-
                 RxChain.Send(
                     new DataMsg.ServerResponse(
                         request, data, mapper.Map<UserData> (changes.User), changes.Timestamp));
@@ -708,6 +733,7 @@ namespace Toggl.Phoebe.Reactive
             {
                 json.RemoteId = GetRemoteId(data.Id, remoteObjects, state, data.GetType());
             }
+
             return json;
         }
 
@@ -773,9 +799,10 @@ namespace Toggl.Phoebe.Reactive
             if (data is TagData)
             {
                 var t = (TagData)data.Clone();
+                Console.WriteLine("t.Wid: {0}", t.WorkspaceId);
                 if (t.WorkspaceRemoteId == 0)
                 {
-                    t.WorkspaceRemoteId = GetRemoteId<TagData>(t.WorkspaceId, remoteObjects, state);
+                    t.WorkspaceRemoteId = GetRemoteId<WorkspaceData>(t.WorkspaceId, remoteObjects, state);
                 }
                 return t;
             }

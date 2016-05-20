@@ -45,7 +45,7 @@ namespace Toggl.Phoebe.Helpers
             return Enum.GetName(typeof(T), enumCase);
         }
 
-        public static string GetPropertyName<T,TProp>(Expression<Func<T,TProp>> expr)
+        public static string GetPropertyName<T, TProp>(Expression<Func<T, TProp>> expr)
         {
             var memberExpr = expr.Body as MemberExpression;
             var member = memberExpr?.Member as PropertyInfo;

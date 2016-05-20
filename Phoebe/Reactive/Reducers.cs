@@ -292,7 +292,7 @@ namespace Toggl.Phoebe.Reactive
 
 
                 state = MergeOfflineDb(
-                    state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id, user.RemoteId);
+                            state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id, user.RemoteId);
 
                 // print state of user and workspaces.
                 Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
@@ -697,7 +697,7 @@ namespace Toggl.Phoebe.Reactive
 
         #region Util
 
-        static bool MergeOfflineTable<T>(ISyncDataStoreContext ctx, Tuple<Guid, long> ws = null, Tuple<Guid, long?> user = null)
+        static bool MergeOfflineTable<T>(ISyncDataStoreContext ctx, Tuple<Guid, long> ws = null, Tuple < Guid, long?> user = null)
         where T : CommonData
         {
             if (ctx == null) { throw new ArgumentNullException(nameof(ctx)); }
@@ -763,35 +763,35 @@ namespace Toggl.Phoebe.Reactive
                 // Attention! We're modifying directly the objects in memory by unsafe casting
                 // This should be forbidden but there's no simple alternative in this case
                 state = state.With(
-                    projects: MergeOfflineAppState(edit1, state.Projects, x =>
+                            projects: MergeOfflineAppState(edit1, state.Projects, x =>
                 {
                     var y = (ProjectData)x;
                     y.WorkspaceId = wsId;
                     y.WorkspaceRemoteId = wsRemoteId;
                     return Tuple.Create(y.Id, (IProjectData)y);
                 }),
-                    clients: MergeOfflineAppState(edit2, state.Clients, x =>
+                clients: MergeOfflineAppState(edit2, state.Clients, x =>
                 {
                     var y = (ClientData)x;
                     y.WorkspaceId = wsId;
                     y.WorkspaceRemoteId = wsRemoteId;
                     return Tuple.Create(y.Id, (IClientData)y);
                 }),
-                    tags: MergeOfflineAppState(edit3, state.Tags, x =>
+                tags: MergeOfflineAppState(edit3, state.Tags, x =>
                 {
                     var y = (TagData)x;
                     y.WorkspaceId = wsId;
                     y.WorkspaceRemoteId = wsRemoteId;
                     return Tuple.Create(y.Id, (ITagData)y);
                 }),
-                    projectUsers: MergeOfflineAppState(edit4, state.ProjectUsers, x =>
+                projectUsers: MergeOfflineAppState(edit4, state.ProjectUsers, x =>
                 {
                     var y = (ProjectUserData)x;
                     y.UserId = userId;
                     y.UserRemoteId = userRemoteId ?? 0;
                     return Tuple.Create(y.Id, (IProjectUserData)y);
                 }),
-                    workspaceUsers: MergeOfflineAppState(edit5, state.WorkspaceUsers, x =>
+                workspaceUsers: MergeOfflineAppState(edit5, state.WorkspaceUsers, x =>
                 {
                     var y = (WorkspaceUserData)x;
                     y.WorkspaceId = wsId;
@@ -800,7 +800,7 @@ namespace Toggl.Phoebe.Reactive
                     y.UserRemoteId = userRemoteId ?? 0;
                     return Tuple.Create(y.Id, (IWorkspaceUserData)y);
                 }),
-                    timeEntries: MergeOfflineAppState(edit6, state.TimeEntries, x =>
+                timeEntries: MergeOfflineAppState(edit6, state.TimeEntries, x =>
                 {
                     var y = (TimeEntryData)x.Data;
                     y.WorkspaceId = wsId;
@@ -809,8 +809,8 @@ namespace Toggl.Phoebe.Reactive
                     y.UserRemoteId = userRemoteId ?? 0;
                     return Tuple.Create(y.Id, new RichTimeEntry(y, x.Info));
                 }),
-                    workspaces: state.Workspaces.Values.Where(x => x.Id == wsId).ToDictionary(x => x.Id)
-                );
+                workspaces: state.Workspaces.Values.Where(x => x.Id == wsId).ToDictionary(x => x.Id)
+                        );
             });
             return state;
         }
