@@ -307,27 +307,32 @@ namespace Toggl.Phoebe.Reactive
         {
             var remoteObjects = new List<CommonData> ();
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-            await PushOfflineTable<TagData> (dataStore, state, remoteObjects);
-            await PushOfflineTable<ClientData> (dataStore, state, remoteObjects);
-            await PushOfflineTable<ProjectData> (dataStore, state, remoteObjects);
-            await PushOfflineTable<TaskData> (dataStore, state, remoteObjects);
-            await PushOfflineTable<TimeEntryData> (dataStore, state, remoteObjects);
+            var enqueuedItems = new List<QueueItem> ();
+            await PushOfflineTable<TagData> (dataStore, state, remoteObjects, enqueuedItems);
+            await PushOfflineTable<ClientData> (dataStore, state, remoteObjects, enqueuedItems);
+            await PushOfflineTable<ProjectData> (dataStore, state, remoteObjects, enqueuedItems);
+            await PushOfflineTable<TaskData> (dataStore, state, remoteObjects, enqueuedItems);
+            await PushOfflineTable<TimeEntryData> (dataStore, state, remoteObjects, enqueuedItems);
 
+            await TryEmptyQueue(remoteObjects, state, true, dataStore);
             if (remoteObjects.Count > 0)
             {
                 RxChain.Send(DataMsg.ServerResponse.CRUD(remoteObjects));
             }
+
             await GetChanges(request, state);
         }
 
-        async Task PushOfflineTable<T> (ISyncDataStore dataStore, AppState state, List<CommonData> remoteObjects)
+        async Task PushOfflineTable<T> (ISyncDataStore dataStore, AppState state, List<CommonData> remoteObjects, List<QueueItem> enqueuedItems)
         where T : CommonData, new()
         {
             Console.WriteLine("Push offline changes for {0}", typeof(T).Name);
             foreach (var item in dataStore.Table<T>().Where(x => x.RemoteId == null))
             {
-                await SendData(item, remoteObjects, state);
+                Enqueue(item, enqueuedItems, dataStore);
+//                await SendData(item, remoteObjects, state);
             }
+
         }
 
         void Enqueue(ICommonData data, List<QueueItem> enqueuedItems, ISyncDataStore dataStore)
