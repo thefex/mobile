@@ -307,6 +307,8 @@ namespace Toggl.Phoebe.Reactive
         {
             var remoteObjects = new List<CommonData> ();
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            dataStore.ResetQueue(QueueId);
+            //dataStore.Table<Queue>
             var enqueuedItems = new List<QueueItem> ();
             await PushOfflineTable<TagData> (dataStore, state, remoteObjects, enqueuedItems);
             await PushOfflineTable<ClientData> (dataStore, state, remoteObjects, enqueuedItems);
@@ -326,11 +328,9 @@ namespace Toggl.Phoebe.Reactive
         async Task PushOfflineTable<T> (ISyncDataStore dataStore, AppState state, List<CommonData> remoteObjects, List<QueueItem> enqueuedItems)
         where T : CommonData, new()
         {
-            Console.WriteLine("Push offline changes for {0}", typeof(T).Name);
             foreach (var item in dataStore.Table<T>().Where(x => x.RemoteId == null))
             {
                 Enqueue(item, enqueuedItems, dataStore);
-//                await SendData(item, remoteObjects, state);
             }
 
         }
@@ -363,11 +363,9 @@ namespace Toggl.Phoebe.Reactive
                     switch (data.SyncState)
                     {
                         case SyncState.CreatePending:
-                            Console.WriteLine($"Remote create: {data.GetType().Name} {data.Id}");
                             response = await client.Create(authToken, json);
                             break;
                         case SyncState.UpdatePending:
-                            Console.WriteLine($"Remote update: {data.GetType().Name} {data.Id}");
                             response = await client.Update(authToken, json);
                             break;
                         default:
@@ -395,7 +393,6 @@ namespace Toggl.Phoebe.Reactive
                     var resData = mapper.Map(response);
                     resData.Id = data.Id;
                     remoteObjects.Add(resData);
-                    Console.WriteLine($"Remote received: {resData.GetType().Name} {resData.RemoteId} {resData.Id}");
                 }
                 else
                 {
@@ -811,7 +808,6 @@ namespace Toggl.Phoebe.Reactive
             if (data is TagData)
             {
                 var t = (TagData)data.Clone();
-                Console.WriteLine("t.Wid: {0}", t.WorkspaceId);
                 if (t.WorkspaceRemoteId == 0)
                 {
                     t.WorkspaceRemoteId = GetRemoteId<WorkspaceData>(t.WorkspaceId, remoteObjects, state);

@@ -213,8 +213,6 @@ namespace Toggl.Phoebe.Reactive
 
         static DataSyncMsg<AppState> ServerResponse(AppState state, DataMsg msg)
         {
-            Console.WriteLine("serverResponse");
-
             var serverMsg = msg as DataMsg.ServerResponse;
             return serverMsg.Data.Match(
                        receivedData => serverMsg.Request.MatchType(
@@ -229,7 +227,6 @@ namespace Toggl.Phoebe.Reactive
             },
             (ServerRequest.DownloadEntries req) =>
             {
-                Console.WriteLine("Download Entries");
                 state = UpdateStateWithNewData(state, receivedData);
                 var reqInfo = state.RequestInfo.With(
                                   errorInfo: null,
@@ -240,7 +237,6 @@ namespace Toggl.Phoebe.Reactive
             },
             (ServerRequest.GetChanges req) =>
             {
-                Console.WriteLine("GetChanges");
                 state = UpdateStateWithNewData(state, receivedData);
 
                 // Update user
@@ -269,22 +265,12 @@ namespace Toggl.Phoebe.Reactive
             },
             (ServerRequest.GetCurrentState req) =>
             {
-                Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
-
                 state = UpdateStateWithNewData(state, receivedData);
-
-                // print state of user and workspaces.
-                Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
-                foreach (var ws in state.Workspaces.Values)
-                {
-                    Console.WriteLine("ws.Name: {0}, ws.Id {1}", ws.Name, ws.Id);
-                }
 
                 // Update user
                 var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
                 UserData user = serverMsg.User;
                 user.Id = state.User.Id;
-                Console.WriteLine("user.defaultWorkspace: {0}", user.DefaultWorkspaceRemoteId);
                 user.DefaultWorkspaceId = state.Workspaces.Values.Single(x => x.RemoteId == user.DefaultWorkspaceRemoteId).Id;
                 // TODO: OBM data that comes in user object from this changes
                 // is totally wrong. In that way, we should keep this info before
@@ -292,18 +278,8 @@ namespace Toggl.Phoebe.Reactive
                 user.ExperimentIncluded = state.User.ExperimentIncluded;
                 user.ExperimentNumber = state.User.ExperimentNumber;
 
-
                 state = MergeOfflineDb(
                             state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id, user.RemoteId);
-
-                // print state of user and workspaces.
-                Console.WriteLine("userinState: {0}, wsInState1: {1}", state.User.Name, state.User.DefaultWorkspaceId);
-                foreach (var ws in state.Workspaces.Values)
-                {
-                    Console.WriteLine("ws.Name: {0}, ws.Id {1}", ws.Name, ws.Id);
-                }
-                Console.WriteLine("Count: {0}", state.TimeEntries.Values.First().Data.WorkspaceId);
-
 
                 var userUpdated = (UserData)dataStore.Update(ctx => ctx.Put(user)).Single();
 
@@ -445,7 +421,6 @@ namespace Toggl.Phoebe.Reactive
 
         static DataSyncMsg<AppState> UserDataPut(AppState state, DataMsg msg)
         {
-            Console.WriteLine("UserDataPut");
             return (msg as DataMsg.UserDataPut).Data.Match(
                        userData =>
             {
@@ -461,7 +436,6 @@ namespace Toggl.Phoebe.Reactive
                 // a request to get data state from server.
                 var req = new ServerRequest.GetCurrentState();
                 runningState.Add(req);
-                Console.WriteLine("UserInDb: {0}", userDataInDb.ApiToken, userDataInDb.Name, userDataInDb.DefaultWorkspaceRemoteId);
                 return DataSyncMsg.Create(req, state.With(
                                               user: userDataInDb,
                                               requestInfo: state.RequestInfo.With(authResult: AuthResult.Success, running: runningState),
@@ -714,9 +688,12 @@ namespace Toggl.Phoebe.Reactive
             {
                 var wsIdCol = Util.GetPropertyName<TimeEntryData, Guid>(x => x.WorkspaceId);
                 var wsRemoteIdCol = Util.GetPropertyName<TimeEntryData, long>(x => x.WorkspaceRemoteId);
-                sql.Add($"{wsIdCol}=?, {wsRemoteIdCol}=?");
+                var syncStateCol = Util.GetPropertyName<TimeEntryData, SyncState>(x => x.SyncState);
+
+                sql.Add($"{wsIdCol}=?, {wsRemoteIdCol}=?, {syncStateCol}=?");
                 args.Add(ws.Item1);
                 args.Add(ws.Item2);
+                args.Add(SyncState.CreatePending);
             }
 
             if (user != null)
@@ -744,7 +721,6 @@ namespace Toggl.Phoebe.Reactive
         static AppState MergeOfflineDb(AppState state, Guid wsId, long wsRemoteId, Guid userId, long? userRemoteId)
         {
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-            Console.WriteLine($"wsLocal: {wsId}, wsRemote: {wsRemoteId}, uLocal: {userId}, uRemote: {userRemoteId}");
 
             dataStore.Update(ctx =>
             {
