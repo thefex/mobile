@@ -303,18 +303,20 @@ namespace Toggl.Phoebe.Reactive
             }
         }
 
+        #region Push offline methods
+
         async Task PushOfflineChanges(ServerRequest request, AppState state)
         {
             var remoteObjects = new List<CommonData> ();
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
             dataStore.ResetQueue(QueueId);
-            //dataStore.Table<Queue>
+
             var enqueuedItems = new List<QueueItem> ();
-            await PushOfflineTable<TagData> (dataStore, state, remoteObjects, enqueuedItems);
-            await PushOfflineTable<ClientData> (dataStore, state, remoteObjects, enqueuedItems);
-            await PushOfflineTable<ProjectData> (dataStore, state, remoteObjects, enqueuedItems);
-            await PushOfflineTable<TaskData> (dataStore, state, remoteObjects, enqueuedItems);
-            await PushOfflineTable<TimeEntryData> (dataStore, state, remoteObjects, enqueuedItems);
+            PushOfflineTable<TagData> (dataStore, state, enqueuedItems);
+            PushOfflineTable<ClientData> (dataStore, state, enqueuedItems);
+            PushOfflineTable<ProjectData> (dataStore, state, enqueuedItems);
+            PushOfflineTable<TaskData> (dataStore, state, enqueuedItems);
+            PushOfflineTable<TimeEntryData> (dataStore, state, enqueuedItems);
 
             await TryEmptyQueue(remoteObjects, state, true, dataStore);
             if (remoteObjects.Count > 0)
@@ -325,15 +327,13 @@ namespace Toggl.Phoebe.Reactive
             await GetChanges(request, state);
         }
 
-        async Task PushOfflineTable<T> (ISyncDataStore dataStore, AppState state, List<CommonData> remoteObjects, List<QueueItem> enqueuedItems)
+        void PushOfflineTable<T> (ISyncDataStore dataStore, AppState state, List<QueueItem> enqueuedItems)
         where T : CommonData, new()
         {
-            foreach (var item in dataStore.Table<T>().Where(x => x.RemoteId == null))
-            {
-                Enqueue(item, enqueuedItems, dataStore);
-            }
-
+            dataStore.Table<T>().Where(x => x.RemoteId == null).ForEach(x => Enqueue(x, enqueuedItems, dataStore));
         }
+
+        #endregion
 
         void Enqueue(ICommonData data, List<QueueItem> enqueuedItems, ISyncDataStore dataStore)
         {

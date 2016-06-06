@@ -314,6 +314,10 @@ namespace Toggl.Phoebe.Data
         {
         }
 
+        public sealed class UploadData : ServerRequest
+        {
+        }
+
         public sealed class Authenticate : ServerRequest
         {
             public enum Op

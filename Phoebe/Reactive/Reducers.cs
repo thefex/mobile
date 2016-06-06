@@ -278,27 +278,37 @@ namespace Toggl.Phoebe.Reactive
                 user.ExperimentIncluded = state.User.ExperimentIncluded;
                 user.ExperimentNumber = state.User.ExperimentNumber;
 
-                state = MergeOfflineDb(
-                            state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id, user.RemoteId);
+
 
                 var userUpdated = (UserData)dataStore.Update(ctx => ctx.Put(user)).Single();
+                if (HasAnyData())
+                {
+                    state = MergeOfflineDb(state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id, user.RemoteId);
+                    RxChain.Send(new ServerRequest.UploadData());
+                }
 
                 var reqInfo = state.RequestInfo.With(
                                   errorInfo: null,
                                   hadErrors: false,
-                                  running: new List<ServerRequest>(),
+                                  running: new List<ServerRequest>(),// .Append(request).ToList(),
                                   getChangesLastRun: serverMsg.Timestamp);
 
                 return DataSyncMsg.Create(state.With(
                                               user: userUpdated,
                                               requestInfo: reqInfo,
                                               settings: state.Settings.With(getChangesLastRun: serverMsg.Timestamp)));
+
             },
             (ServerRequest.Authenticate _) =>
             {
                 // TODO RX: Right now, Authenticate responses send UserDataPut messages
                 throw new NotImplementedException();
+            },
+            (ServerRequest.UploadData req) =>
+            {
+                throw new NotImplementedException();
             }),
+
             ex =>
             {
                 // TODO Rx Clean running array?
@@ -899,6 +909,17 @@ namespace Toggl.Phoebe.Reactive
 
         }
 
+        static bool HasAnyData()
+        {
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            if (dataStore.Table<TimeEntryData>().Count() > 0 ||
+                    dataStore.Table<ProjectData>().Count() > 0)
+            {
+                return true;
+            }
+            return false;
+
+        }
         static CommonData BuildLocalRelationships(AppState state, CommonData data)
         {
             // Build local relationships.
