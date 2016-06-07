@@ -141,6 +141,8 @@ namespace Toggl.Joey.UI.Fragments
             nextPeriod.Click += (sender, e) => NavigatePage(1);
             syncRetry.Click += async(sender, e) => await ReloadCurrent();
             HasOptionsMenu = true;
+            var activity = (MainDrawerActivity)Activity;
+            toolbar = activity.MainToolbar;
 
             ResetAdapter();
             UpdatePeriod();

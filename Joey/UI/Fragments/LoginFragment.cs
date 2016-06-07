@@ -123,7 +123,6 @@ namespace Toggl.Joey.UI.Fragments
             .RequestEmail()
             .Build();
             mGoogleApiClient = new GoogleApiClient.Builder(Activity)
-            .EnableAutoManage(Activity, this)
             .AddConnectionCallbacks(this)
             .AddOnConnectionFailedListener(this)
             .AddApi(Auth.GOOGLE_SIGN_IN_API, gso)

@@ -150,6 +150,7 @@ namespace Toggl.Phoebe.Reactive
         {
             await request.MatchType(
                 (ServerRequest.DownloadEntries _) => DownloadEntries(request, state),
+                (ServerRequest.UploadData _) => PushOfflineChanges(request, state),
                 (ServerRequest.GetChanges _) => GetChanges(request, state),
                 (ServerRequest.GetCurrentState _) => GetChanges(request, state),
                 (ServerRequest.Authenticate req) =>
@@ -215,7 +216,10 @@ namespace Toggl.Phoebe.Reactive
                 }
                 catch (Exception ex)
                 {
-                    logError(ex, $"{nameof(SyncManager)} Queue");
+                    if (ex is RemoteIdException)
+                        logInfo(ex.Message);
+                    else
+                        logError(ex);
                 }
             }
 
