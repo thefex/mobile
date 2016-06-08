@@ -225,9 +225,9 @@ namespace Toggl.Phoebe.Reactive
             });
         }
 
-        static IUserData GetUserDraft(Guid workspaceId)
+        static UserData GetUserDraft(Guid workspaceId)
         {
-            return UserData.Create(x =>
+            return (UserData)UserData.Create(x =>
             {
                 x.Id = Guid.NewGuid();
                 x.Name = "John Doe";
@@ -268,24 +268,24 @@ namespace Toggl.Phoebe.Reactive
             {
                 var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
 
+                // First time app opened.
+                // Create user and workspace from scratch.
+                if (settings.UserId == Guid.Empty)
+                {
+                    var draftWorkspace = GetWorkspaceDraft();
+                    userData = GetUserDraft(draftWorkspace.Id);
+                    dataStore.Update(ctx =>
+                    {
+                        ctx.Put(draftWorkspace);
+                        ctx.Put(userData);
+                    });
+                    // Save userId in settings.
+                    settings = settings.With(userId: userData.Id);
+                }
+
                 // if migration is not needed.
                 if (dataStore.GetVersion() == SyncSqliteDataStore.DB_VERSION)
                 {
-                    // First time app opened.
-                    // Create user and workspace from scratch.
-                    if (settings.UserId == Guid.Empty)
-                    {
-                        var draftWorkspace = GetWorkspaceDraft();
-                        var draftUser = GetUserDraft(draftWorkspace.Id);
-                        dataStore.Update(ctx =>
-                        {
-                            ctx.Put(draftWorkspace);
-                            ctx.Put(draftUser);
-                        });
-                        // Save userId in settings.
-                        settings = settings.With(userId: draftUser.Id);
-                    }
-
                     userData = dataStore.Table<UserData>().Single(x => x.Id == settings.UserId);
                     dataStore.Table<WorkspaceData>().ForEach(x => workspaces.Add(x.Id, x));
                     dataStore.Table<WorkspaceUserData>().ForEach(x => workspaceUserData.Add(x.Id, x));
