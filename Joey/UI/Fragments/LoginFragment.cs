@@ -17,11 +17,13 @@ using Android.Views;
 using Android.Views.Animations;
 using Android.Widget;
 using GalaSoft.MvvmLight.Helpers;
+using Toggl.Joey.UI.Activities;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Net;
+using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels;
 using XPlatUtils;
 using DialogFragment = Android.Support.V4.App.DialogFragment;
@@ -146,7 +148,7 @@ namespace Toggl.Joey.UI.Fragments
             modeBinding = this.SetBinding(() => ViewModel.CurrentLoginMode).WhenSourceChanges(SetViewState);
             resultBinding = this.SetBinding(() => ViewModel.AuthResult).WhenSourceChanges(() =>
             {
-                ViewModel.SetAuthentincating(false);
+                ViewModel.SetAuthenticating(false);
                 switch (ViewModel.AuthResult)
                 {
                     case AuthResult.None:
@@ -236,7 +238,6 @@ namespace Toggl.Joey.UI.Fragments
             SubmitButton.Text = ViewModel.IsAuthenticating ? String.Empty : Activity.Resources.GetString(Resource.String.LoginButtonText);
             SpinningImage.ImageAlpha = ViewModel.IsAuthenticating ? 255 : 0;
 
-
             SetPasswordVisibility();
             ValidateEmailField();
             ValidatePasswordField();
@@ -323,13 +324,21 @@ namespace Toggl.Joey.UI.Fragments
             }
             if (ViewModel.IsAuthenticating) return;
 
-            ViewModel.SetAuthentincating(true);
+            ViewModel.SetAuthenticating(true);
 
             if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
             {
                 if (ViewModel.IsEmailValid(EmailEditText.Text))
                 {
-                    ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
+                    if (Reducers.HasAnyData())
+                    {
+                        var confirm = new AreYouSureDialogFragment(this);
+                        confirm.Show(FragmentManager, "confirm_reset_dialog");
+                    }
+                    else
+                    {
+                        StartLogin();
+                    }
                 }
                 else
                 {
@@ -341,7 +350,7 @@ namespace Toggl.Joey.UI.Fragments
             {
                 if (ViewModel.IsPassValid(PasswordEditText.Text) && ViewModel.IsEmailValid(EmailEditText.Text))
                 {
-                    ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
+                    StartLogin();
                 }
                 else
                 {
@@ -350,6 +359,11 @@ namespace Toggl.Joey.UI.Fragments
                 }
 
             }
+        }
+
+        public void StartLogin()
+        {
+            ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
         }
 
         private void OnGoogleLoginButtonClick(object sender, EventArgs e)
@@ -503,6 +517,36 @@ namespace Toggl.Joey.UI.Fragments
             .SetPositiveButton(Resource.String.LoginInvalidCredentialsDialogOk, delegate {})
             .Create();
             dialog.Show();
+        }
+
+        public class AreYouSureDialogFragment : DialogFragment
+        {
+            private LoginFragment fragment;
+
+            public AreYouSureDialogFragment(LoginFragment frag)
+            {
+                fragment = frag;
+            }
+
+            public override Dialog OnCreateDialog(Bundle savedInstanceState)
+            {
+                return new AlertDialog.Builder(Activity)
+                       .SetTitle(Resource.String.SettingsClearDataTitle)
+                       .SetMessage(Resource.String.SettingsClearDataText)
+                       .SetPositiveButton(Resource.String.SettingsClearDataOKButton, OnOkButtonClicked)
+                       .SetNegativeButton(Resource.String.SettingsClearDataCancelButton, OnCancelButtonClicked)
+                       .Create();
+            }
+
+            private void OnCancelButtonClicked(object sender, DialogClickEventArgs args)
+            {
+                fragment.ViewModel.SetAuthenticating(false);
+            }
+
+            private async void OnOkButtonClicked(object sender, DialogClickEventArgs args)
+            {
+                fragment.StartLogin();
+            }
         }
 
         public class NoWorkspaceDialogFragment : DialogFragment

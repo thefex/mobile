@@ -83,7 +83,7 @@ namespace Toggl.Phoebe.ViewModels
         {
             if (CurrentLoginMode == LoginMode.Login)
             {
-                RxChain.Send(new DataMsg.ResetState()); //TODO: Ask permission to delete data, if any
+                RxChain.Send(new DataMsg.ResetState());
                 RxChain.Send(ServerRequest.Authenticate.Login(email, password));
             }
             else
@@ -96,7 +96,7 @@ namespace Toggl.Phoebe.ViewModels
         {
             if (CurrentLoginMode == LoginMode.Login)
             {
-                RxChain.Send(new DataMsg.ResetState()); //TODO: Ask permission to delete data, if any
+                RxChain.Send(new DataMsg.ResetState());
                 RxChain.Send(ServerRequest.Authenticate.LoginWithGoogle(token));
             }
             else
@@ -116,7 +116,7 @@ namespace Toggl.Phoebe.ViewModels
             return (pass ?? "").Length >= 6;
         }
 
-        public void SetAuthentincating(bool isAuth)
+        public void SetAuthenticating(bool isAuth)
         {
             IsAuthenticating = isAuth;
         }

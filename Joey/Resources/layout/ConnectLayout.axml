@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             style="@style/Login.TextInputLayout"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="13dp">
             <AutoCompleteTextView
                 android:id="@+id/EmailAutoCompleteTextView"
                 android:inputType="textEmailAddress"
@@ -60,7 +60,7 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="27dp"
+            android:layout_marginTop="7dp"
             android:layout_marginBottom="22dp"
             android:layout_gravity="center">
             <Button

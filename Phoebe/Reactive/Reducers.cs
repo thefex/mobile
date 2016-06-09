@@ -910,7 +910,7 @@ namespace Toggl.Phoebe.Reactive
 
         }
 
-        static bool HasAnyData()
+        public static bool HasAnyData()
         {
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
             if (dataStore.Table<TimeEntryData>().Count() > 0 ||
