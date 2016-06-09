@@ -197,18 +197,17 @@ namespace Toggl.Phoebe.Reactive
                             }
                             catch (Exception ex)
                             {
-                                logError(ex);
+                                // TODO After a bug, be optimistic and expect that
+                                // everything will be ok again?
                                 Enqueue(data, enqueuedItems, dataStore);
                                 queueEmpty = false;
+                                logError(ex);
                             }
                         }
                         else
                         {
-                            // TODO After a bug, be optimistic and expect that
-                            // everything will be ok again?
                             Enqueue(data, enqueuedItems, dataStore);
                             queueEmpty = false;
-                            logError(ex);
                         }
                     }
 
