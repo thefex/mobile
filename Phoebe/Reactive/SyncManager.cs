@@ -67,7 +67,7 @@ namespace Toggl.Phoebe.Reactive
         const int GetChangesSinceDateLimit = -56;
         const int BufferSize = 100;
 
-        const string QueueId = "SYNC_OUT";
+        public static string QueueId = "SYNC_OUT";
         const string DuplicatedNameMessage = "Name has already been taken";
         const string TimeEntryConstrainMessage = "This entry can't be saved";
         const string TimeEntryUnmetConstrainst = "time entry has unmet constraints";
