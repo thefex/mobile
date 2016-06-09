@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Android.Accounts;
 using Android.App;
-using Android.App;
 using Android.Content;
 using Android.Gms.Auth;
 using Android.Gms.Auth.Api;
@@ -15,6 +14,7 @@ using Android.Support.Design.Widget;
 using Android.Text;
 using Android.Text.Style;
 using Android.Views;
+using Android.Views.Animations;
 using Android.Widget;
 using GalaSoft.MvvmLight.Helpers;
 using Toggl.Joey.UI.Utils;
@@ -26,7 +26,6 @@ using Toggl.Phoebe.ViewModels;
 using XPlatUtils;
 using DialogFragment = Android.Support.V4.App.DialogFragment;
 using Fragment = Android.Support.V4.App.Fragment;
-using FragmentManager = Android.Support.V4.App.FragmentManager;
 
 namespace Toggl.Joey.UI.Fragments
 {
@@ -57,6 +56,7 @@ namespace Toggl.Joey.UI.Fragments
         protected EditText PasswordEditText { get; private set; }
         protected Button PasswordToggleButton { get; private set; }
         protected Button SubmitButton { get; private set; }
+        protected ImageView SpinningImage { get; private set; }
         protected TextView LegalTextView { get; private set; }
         protected FrameLayout GoogleLoginButton { get; private set; }
         protected TextView GoogleLoginText { get; private set; }
@@ -89,6 +89,7 @@ namespace Toggl.Joey.UI.Fragments
             PasswordEditText = view.FindViewById<EditText> (Resource.Id.PasswordEditText).SetFont(Font.RobotoLight);
             PasswordToggleButton = view.FindViewById<Button> (Resource.Id.PasswordToggleButton).SetFont(Font.Roboto);
             SubmitButton = view.FindViewById<Button> (Resource.Id.SubmitButton).SetFont(Font.Roboto);
+            SpinningImage = view.FindViewById<ImageView>(Resource.Id.RegisterLoadingImageView);
             LegalTextView = view.FindViewById<TextView> (Resource.Id.LegalTextView).SetFont(Font.RobotoLight);
             GoogleLoginButton = view.FindViewById<FrameLayout> (Resource.Id.GoogleLoginButton);
             GoogleLoginText = view.FindViewById<TextView> (Resource.Id.GoogleLoginText).SetFont(Font.Roboto);
@@ -110,6 +111,10 @@ namespace Toggl.Joey.UI.Fragments
             hasGoogleAccounts = GoogleAccounts.Count > 0;
             GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
             GoogleIntroText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+
+            var spinningImageAnimation = AnimationUtils.LoadAnimation(Activity.BaseContext, Resource.Animation.SpinningAnimation);
+            SpinningImage.StartAnimation(spinningImageAnimation);
+            SpinningImage.ImageAlpha = 0;
 
             if (savedInstanceState != null)
             {
@@ -141,14 +146,15 @@ namespace Toggl.Joey.UI.Fragments
             modeBinding = this.SetBinding(() => ViewModel.CurrentLoginMode).WhenSourceChanges(SetViewState);
             resultBinding = this.SetBinding(() => ViewModel.AuthResult).WhenSourceChanges(() =>
             {
+                ViewModel.SetAuthentincating(false);
                 switch (ViewModel.AuthResult)
                 {
                     case AuthResult.None:
-                        //case AuthResult.Authenticating: // TODO RX: Do we still need this?
                         SetViewState();
                         break;
 
                     case AuthResult.Success:
+                        EmailEditText.Text = PasswordEditText.Text = string.Empty;
                         break;
 
                     // Error cases
@@ -227,6 +233,9 @@ namespace Toggl.Joey.UI.Fragments
             EmailEditText.Enabled = !ViewModel.IsAuthenticating;
             PasswordEditText.Enabled = !ViewModel.IsAuthenticating;
             GoogleLoginButton.Enabled = !ViewModel.IsAuthenticating;
+            SubmitButton.Text = ViewModel.IsAuthenticating ? String.Empty : Activity.Resources.GetString(Resource.String.LoginButtonText);
+            SpinningImage.ImageAlpha = ViewModel.IsAuthenticating ? 255 : 0;
+
 
             SetPasswordVisibility();
             ValidateEmailField();
@@ -312,6 +321,9 @@ namespace Toggl.Joey.UI.Fragments
                 .Show();
                 return;
             }
+            if (ViewModel.IsAuthenticating) return;
+
+            ViewModel.SetAuthentincating(true);
 
             if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
             {

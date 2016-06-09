@@ -57,16 +57,31 @@
                 android:gravity="center"
                 android:paddingRight="15dp" />
         </FrameLayout>
-        <Button
-            android:id="@+id/SubmitButton"
-            style="@style/Button.Green"
-            android:text="@string/LoginButtonText"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:textSize="16sp"
-            android:layout_gravity="center_horizontal"
-            android:layout_centerInParent="true" />
+            android:layout_marginTop="27dp"
+            android:layout_marginBottom="22dp"
+            android:layout_gravity="center">
+            <Button
+                android:id="@+id/SubmitButton"
+                style="@style/Button.Green"
+                android:text="@string/LoginButtonText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:textSize="16sp"
+                android:layout_gravity="center_horizontal"
+                android:layout_centerInParent="true" />
+            <ImageView
+                android:src="@drawable/IcSpinner"
+                android:id="@+id/RegisterLoadingImageView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:elevation="2dp"
+                android:layout_centerInParent="true" />
+        </RelativeLayout>
         <TextView
             android:id="@+id/GoogleIntroText"
             android:layout_width="match_parent"

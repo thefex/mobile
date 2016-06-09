@@ -850,6 +850,10 @@
     <AndroidResource Include="Resources\drawable-mdpi\ic_hello_toggler.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_toggler.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\IcSpinner.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\IcSpinner.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\IcSpinner.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\IcSpinner.png" />
     <AndroidResource Include="Resources\layout\MigrationFragment.axml" />
     <AndroidResource Include="Resources\drawable\SplashBackground.xml" />
   </ItemGroup>
