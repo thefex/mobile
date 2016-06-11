@@ -12,6 +12,7 @@ using Toggl.Phoebe.Reactive;
 using XPlatUtils;
 using Toggl.Phoebe.Data;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Toggl.Phoebe.ViewModels
 {
@@ -39,6 +40,7 @@ namespace Toggl.Phoebe.ViewModels
             WorkspaceList = appState.Workspaces.Values.OrderBy(r => r.Name).ToList();
             CurrentWorkspaceIndex = WorkspaceList.IndexOf(p => p.Id == workspaceId);
 
+            PopulateMostUsedProjects();
             // Search stream
             searchObservable = Observable.FromEventPattern<string> (ev => onSearch += ev, ev => onSearch -= ev)
                                .Throttle(TimeSpan.FromMilliseconds(300))
@@ -57,6 +59,8 @@ namespace Toggl.Phoebe.ViewModels
         #region Observable properties
         public List<IWorkspaceData> WorkspaceList { get; private set; }
         public ProjectsCollectionVM ProjectList { get; private set; }
+        public List<CommonProjectData> AllTopProjects { get; private set; }
+        public List<CommonProjectData> TopProjects { get; private set; }
         public int CurrentWorkspaceIndex { get; private set; }
         public Guid CurrentWorkspaceId { get; private set; }
         #endregion
@@ -80,6 +84,53 @@ namespace Toggl.Phoebe.ViewModels
             CurrentWorkspaceId = WorkspaceList [newIndex].Id;
             ProjectList.WorkspaceId = WorkspaceList [newIndex].Id;
             CurrentWorkspaceIndex = newIndex;
+            TopProjects = ProjectList.Count > 7
+                          ? AllTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(3).ToList()
+                          : new List<CommonProjectData>();
+            Console.WriteLine("TopPRojectsCount: {0}", TopProjects.Count);
+        }
+
+        public void PopulateMostUsedProjects() //Load all potential top projects at once.
+        {
+            Console.WriteLine("PopulateMostUsedProjects");
+            var store = ServiceContainer.Resolve<ISyncDataStore>();
+            //var settingsStore = ServiceContainer.Resolve<SettingsStor>();
+            var appstate = StoreManager.Singleton.AppState;
+
+            var recentEntries = store.Table<TimeEntryData>()
+                                .OrderByDescending(r => r.StartTime)
+                                .Where(r => r.DeletedAt == null
+                                       && r.UserId == appstate.User.Id
+                                       && r.ProjectId != Guid.Empty)
+                                .ToList();
+
+            var uniqueRows = recentEntries
+            .GroupBy(p => new { p.ProjectId, p.TaskId })
+            .Select(g => g.First())
+            .ToList();
+
+            AllTopProjects = new List<CommonProjectData>();
+            foreach (var entry in uniqueRows)
+            {
+                var project = appstate.Projects.Values.Where(p => p.Id == entry.ProjectId).FirstOrDefault();
+                var task = appstate.Tasks.Values.Where(p => p.Id == entry.TaskId).FirstOrDefault();
+                var client = project.ClientId == Guid.Empty ? string.Empty : appstate.Clients.Values.Where(c => c.Id == project.ClientId).First().Name;
+                AllTopProjects.Add(new CommonProjectData(project, client, task ?? null));
+            }
+            TopProjects = AllTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(3).ToList();
+            Console.WriteLine("AllTopPRojects: {0}, topProjects.count: {1}", AllTopProjects.Count, TopProjects.Count);
+        }
+
+        public class CommonProjectData : ProjectData
+        {
+            public string ClientName { get; private set; }
+            public ITaskData Task { get; private set; }
+
+            public CommonProjectData(IProjectData dataObject, string clientName, ITaskData task = null) : base((ProjectData)dataObject)
+            {
+                Task = task;
+                ClientName = clientName;
+            }
         }
     }
 }

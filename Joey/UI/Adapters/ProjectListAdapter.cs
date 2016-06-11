@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Android.Content;
 using Android.Graphics;
 using Android.Support.V7.Widget;
@@ -17,13 +18,16 @@ namespace Toggl.Joey.UI.Adapters
         protected const int ViewTypeProject = ViewTypeContent;
         protected const int ViewTypeClient = ViewTypeContent + 1;
         protected const int ViewTypeTask = ViewTypeContent + 2;
+        protected const int ViewTypeTopProjects = ViewTypeContent + 3;
 
         protected ProjectsCollectionVM collectionView;
+        protected ProjectListVM viewModel;
         public Action<CommonData> HandleItemSelection { get; set; }
 
-        public ProjectListAdapter(RecyclerView owner, ProjectsCollectionVM collectionView) : base(owner, collectionView)
+        public ProjectListAdapter(RecyclerView owner, ProjectListVM viewModel) : base(owner, viewModel.ProjectList)
         {
-            this.collectionView = collectionView;
+            this.viewModel = viewModel;
+            this.collectionView = viewModel.ProjectList;
         }
 
         protected override RecyclerView.ViewHolder GetViewHolder(ViewGroup parent, int viewType)
@@ -34,6 +38,10 @@ namespace Toggl.Joey.UI.Adapters
 
             switch (viewType)
             {
+                case ViewTypeTopProjects:
+                    view = inflater.Inflate(Resource.Layout.ProjectListMostUsedList, parent, false);
+                    holder = new TopProjectsHolder(this, view);
+                    break;
                 case ViewTypeClient:
                     view = inflater.Inflate(Resource.Layout.ProjectListClientItem, parent, false);
                     holder = new ClientItemHolder(view);
@@ -54,7 +62,11 @@ namespace Toggl.Joey.UI.Adapters
         {
             var viewType = GetItemViewType(position);
 
-            if (viewType == ViewTypeTask)
+            if (viewType == ViewTypeTopProjects)
+            {
+                ((TopProjectsHolder)holder).Bind(viewModel.TopProjects);
+            }
+            else if (viewType == ViewTypeTask)
             {
                 ((TaskItemHolder) holder).Bind((TaskData)GetItem(position));
             }
@@ -71,6 +83,39 @@ namespace Toggl.Joey.UI.Adapters
 
         public override int GetItemViewType(int position)
         {
+
+            //if (position == 0)
+            //{
+            //    return ViewTypeTopProjects;
+            //}
+            //var type = base.GetItemViewType(position - 1);
+
+            //if (type == ViewTypeLoaderPlaceholder)
+            //{
+            //    return type;
+            //}
+            //var dataObject = GetItem(position - 1);
+
+            //if (dataObject is ProjectsCollectionVM.SuperProjectData)
+            //{
+            //    return ViewTypeProject;
+            //}
+
+            //if (dataObject is ClientData)
+            //{
+            //    return ViewTypeClient;
+            //}
+
+            //if (dataObject is TaskData)
+            //{
+            //    return ViewTypeTask;
+            //}
+            //return type;
+            if (position == 0)
+            {
+                return ViewTypeTopProjects;
+            }
+
             var type = base.GetItemViewType(position);
 
             if (type != ViewTypeLoaderPlaceholder)
@@ -97,6 +142,67 @@ namespace Toggl.Joey.UI.Adapters
         }
 
         #region View holders
+
+        public class TopProjectsHolder : RecyclerView.ViewHolder
+        {
+            readonly TextView HeaderTextView;
+            readonly LinearLayout ProjectsContainer;
+            private List<ProjectListVM.CommonProjectData> projectList;
+            private ProjectListAdapter adapter;
+
+            public TopProjectsHolder(ProjectListAdapter adapter, View root) : base(root)
+            {
+                this.adapter = adapter;
+                HeaderTextView = root.FindViewById<TextView>(Resource.Id.HeaderTextView).SetFont(Font.RobotoMedium);
+                ProjectsContainer = root.FindViewById<LinearLayout>(Resource.Id.ProjectsContainer);
+            }
+
+            public void Bind(List<ProjectListVM.CommonProjectData> projects)
+            {
+                this.projectList = projects;
+
+                HeaderTextView.Visibility = projectList.Count == 0 ? ViewStates.Gone : ViewStates.Visible;
+                ProjectsContainer.Visibility = projectList.Count == 0 ? ViewStates.Gone : ViewStates.Visible;
+
+                var inflater = LayoutInflater.FromContext(ServiceContainer.Resolve<Context>());
+
+                ProjectsContainer.RemoveAllViews();
+
+                foreach (var project in projectList)
+                {
+                    var view = inflater.Inflate(Resource.Layout.ProjectListUsedProjectItem, null, false);
+
+                    var projectTextView = view.FindViewById<TextView>(Resource.Id.ProjectTextView);
+                    var clientTextView = view.FindViewById<TextView>(Resource.Id.ClientTextView);
+                    var taskTextView = view.FindViewById<TextView>(Resource.Id.TaskTextView);
+                    var colorView = view.FindViewById<View>(Resource.Id.ColorView);
+
+                    projectTextView.Text = project.Name;
+                    clientTextView.Visibility = String.IsNullOrEmpty(project.ClientName) ? ViewStates.Gone : ViewStates.Visible;
+                    clientTextView.Text = project.ClientName;
+
+                    taskTextView.Text = project.Task == null ? String.Empty : project.Task.Name;
+
+                    var color = Color.ParseColor(ProjectData.HexColors[project.Color % ProjectData.HexColors.Length]);
+                    colorView.SetBackgroundColor(color);
+                    projectTextView.SetTextColor(color);
+
+                    view.Click += (sender, e) =>
+                    {
+                        if (project.Task == null)
+                        {
+                            adapter.HandleItemSelection.Invoke((ProjectData)project);
+                        }
+                        else
+                        {
+                            adapter.HandleItemSelection.Invoke((TaskData)project.Task);
+                        }
+                    };
+                    ProjectsContainer.AddView(view);
+                }
+            }
+        }
+
         protected class ProjectItemHolder : RecyclerView.ViewHolder, View.IOnClickListener
         {
             protected View ColorView { get; private set; }
