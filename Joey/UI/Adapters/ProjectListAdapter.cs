@@ -83,61 +83,32 @@ namespace Toggl.Joey.UI.Adapters
 
         public override int GetItemViewType(int position)
         {
-
-            //if (position == 0)
-            //{
-            //    return ViewTypeTopProjects;
-            //}
-            //var type = base.GetItemViewType(position - 1);
-
-            //if (type == ViewTypeLoaderPlaceholder)
-            //{
-            //    return type;
-            //}
-            //var dataObject = GetItem(position - 1);
-
-            //if (dataObject is ProjectsCollectionVM.SuperProjectData)
-            //{
-            //    return ViewTypeProject;
-            //}
-
-            //if (dataObject is ClientData)
-            //{
-            //    return ViewTypeClient;
-            //}
-
-            //if (dataObject is TaskData)
-            //{
-            //    return ViewTypeTask;
-            //}
-            //return type;
             if (position == 0)
             {
                 return ViewTypeTopProjects;
             }
-
             var type = base.GetItemViewType(position);
 
-            if (type != ViewTypeLoaderPlaceholder)
+            if (type == ViewTypeLoaderPlaceholder)
             {
-                var dataObject = GetItem(position);
+                return type;
+            }
+            var dataObject = GetItem(position);
 
-                if (dataObject is ProjectsCollectionVM.SuperProjectData)
-                {
-                    type = ViewTypeProject;
-                }
-
-                if (dataObject is ClientData)
-                {
-                    type = ViewTypeClient;
-                }
-
-                if (dataObject is TaskData)
-                {
-                    type = ViewTypeTask;
-                }
+            if (dataObject is ProjectsCollectionVM.SuperProjectData)
+            {
+                return ViewTypeProject;
             }
 
+            if (dataObject is ClientData)
+            {
+                return ViewTypeClient;
+            }
+
+            if (dataObject is TaskData)
+            {
+                return ViewTypeTask;
+            }
             return type;
         }
 

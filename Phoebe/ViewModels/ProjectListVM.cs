@@ -87,12 +87,10 @@ namespace Toggl.Phoebe.ViewModels
             TopProjects = ProjectList.Count > 7
                           ? AllTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(3).ToList()
                           : new List<CommonProjectData>();
-            Console.WriteLine("TopPRojectsCount: {0}", TopProjects.Count);
         }
 
         public void PopulateMostUsedProjects() //Load all potential top projects at once.
         {
-            Console.WriteLine("PopulateMostUsedProjects");
             var store = ServiceContainer.Resolve<ISyncDataStore>();
             //var settingsStore = ServiceContainer.Resolve<SettingsStor>();
             var appstate = StoreManager.Singleton.AppState;
@@ -118,7 +116,6 @@ namespace Toggl.Phoebe.ViewModels
                 AllTopProjects.Add(new CommonProjectData(project, client, task ?? null));
             }
             TopProjects = AllTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(3).ToList();
-            Console.WriteLine("AllTopPRojects: {0}, topProjects.count: {1}", AllTopProjects.Count, TopProjects.Count);
         }
 
         public class CommonProjectData : ProjectData
