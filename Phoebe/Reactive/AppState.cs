@@ -40,7 +40,7 @@ namespace Toggl.Phoebe.Reactive
                         {
                             _activeEntryCache = activeEntries[0];
                         }
-                        else if (activeEntries.Count > 1)
+                        else if (activeEntries.Count > 1) // this should never happen
                         {
                             Util.Log(Logging.LogLevel.Warning, nameof(AppState), "More than one active entry detected");
                             _activeEntryCache = activeEntries.OrderByDescending(x => x.Data.StartTime).First();
