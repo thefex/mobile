@@ -42,7 +42,7 @@ namespace Toggl.Ross.DataSources
 
         private void OnCollectionChange(object sender, NotifyCollectionChangedEventArgs e)
         {
-            var collectionData = (ObservableCollection<TData>) sender;
+            // var collectionData = (ObservableCollection<TData>) sender;
 
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
