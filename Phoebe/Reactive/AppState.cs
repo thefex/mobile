@@ -6,6 +6,7 @@ using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
+using System.Collections.Concurrent;
 
 namespace Toggl.Phoebe.Reactive
 {
@@ -22,39 +23,26 @@ namespace Toggl.Phoebe.Reactive
         public IReadOnlyDictionary<Guid, IClientData> Clients { get; private set; }
         public IReadOnlyDictionary<Guid, ITaskData> Tasks { get; private set; }
         public IReadOnlyDictionary<Guid, ITagData> Tags { get; private set; }
-        public IReadOnlyDictionary<Guid, RichTimeEntry> TimeEntries { get; private set; }
+        public ConcurrentDictionary<Guid, RichTimeEntry> TimeEntries { get; private set; }
 
+        private readonly object entriesLock = new object();
         // AppState instances are immutable snapshots, so it's safe to use a cache for ActiveEntry
-        private RichTimeEntry _activeEntryCache = null;
         public RichTimeEntry ActiveEntry
         {
             get
             {
-                if (_activeEntryCache == null)
+                // we dont want any addition in TimeEntries while checking for active entries
+                lock(entriesLock)
                 {
-                    _activeEntryCache = new RichTimeEntry(new TimeEntryData(), this);
-                    if (TimeEntries.Count > 0)
+                    var activeEntries = TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
+                    if (activeEntries.Count > 1)
                     {
-                        var activeEntries = TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
-                        if (activeEntries.Count == 1)
-                        {
-                            _activeEntryCache = activeEntries[0];
-                        }
-                        else if (activeEntries.Count > 1) // this should never happen
-                        {
-                            Util.Log(Logging.LogLevel.Warning, nameof(AppState), "More than one active entry detected");
-                            _activeEntryCache = activeEntries.OrderByDescending(x => x.Data.StartTime).First();
-                            foreach (var entry in activeEntries)
-                            {
-                                if (entry != _activeEntryCache)
-                                {
-                                    RxChain.Send(new DataMsg.TimeEntryStop(entry.Data));
-                                }
-                            }
-                        }
+                        // exception will allow us to investigate where this bug is comming from in case it raise again
+                        throw new Exception("More than one active entry detected");
                     }
+
+                    return activeEntries.FirstOrDefault() ?? new RichTimeEntry(new TimeEntryData(), this);
                 }
-                return _activeEntryCache;
             }
         }
 
@@ -69,7 +57,7 @@ namespace Toggl.Phoebe.Reactive
             IReadOnlyDictionary<Guid, IClientData> clients,
             IReadOnlyDictionary<Guid, ITaskData> tasks,
             IReadOnlyDictionary<Guid, ITagData> tags,
-            IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries)
+            ConcurrentDictionary<Guid, RichTimeEntry> timeEntries)
         {
             Settings = settings;
             RequestInfo = requestInfo;
@@ -95,7 +83,7 @@ namespace Toggl.Phoebe.Reactive
             IReadOnlyDictionary<Guid, IClientData> clients = null,
             IReadOnlyDictionary<Guid, ITaskData> tasks = null,
             IReadOnlyDictionary<Guid, ITagData> tags = null,
-            IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries = null)
+            ConcurrentDictionary<Guid, RichTimeEntry> timeEntries = null)
         {
             return new AppState(
                        settings ?? Settings,
@@ -148,7 +136,7 @@ namespace Toggl.Phoebe.Reactive
         /// This doesn't check ModifiedAt or DeletedAt, so call it
         /// always after putting items first in the database
         /// </summary>
-        public IReadOnlyDictionary<Guid, RichTimeEntry> UpdateTimeEntries(
+        public ConcurrentDictionary<Guid, RichTimeEntry> UpdateTimeEntries(
             IEnumerable<ICommonData> newItems)
         {
             var dic = TimeEntries.ToDictionary(x => x.Key, x => x.Value);
@@ -175,7 +163,8 @@ namespace Toggl.Phoebe.Reactive
                     }
                 }
             }
-            return dic;
+
+            return new ConcurrentDictionary<Guid, RichTimeEntry>(dic);
         }
 
         public TimeEntryInfo LoadTimeEntryInfo(ITimeEntryData teData)
@@ -200,13 +189,10 @@ namespace Toggl.Phoebe.Reactive
                        color);
         }
 
-        public IEnumerable<IProjectData> GetUserAccessibleProjects(Guid userId)
-        {
-            return Projects.Values.Where(
-                       p => p.IsActive &&
+        public IEnumerable<IProjectData> GetUserAccessibleProjects(Guid userId) => 
+            Projects.Values.Where(p => p.IsActive &&
                        (p.IsPrivate || ProjectUsers.Values.Any(x => x.ProjectId == p.Id && x.UserId == userId)))
-                   .OrderBy(p => p.Name);
-        }
+                    .OrderBy(p => p.Name);
 
         public ITimeEntryData GetTimeEntryDraft()
         {
@@ -297,7 +283,7 @@ namespace Toggl.Phoebe.Reactive
                        clients: clients,
                        tasks: tasks,
                        tags: tags,
-                       timeEntries: new Dictionary<Guid, RichTimeEntry> ());
+                       timeEntries: new ConcurrentDictionary<Guid, RichTimeEntry> ());
         }
     }
 
@@ -317,10 +303,8 @@ namespace Toggl.Phoebe.Reactive
         {
         }
 
-        public override int GetHashCode()
-        {
-            return Data.GetHashCode();
-        }
+        public override int GetHashCode() => 
+            Data.GetHashCode();
 
         public override bool Equals(object obj)
         {
@@ -328,15 +312,13 @@ namespace Toggl.Phoebe.Reactive
             {
                 return true;
             }
-            else
-            {
-                // Quick way to compare time entries
-                var other = obj as RichTimeEntry;
-                return other != null &&
-                       Data.Id == other.Data.Id &&
-                       Data.ModifiedAt == other.Data.ModifiedAt &&
-                       Data.DeletedAt == other.Data.DeletedAt;
-            }
+
+            // Quick way to compare time entries
+            var other = obj as RichTimeEntry;
+            return other != null &&
+                   Data.Id == other.Data.Id &&
+                   Data.ModifiedAt == other.Data.ModifiedAt &&
+                   Data.DeletedAt == other.Data.DeletedAt;
         }
     }
 
@@ -446,14 +428,14 @@ namespace Toggl.Phoebe.Reactive
         private static readonly bool UseDefaultTagDefault = true;
         private static readonly string LastAppVersionDefault = string.Empty;
         private static readonly int LastReportZoomDefault = (int)ZoomLevel.Week;
-        private static readonly bool GroupedEntriesDefault = false;
-        private static readonly bool ChooseProjectForNewDefault = false;
-        private static readonly int ReportsCurrentItemDefault = 0;
+        private static readonly bool GroupedEntriesDefault;
+        private static readonly bool ChooseProjectForNewDefault;
+        private static readonly int ReportsCurrentItemDefault;
         private static readonly string ProjectSortDefault = "Clients";
         private static readonly bool ShowWelcomeDefault = true;
         private static readonly string PushTokenDefault = string.Empty;
         // iOS only Default values
-        private static readonly bool RossReadDurOnlyNoticeDefault = false;
+        private static readonly bool RossReadDurOnlyNoticeDefault;
         // Android only Default values
         private static readonly bool IdleNotificationDefault = true;
         private static readonly bool ShowNotificationDefault = true;
@@ -507,16 +489,11 @@ namespace Toggl.Phoebe.Reactive
             return initDefault();
         }
 
-        static SettingsState initLoadSettings()
-        {
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<SettingsState>(
-                       Settings.SerializedSettings, Settings.GetNonPublicPropertiesResolverSettings());
-        }
+        static SettingsState initLoadSettings() => 
+            Newtonsoft.Json.JsonConvert.DeserializeObject<SettingsState>(
+                Settings.SerializedSettings, Settings.GetNonPublicPropertiesResolverSettings());
 
-        static SettingsState initDefault()
-        {
-            return new SettingsState();
-        }
+        static SettingsState initDefault() => new SettingsState();
 
         public SettingsState With(
             Guid? userId = null,

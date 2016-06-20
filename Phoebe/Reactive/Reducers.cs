@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -677,7 +678,7 @@ namespace Toggl.Phoebe.Reactive
                                           clients: clients,
                                           tasks: tasks,
                                           tags: tags,
-                                          timeEntries: new Dictionary<Guid, RichTimeEntry>()));
+                                          timeEntries: new ConcurrentDictionary<Guid, RichTimeEntry>()));
         }
 
         static DataSyncMsg<AppState> UpdateSettings(AppState state, DataMsg msg)

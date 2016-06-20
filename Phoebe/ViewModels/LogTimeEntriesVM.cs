@@ -47,7 +47,7 @@ namespace Toggl.Phoebe.ViewModels
         public bool IsEntryRunning { get; private set; }
         public LoadInfoType LoadInfo { get; private set; }
         public RichTimeEntry ActiveEntry { get; private set; }
-        public ObservableCollection<IHolder> Collection { get { return timeEntryCollection; } }
+        public ObservableCollection<IHolder> Collection => timeEntryCollection;
         public IObservable<long> TimerObservable { get; private set; }
 
         public LogTimeEntriesVM(AppState appState)
@@ -69,20 +69,21 @@ namespace Toggl.Phoebe.ViewModels
             // an inmediate update using Rx code.
             UpdateState(appState.Settings, appState.ActiveEntry, appState.RequestInfo);
 
-            TimerObservable = Observable.Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond),
-                                               TimeSpan.FromSeconds(1))
-                              .ObserveOn(uiContext);
+            TimerObservable = Observable
+                                .Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond), TimeSpan.FromSeconds(1))
+                                .ObserveOn(uiContext);
+            
             durationSubscriber = TimerObservable.Subscribe(x => UpdateDuration());
 
             // The ViewModel is created and start to load
             // content. This line was in the View before because
-            // was an async method.
+            // it was an async method.
             LoadMore();
         }
 
         private void ResetCollection(bool isGroupedMode)
         {
-            DisposeCollection();
+            timeEntryCollection?.Dispose();
             IsGroupedMode = isGroupedMode;
             timeEntryCollection = new TimeEntryCollection(
                 isGroupedMode ? TimeEntryGroupMethod.ByDateAndTask : TimeEntryGroupMethod.Single, uiContext);
@@ -90,31 +91,13 @@ namespace Toggl.Phoebe.ViewModels
 
         public void Dispose()
         {
-            if (durationSubscriber != null)
-            {
-                durationSubscriber.Dispose();
-            }
-
-            if (subscriptionState != null)
-            {
-                subscriptionState.Dispose();
-            }
-
-            DisposeCollection();
+            durationSubscriber?.Dispose();
+            subscriptionState?.Dispose();
+            timeEntryCollection?.Dispose();
         }
 
-        private void DisposeCollection()
-        {
-            if (timeEntryCollection != null)
-            {
-                timeEntryCollection.Dispose();
-            }
-        }
-
-        public void TriggerFullSync()
-        {
+        public void TriggerFullSync() => 
             RxChain.Send(new ServerRequest.GetChanges());
-        }
 
         public void LoadMore()
         {
@@ -149,7 +132,7 @@ namespace Toggl.Phoebe.ViewModels
             RxChain.Send(new DataMsg.TimeEntryStart(), new RxChain.Continuation((state) =>
             {
                 ServiceContainer.Resolve<ITracker> ().SendTimerStartEvent(TimerStartSource.AppNew);
-                tcs.SetResult(StoreManager.Singleton.AppState.ActiveEntry.Data);
+                tcs.SetResult(state.ActiveEntry.Data);
             }));
 
             return tcs.Task;
@@ -228,7 +211,8 @@ namespace Toggl.Phoebe.ViewModels
         {
             if (IsEntryRunning)
             {
-                Duration = string.Format("{0:D2}:{1:mm}:{1:ss}", (int)ActiveEntry.Data.GetDuration().TotalHours, ActiveEntry.Data.GetDuration());
+                Duration = string.Format("{0:D2}:{1:mm}:{1:ss}", 
+                                         (int)ActiveEntry.Data.GetDuration().TotalHours, ActiveEntry.Data.GetDuration());
             }
             else
             {

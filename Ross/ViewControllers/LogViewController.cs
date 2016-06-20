@@ -263,9 +263,9 @@ namespace Toggl.Ross.ViewControllers
 
             if (!ViewModel.IsEntryRunning)
             {
-                var te = await ViewModel.StartNewTimeEntryAsync();
+                var timeEntry = await ViewModel.StartNewTimeEntryAsync();
 
-                openEditViewForNewEntry(te);
+                openEditViewForNewEntry(timeEntry);
             }
             else
             {
@@ -273,9 +273,9 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        private void openEditViewForNewEntry(ITimeEntryData te)
+        private void openEditViewForNewEntry(ITimeEntryData timeEntry)
         {
-            var editController = EditTimeEntryViewController.ForExistingEntry(te.Id);
+            var editController = EditTimeEntryViewController.ForExistingEntry(timeEntry.Id);
             var projectViewController = getProjectViewControllerIfChooseProjectForNew(editController);
 
             NavigationController.PushViewControllers(true, editController, projectViewController);
@@ -336,7 +336,6 @@ namespace Toggl.Ross.ViewControllers
 
         private void SetFooterState()
         {
-
             if (ViewModel.LoadInfo.HasMore && !ViewModel.LoadInfo.HadErrors)
             {
                 if (defaultFooterView == null)
