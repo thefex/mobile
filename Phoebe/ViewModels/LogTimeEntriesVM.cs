@@ -34,7 +34,7 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
-        private TimeEntryCollectionVM timeEntryCollection;
+        private TimeEntryCollection timeEntryCollection;
         private readonly IDisposable subscriptionState;
         private readonly SynchronizationContext uiContext;
         private IDisposable durationSubscriber;
@@ -84,7 +84,7 @@ namespace Toggl.Phoebe.ViewModels
         {
             DisposeCollection();
             IsGroupedMode = isGroupedMode;
-            timeEntryCollection = new TimeEntryCollectionVM(
+            timeEntryCollection = new TimeEntryCollection(
                 isGroupedMode ? TimeEntryGroupMethod.ByDateAndTask : TimeEntryGroupMethod.Single, uiContext);
         }
 

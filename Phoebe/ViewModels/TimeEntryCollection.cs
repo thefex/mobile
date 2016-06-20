@@ -12,7 +12,7 @@ using System.Threading;
 
 namespace Toggl.Phoebe.ViewModels
 {
-    public class TimeEntryCollectionVM : ObservableRangeCollection<IHolder>, IDisposable
+    public class TimeEntryCollection : ObservableRangeCollection<IHolder>, IDisposable
     {
         #region Nested classes
         class InnerState
@@ -31,7 +31,7 @@ namespace Toggl.Phoebe.ViewModels
         IDisposable disposable;
         readonly TimeEntryGrouper grouper;
 
-        public TimeEntryCollectionVM(TimeEntryGroupMethod groupMethod, SynchronizationContext uiContext)
+        public TimeEntryCollection(TimeEntryGroupMethod groupMethod, SynchronizationContext uiContext)
         {
             grouper = new TimeEntryGrouper(groupMethod);
             disposable = StoreManager
