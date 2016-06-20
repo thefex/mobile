@@ -247,17 +247,12 @@ namespace Toggl.Ross.ViewControllers
         {
             if (timerBar.IsManualModeSwitchOn)
             {
-                createManual();
+                openEditViewForManualEntry();
             }
             else
             {
                 startStop();
             }
-        }
-
-        private async void createManual()
-        {
-            openEditViewForManualEntry();
         }
 
         private async void startStop()
