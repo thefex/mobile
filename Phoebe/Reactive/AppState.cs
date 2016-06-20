@@ -36,27 +36,6 @@ namespace Toggl.Phoebe.Reactive
             return activeEntries.FirstOrDefault();
         }
 
-        //private readonly object entriesLock = new object();
-        //// AppState instances are immutable snapshots, so it's safe to use a cache for ActiveEntry
-        //public RichTimeEntry ActiveEntry
-        //{
-        //    get
-        //    {
-        //        // we dont want any addition in TimeEntries while checking for active entries
-        //        lock(entriesLock)
-        //        {
-        //            var activeEntries = TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
-        //            if (activeEntries.Count > 1)
-        //            {
-        //                // exception will allow us to investigate where this bug is comming from in case it raise again
-        //                throw new Exception("More than one active entry detected");
-        //            }
-
-        //            return activeEntries.FirstOrDefault() ?? new RichTimeEntry(new TimeEntryData(), this);
-        //        }
-        //    }
-        //}
-
         AppState(
             SettingsState settings,
             RequestInfo requestInfo,
