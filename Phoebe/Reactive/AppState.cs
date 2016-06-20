@@ -6,7 +6,6 @@ using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
-using System.Collections.Concurrent;
 
 namespace Toggl.Phoebe.Reactive
 {
@@ -23,28 +22,40 @@ namespace Toggl.Phoebe.Reactive
         public IReadOnlyDictionary<Guid, IClientData> Clients { get; private set; }
         public IReadOnlyDictionary<Guid, ITaskData> Tasks { get; private set; }
         public IReadOnlyDictionary<Guid, ITagData> Tags { get; private set; }
-        public ConcurrentDictionary<Guid, RichTimeEntry> TimeEntries { get; private set; }
+        public IReadOnlyDictionary<Guid, RichTimeEntry> TimeEntries { get; private set; }
 
-        private readonly object entriesLock = new object();
-        // AppState instances are immutable snapshots, so it's safe to use a cache for ActiveEntry
-        public RichTimeEntry ActiveEntry
+        public static RichTimeEntry GetActiveEntry(IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries)
         {
-            get
+            var activeEntries = timeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
+            if (activeEntries.Count > 1)
             {
-                // we dont want any addition in TimeEntries while checking for active entries
-                lock(entriesLock)
-                {
-                    var activeEntries = TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
-                    if (activeEntries.Count > 1)
-                    {
-                        // exception will allow us to investigate where this bug is comming from in case it raise again
-                        throw new Exception("More than one active entry detected");
-                    }
-
-                    return activeEntries.FirstOrDefault() ?? new RichTimeEntry(new TimeEntryData(), this);
-                }
+                // exception will allow us to investigate where this bug is comming from in case it raise again
+                throw new Exception("More than one active entry detected");
             }
+
+            return activeEntries.FirstOrDefault();
         }
+
+        //private readonly object entriesLock = new object();
+        //// AppState instances are immutable snapshots, so it's safe to use a cache for ActiveEntry
+        //public RichTimeEntry ActiveEntry
+        //{
+        //    get
+        //    {
+        //        // we dont want any addition in TimeEntries while checking for active entries
+        //        lock(entriesLock)
+        //        {
+        //            var activeEntries = TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
+        //            if (activeEntries.Count > 1)
+        //            {
+        //                // exception will allow us to investigate where this bug is comming from in case it raise again
+        //                throw new Exception("More than one active entry detected");
+        //            }
+
+        //            return activeEntries.FirstOrDefault() ?? new RichTimeEntry(new TimeEntryData(), this);
+        //        }
+        //    }
+        //}
 
         AppState(
             SettingsState settings,
@@ -57,7 +68,7 @@ namespace Toggl.Phoebe.Reactive
             IReadOnlyDictionary<Guid, IClientData> clients,
             IReadOnlyDictionary<Guid, ITaskData> tasks,
             IReadOnlyDictionary<Guid, ITagData> tags,
-            ConcurrentDictionary<Guid, RichTimeEntry> timeEntries)
+            IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries)
         {
             Settings = settings;
             RequestInfo = requestInfo;
@@ -83,7 +94,7 @@ namespace Toggl.Phoebe.Reactive
             IReadOnlyDictionary<Guid, IClientData> clients = null,
             IReadOnlyDictionary<Guid, ITaskData> tasks = null,
             IReadOnlyDictionary<Guid, ITagData> tags = null,
-            ConcurrentDictionary<Guid, RichTimeEntry> timeEntries = null)
+            IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries = null)
         {
             return new AppState(
                        settings ?? Settings,
@@ -136,7 +147,7 @@ namespace Toggl.Phoebe.Reactive
         /// This doesn't check ModifiedAt or DeletedAt, so call it
         /// always after putting items first in the database
         /// </summary>
-        public ConcurrentDictionary<Guid, RichTimeEntry> UpdateTimeEntries(
+        public IReadOnlyDictionary<Guid, RichTimeEntry> UpdateTimeEntries(
             IEnumerable<ICommonData> newItems)
         {
             var dic = TimeEntries.ToDictionary(x => x.Key, x => x.Value);
@@ -164,7 +175,7 @@ namespace Toggl.Phoebe.Reactive
                 }
             }
 
-            return new ConcurrentDictionary<Guid, RichTimeEntry>(dic);
+            return dic;
         }
 
         public TimeEntryInfo LoadTimeEntryInfo(ITimeEntryData teData)
@@ -283,7 +294,7 @@ namespace Toggl.Phoebe.Reactive
                        clients: clients,
                        tasks: tasks,
                        tags: tags,
-                       timeEntries: new ConcurrentDictionary<Guid, RichTimeEntry> ());
+                       timeEntries: new Dictionary<Guid, RichTimeEntry> ());
         }
     }
 

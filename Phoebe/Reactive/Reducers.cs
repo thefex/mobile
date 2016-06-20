@@ -10,6 +10,7 @@ using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Misc;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
+using System.Collections.ObjectModel;
 
 namespace Toggl.Phoebe.Reactive
 {
@@ -512,10 +513,12 @@ namespace Toggl.Phoebe.Reactive
             var updated = dataStore.Update(ctx =>
             {
                 // Stop ActiveEntry if necessary
-                var prev = state.ActiveEntry.Data;
-                if (prev.Id != Guid.Empty && prev.State == TimeEntryState.Running)
+                var activeEntry = AppState.GetActiveEntry(state.TimeEntries);
+                if(activeEntry != null 
+                   && activeEntry.Data.Id != Guid.Empty 
+                   && activeEntry.Data.State == TimeEntryState.Running)
                 {
-                    ctx.Put(prev.With(x =>
+                    ctx.Put(activeEntry.Data.With(x =>
                     {
                         x.State = TimeEntryState.Finished;
                         x.StopTime = Time.UtcNow;
@@ -555,10 +558,12 @@ namespace Toggl.Phoebe.Reactive
             var updated = dataStore.Update(ctx =>
             {
                 // Stop ActiveEntry if necessary
-                var prev = state.ActiveEntry.Data;
-                if (prev.Id != Guid.Empty && prev.State == TimeEntryState.Running)
+                var activeEntry = AppState.GetActiveEntry(state.TimeEntries);
+                if (activeEntry != null
+                   && activeEntry.Data.Id != Guid.Empty
+                   && activeEntry.Data.State == TimeEntryState.Running)
                 {
-                    ctx.Put(prev.With(x =>
+                    ctx.Put(activeEntry.Data.With(x =>
                     {
                         x.State = TimeEntryState.Finished;
                         x.StopTime = Time.UtcNow;
@@ -678,7 +683,7 @@ namespace Toggl.Phoebe.Reactive
                                           clients: clients,
                                           tasks: tasks,
                                           tags: tags,
-                                          timeEntries: new ConcurrentDictionary<Guid, RichTimeEntry>()));
+                                          timeEntries: new Dictionary<Guid, RichTimeEntry>()));
         }
 
         static DataSyncMsg<AppState> UpdateSettings(AppState state, DataMsg msg)

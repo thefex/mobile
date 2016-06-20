@@ -62,12 +62,12 @@ namespace Toggl.Phoebe.ViewModels
                                 .Observe(x => x.State)
                                 .ObserveOn(uiContext)
                                 .StartWith(appState)
-            .DistinctUntilChanged(state => new { state.ActiveEntry, state.RequestInfo, state.Settings})
-            .Subscribe(x => UpdateState(x.Settings, x.ActiveEntry, x.RequestInfo));
+                .DistinctUntilChanged(state => new { state.TimeEntries, state.RequestInfo, state.Settings})
+                .Subscribe(x => UpdateState(x.Settings, x.TimeEntries, x.RequestInfo));
 
             // TODO: Rx find a better solution to force
             // an inmediate update using Rx code.
-            UpdateState(appState.Settings, appState.ActiveEntry, appState.RequestInfo);
+            UpdateState(appState.Settings, appState.TimeEntries, appState.RequestInfo);
 
             TimerObservable = Observable
                                 .Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond), TimeSpan.FromSeconds(1))
@@ -132,7 +132,8 @@ namespace Toggl.Phoebe.ViewModels
             RxChain.Send(new DataMsg.TimeEntryStart(), new RxChain.Continuation((state) =>
             {
                 ServiceContainer.Resolve<ITracker> ().SendTimerStartEvent(TimerStartSource.AppNew);
-                tcs.SetResult(state.ActiveEntry.Data);
+                var activeEntry = AppState.GetActiveEntry(state.TimeEntries);
+                tcs.SetResult(activeEntry.Data);
             }));
 
             return tcs.Task;
@@ -141,7 +142,8 @@ namespace Toggl.Phoebe.ViewModels
         public void StopTimeEntry()
         {
             // TODO RX: Protect from requests in short time (double click...)?
-            RxChain.Send(new DataMsg.TimeEntryStop(StoreManager.Singleton.AppState.ActiveEntry.Data));
+            var activeEntry = AppState.GetActiveEntry(StoreManager.Singleton.AppState.TimeEntries);
+            RxChain.Send(new DataMsg.TimeEntryStop(activeEntry.Data));
             ServiceContainer.Resolve<ITracker> ().SendTimerStopEvent(TimerStopSource.App);
         }
 
@@ -153,6 +155,7 @@ namespace Toggl.Phoebe.ViewModels
         }
 
         #region Extra
+
         public void ReportExperiment(string actionKey, string actionValue)
         {
             if (Collection.Count == 0 && StoreManager.Singleton.AppState.Settings.ShowWelcome)
@@ -173,7 +176,7 @@ namespace Toggl.Phoebe.ViewModels
 
         #endregion
 
-        private void UpdateState(SettingsState settings, RichTimeEntry activeTimeEntry, RequestInfo reqInfo)
+        private void UpdateState(SettingsState settings, IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries, RequestInfo reqInfo)
         {
             if (settings.GroupedEntries != IsGroupedMode)
             {
@@ -202,8 +205,9 @@ namespace Toggl.Phoebe.ViewModels
                 LoadInfo = newLoadInfo;
             }
 
-            ActiveEntry = activeTimeEntry;
-            IsEntryRunning = activeTimeEntry.Data.State == TimeEntryState.Running;
+            ActiveEntry = timeEntries.Values.FirstOrDefault(x => x.Data.State == TimeEntryState.Running)
+                                     ?? new RichTimeEntry(new TimeEntryData(), StoreManager.Singleton.AppState);
+            IsEntryRunning = ActiveEntry.Data.State == TimeEntryState.Running;
             UpdateDuration();
         }
 
