@@ -166,6 +166,7 @@ namespace Toggl.Ross.ViewControllers
             {
                 MenuEnabled = false;
                 splashLogo.RemoveFromSuperview();
+                splashBackground.RemoveFromSuperview();
                 SetViewControllers(new[] { new WelcomeViewController() }, !emptyStack);
             }
 
