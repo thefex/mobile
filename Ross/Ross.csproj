@@ -306,6 +306,9 @@
     <BundleResource Include="Resources\togglLogo.png" />
     <BundleResource Include="Resources\togglLogo%402x.png" />
     <BundleResource Include="Resources\togglLogo%403x.png" />
+    <BundleResource Include="Resources\splashLogo.png" />
+    <BundleResource Include="Resources\splashLogo%402x.png" />
+    <BundleResource Include="Resources\splashLogo%403x.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Info.plist" />
@@ -510,6 +513,9 @@
       <Version>1.2.0.0</Version>
       <Visible>False</Visible>
     </XamarinComponentReference>
+  </ItemGroup>
+  <ItemGroup>
+    <InterfaceDefinition Include="Resources\LaunchScreen.storyboard" />
   </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" Condition="Exists('..\Phoebe\Phoebe.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />

@@ -52,7 +52,6 @@ namespace Toggl.Ross.ViewControllers
 
         protected LogTimeEntriesVM ViewModel { get; set; }
 
-
         public override void LoadView()
         {
             base.LoadView();
@@ -75,8 +74,7 @@ namespace Toggl.Ross.ViewControllers
                 ScrollIndicatorInsets = tableScrollInset,
             } .Apply(Style.Log.EntryList));
 
-            Add(floatingHeader = new FloatingSectionCell());
-            floatingHeader.Hidden = true;
+            Add(floatingHeader = new FloatingSectionCell { Hidden = true});
 
             timerBar = new TimerBar
             {

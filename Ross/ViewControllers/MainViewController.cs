@@ -47,14 +47,14 @@ namespace Toggl.Ross.ViewControllers
 
             // Small hack to improve transition from
             // splash image to corresponding viewController.
-            var launchImg = GetLaunchImage();
-            if (launchImg != null)
-            {
-                splashBg = new UIImageView(launchImg);
-                View.Add(splashBg);
-                UIView.Animate(0.2, 0.5, UIViewAnimationOptions.CurveEaseIn,
-                               () => splashBg.Alpha = 0, () => splashBg.RemoveFromSuperview());
-            }
+            //var launchImg = GetLaunchImage();
+            //if (launchImg != null)
+            //{
+            //    splashBg = new UIImageView(launchImg);
+            //    View.Add(splashBg);
+            //    UIView.Animate(0.2, 0.5, UIViewAnimationOptions.CurveEaseIn,
+            //                   () => splashBg.Alpha = 0, () => splashBg.RemoveFromSuperview());
+            //}
 
             fadeView = new UIView();
             fadeView.BackgroundColor = UIColor.FromRGBA(29f / 255f, 29f / 255f, 28f / 255f, 0.5f);

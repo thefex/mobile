@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="9532" systemVersion="15D21" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" initialViewController="01J-lp-oVM">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="9530"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="Llm-lL-Icb"/>
+                        <viewControllerLayoutGuide type="bottom" id="xb3-aO-Qok"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <color key="backgroundColor" customColorSpace="calibratedWhite" colorSpace="calibratedRGB" red="0.97647058823529409" green="0.98039215686274506" blue="0.984313725490196" alpha="1"/>
+                        <subviews>
+                            <imageView userInteractionEnabled="NO" contentMode="center" id="3" translatesAutoresizingMaskIntoConstraints="NO" image="splashLogo.png">
+                                <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+                            </imageView>
+                        </subviews>
+                        <constraints>
+                            <constraint id="11" firstItem="3" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading"/>
+                            <constraint id="12" firstItem="3" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top"/>
+                            <constraint id="15" firstItem="Ze5-6b-2t3" firstAttribute="trailing" secondItem="3" secondAttribute="trailing"/>
+                            <constraint id="16" firstItem="xb3-aO-Qok" firstAttribute="top" secondItem="3" secondAttribute="bottom"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="arrowUp.png" width="11" height="221"/>
+        <image name="bg-tag.png" width="33" height="33"/>
+        <image name="bg.png" width="320" height="568"/>
+        <image name="btn-arrow-down.png" width="16" height="4"/>
+        <image name="btn-arrow-left.png" width="12" height="21"/>
+        <image name="btn-arrow-right.png" width="12" height="21"/>
+        <image name="btn-arrow-up.png" width="16" height="4"/>
+        <image name="circle-start-pressed.png" width="55" height="55"/>
+        <image name="circle-start.png" width="55" height="55"/>
+        <image name="circle-stop-pressed.png" width="55" height="55"/>
+        <image name="circle-stop.png" width="55" height="55"/>
+        <image name="filter_icon.png" width="22" height="22"/>
+        <image name="icon-arrow-right.png" width="3" height="5"/>
+        <image name="icon-back.png" width="12" height="21"/>
+        <image name="icon-cancel.png" width="18" height="18"/>
+        <image name="icon-duration-arrow.png" width="90" height="9"/>
+        <image name="icon-feedback-green.png" width="29" height="24"/>
+        <image name="icon-feedback.png" width="29" height="24"/>
+        <image name="icon-logout-green.png" width="28" height="29"/>
+        <image name="icon-logout.png" width="28" height="29"/>
+        <image name="icon-nav.png" width="21" height="13"/>
+        <image name="icon-negative-filled.png" width="30" height="30"/>
+        <image name="icon-negative.png" width="30" height="30"/>
+        <image name="icon-neutral-filled.png" width="30" height="30"/>
+        <image name="icon-neutral.png" width="30" height="30"/>
+        <image name="icon-positive-filled.png" width="30" height="30"/>
+        <image name="icon-positive.png" width="30" height="30"/>
+        <image name="icon-reports-green.png" width="31" height="31"/>
+        <image name="icon-reports.png" width="31" height="31"/>
+        <image name="icon-retry.png" width="19" height="19"/>
+        <image name="icon-running.png" width="5" height="5"/>
+        <image name="icon-settings-green.png" width="30" height="30"/>
+        <image name="icon-settings.png" width="30" height="30"/>
+        <image name="icon-timer-green.png" width="31" height="31"/>
+        <image name="icon-timer.png" width="31" height="31"/>
+        <image name="line.png" width="302" height="1"/>
+        <image name="logo.png" width="216" height="65"/>
+        <image name="profile.png" width="161.5" height="161.5"/>
+        <image name="toggler1.png" width="88" height="115"/>
+        <image name="toggler2.png" width="73" height="117"/>
+        <image name="iconBillable.png" width="8" height="15"/>
+        <image name="iconTag.png" width="14" height="14"/>
+        <image name="togglLogo.png" width="72" height="22"/>
+        <image name="splashLogo.png" width="137" height="42"/>
+    </resources>
+    <simulatedMetricsContainer key="defaultSimulatedMetrics">
+        <simulatedScreenMetrics key="destination"/>
+        <simulatedOrientationMetrics key="orientation"/>
+    </simulatedMetricsContainer>
+</document>
