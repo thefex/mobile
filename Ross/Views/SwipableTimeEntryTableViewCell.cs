@@ -17,9 +17,8 @@ namespace Toggl.Ross.Views
 
         protected SwipableTimeEntryTableViewCell(IntPtr ptr) : base(ptr)
         {
-            continueActionButton = new UIButton().Apply(Style.TimeEntryCell.SwipeActionButton).Apply(Style.TimeEntryCell.ContinueState);
+            continueActionButton = new UIButton().Apply(Style.TimeEntryCell.SwipeActionButton);
             actualContentView = new UIView().Apply(Style.Log.CellContentView);
-            continueActionButton.SetTitle("SwipeTimeEntryContinue".Tr(), UIControlState.Normal);
 
             BackgroundView = new UIView();
             SelectedBackgroundView = new UIView().Apply(Style.CellSelectedBackground);
@@ -32,6 +31,15 @@ namespace Toggl.Ross.Views
             {
                 ShouldRecognizeSimultaneously = (a, b) => !panLockInHorizDirection,
             });
+        }
+
+        protected void setSwipeText(string text)
+        {
+            continueActionButton.SetTitle(text, UIControlState.Normal);
+        }
+        protected void setSwipeBackgroundColor(UIColor color)
+        {
+            continueActionButton.BackgroundColor = color;
         }
 
         protected abstract void OnContinueGestureFinished();

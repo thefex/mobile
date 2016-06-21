@@ -34,7 +34,6 @@ namespace Toggl.Ross.ViewControllers
         private SimpleEmptyView defaultEmptyView;
         private UIView obmEmptyView;
         private UIView reloadView;
-        private UIBarButtonItem navigationButton;
         private UIActivityIndicatorView defaultFooterView;
         private StatusView statusView;
         private UITableView tableView;
@@ -115,7 +114,6 @@ namespace Toggl.Ross.ViewControllers
 
             // Attach views
             var navigationItem = NavigationItem;
-            navigationItem.RightBarButtonItem = navigationButton;
             navigationItem.TitleView = navigationLogo;
         }
 
@@ -803,10 +801,24 @@ namespace Toggl.Ross.ViewControllers
                     SetNeedsLayout();
                 }
 
+
                 // Set duration
                 duration = dataSource.GetDuration();
                 startTime = dataSource.GetStartTime();
                 isRunning = dataSource.Entry.Data.State == TimeEntryState.Running;
+
+
+                if (isRunning)
+                {
+                    setSwipeText("SwipeTimeEntryStop".Tr());
+                    setSwipeBackgroundColor(Color.StopButton);
+                }
+                else
+                {
+                    setSwipeText("SwipeTimeEntryContinue".Tr());
+                    setSwipeBackgroundColor(Color.StartButton);
+                }
+
                 RebindTags(dataSource);
                 RebindDuration();
                 LayoutIfNeeded();

@@ -17,6 +17,7 @@ namespace Toggl.Ross.Theme
 
             private const float fontHeight = 15;
             private static readonly UIFont sharedFont = Font.Main(fontHeight);
+            private static readonly UIFont swipeButtonFont = Font.Main(20);
 
             public static void ContentView(UIView v)
             {
@@ -27,7 +28,7 @@ namespace Toggl.Ross.Theme
             public static void SwipeActionButton(UIButton v)
             {
                 v.SetTitleColor(Color.White, UIControlState.Normal);
-                v.Font = sharedFont;
+                v.Font = swipeButtonFont;
                 v.TitleLabel.TextAlignment = UITextAlignment.Center;
             }
 
@@ -99,11 +100,6 @@ namespace Toggl.Ross.Theme
                 path.AddLineToPoint(new CGPoint(0, 4 - r));
 
                 l.Path = path;
-            }
-
-            public static void ContinueState(UIView v)
-            {
-                v.BackgroundColor = Color.Green;
             }
 
             public static void NoSwipeState(UIView v)
