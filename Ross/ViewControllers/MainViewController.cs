@@ -23,7 +23,8 @@ namespace Toggl.Ross.ViewControllers
         private UITapGestureRecognizer tapGesture;
         private UIPanGestureRecognizer leftPanGesture;
         private CGPoint draggingPoint;
-        private UIImageView splashBg;
+        private UIImageView splashLogo;
+        private UIView splashBackground;
 
         private const float menuSlideAnimationDuration = .3f;
         private const int menuOffset = 60;
@@ -42,19 +43,14 @@ namespace Toggl.Ross.ViewControllers
             base.ViewDidLoad();
 
             View.Apply(Style.Screen);
+            View.Apply(Style.Log.HeaderBackgroundView);
             NavigationBar.Apply(Style.NavigationBar);
             Delegate = new NavDelegate();
 
-            // Small hack to improve transition from
-            // splash image to corresponding viewController.
-            //var launchImg = GetLaunchImage();
-            //if (launchImg != null)
-            //{
-            //    splashBg = new UIImageView(launchImg);
-            //    View.Add(splashBg);
-            //    UIView.Animate(0.2, 0.5, UIViewAnimationOptions.CurveEaseIn,
-            //                   () => splashBg.Alpha = 0, () => splashBg.RemoveFromSuperview());
-            //}
+            splashBackground = new UIView().Apply(Style.Log.HeaderBackgroundView);
+            splashBackground.Frame = View.Frame;
+            splashLogo = new UIImageView(UIImage.FromBundle("splashLogo")) { Center = View.Center };
+            View.AddSubviews(splashBackground, splashLogo);
 
             fadeView = new UIView();
             fadeView.BackgroundColor = UIColor.FromRGBA(29f / 255f, 29f / 255f, 28f / 255f, 0.5f);
@@ -133,29 +129,48 @@ namespace Toggl.Ross.ViewControllers
 
         private void proceedToWelcomeOrLogViewController(IUserData userData)
         {
-            UIViewController vc = null;
             bool isUserLogged = userData.Id != Guid.Empty;
             bool emptyStack = ViewControllers.Length < 1;
 
             if (isUserLogged)
             {
-                // TODO Rx @alfonso Keep this call here explicitly or init
-                // the state with the request if user is logged.
-                if (emptyStack)
-                    RxChain.Send(new ServerRequest.GetChanges());
-                vc = new LogViewController();
                 MenuEnabled = true;
+
+                UIView.Animate(0.35, 0, UIViewAnimationOptions.CurveEaseInOut, () => 
+                {
+                    // move the logo to the same position of the title view
+                    // and resize to match title view logo size
+                    var titleViewWidth = 72; // actual file image width
+                    var titleViewHeight = 22; // actual file image height
+                    var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
+                    var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
+
+                    splashLogo.Frame = new CGRect(centerX, titleViewY, titleViewWidth, titleViewHeight);
+
+                }, () =>
+                {
+                    // TODO Rx @alfonso Keep this call here explicitly or init
+                    // the state with the request if user is logged.
+                    if (emptyStack)
+                        RxChain.Send(new ServerRequest.GetChanges());
+                    
+                    SetViewControllers(new[] { new LogViewController() }, !emptyStack);
+
+                    // give some time before hidding the splash logo because the LogViewController takes some time to load
+                    UIView.Animate(0.28, 0.3, UIViewAnimationOptions.CurveLinear,
+                                   () => { splashLogo.Alpha = 0; splashBackground.Alpha = 0; },
+                                   () => { splashLogo.RemoveFromSuperview(); splashBackground.RemoveFromSuperview(); });
+                 });
             }
             else
             {
-                vc = new WelcomeViewController();
                 MenuEnabled = false;
+                splashLogo.RemoveFromSuperview();
+                SetViewControllers(new[] { new WelcomeViewController() }, !emptyStack);
             }
 
             if (menu != null)
                 menu.ConfigureUserData(userData.Name, userData.Email, userData.ImageUrl);
-
-            SetViewControllers(new [] { vc }, !emptyStack);
         }
 
         private void OnMenuButtonSelected(int btnId)
@@ -272,8 +287,7 @@ namespace Toggl.Ross.ViewControllers
             fadeView.Layer.Opacity = 0;
             fadeView.Hidden = false;
 
-            UIView.Animate(menuSlideAnimationDuration, 0, UIViewAnimationOptions.CurveEaseOut,
-                           () =>
+            UIView.Animate(menuSlideAnimationDuration, 0, UIViewAnimationOptions.CurveEaseOut, () =>
             {
                 MoveToLocation(Width - menuOffset);
                 fadeView.Layer.Opacity = 1;
@@ -337,22 +351,22 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        private UIImage GetLaunchImage()
-        {
-            UIImage img = null;
-            var allPngImageNames = NSBundle.MainBundle.PathsForResources("png");
-            foreach (var imgName in allPngImageNames)
-            {
-                if (imgName.Contains("LaunchImage"))
-                {
-                    img = UIImage.FromBundle(imgName);
-                    if (img != null && img.CurrentScale.Equals(UIScreen.MainScreen.Scale) && img.Size.Equals(UIScreen.MainScreen.Bounds.Size))
-                        return img;
-                }
-            }
+        //private UIImage GetLaunchImage()
+        //{
+        //    UIImage img = null;
+        //    var allPngImageNames = NSBundle.MainBundle.PathsForResources("png");
+        //    foreach (var imgName in allPngImageNames)
+        //    {
+        //        if (imgName.Contains("LaunchImage"))
+        //        {
+        //            img = UIImage.FromBundle(imgName);
+        //            if (img != null && img.CurrentScale.Equals(UIScreen.MainScreen.Scale) && img.Size.Equals(UIScreen.MainScreen.Bounds.Size))
+        //                return img;
+        //        }
+        //    }
 
-            return img;
-        }
+        //    return img;
+        //}
     }
 
 }
