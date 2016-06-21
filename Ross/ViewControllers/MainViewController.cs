@@ -350,23 +350,5 @@ namespace Toggl.Ross.ViewControllers
                 return InteractiveTransition;
             }
         }
-
-        //private UIImage GetLaunchImage()
-        //{
-        //    UIImage img = null;
-        //    var allPngImageNames = NSBundle.MainBundle.PathsForResources("png");
-        //    foreach (var imgName in allPngImageNames)
-        //    {
-        //        if (imgName.Contains("LaunchImage"))
-        //        {
-        //            img = UIImage.FromBundle(imgName);
-        //            if (img != null && img.CurrentScale.Equals(UIScreen.MainScreen.Scale) && img.Size.Equals(UIScreen.MainScreen.Bounds.Size))
-        //                return img;
-        //        }
-        //    }
-
-        //    return img;
-        //}
     }
-
 }
