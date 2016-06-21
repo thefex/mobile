@@ -18,6 +18,7 @@ namespace Toggl.Ross.Views
         protected SwipableTimeEntryTableViewCell(IntPtr ptr) : base(ptr)
         {
             continueActionButton = new UIButton().Apply(Style.TimeEntryCell.SwipeActionButton);
+            continueActionButton.Hidden = true;
             actualContentView = new UIView().Apply(Style.Log.CellContentView);
 
             BackgroundView = new UIView();
@@ -56,6 +57,7 @@ namespace Toggl.Ross.Views
                     SetMainMenuActive(false);
                     panStart = gesture.TranslationInView(actualContentView);
                     panLockInHorizDirection = false;
+                    continueActionButton.Hidden = false;
                     break;
                 case UIGestureRecognizerState.Changed:
                     var currentPoint = gesture.TranslationInView(actualContentView);
@@ -111,6 +113,7 @@ namespace Toggl.Ross.Views
                             OnContinueGestureFinished();
                         }
                         SetMainMenuActive(true);
+                        continueActionButton.Hidden = true;
                     });
 
                     break;
@@ -119,6 +122,7 @@ namespace Toggl.Ross.Views
                     {
                         gesture.Enabled = isFinished;
                         SetMainMenuActive(true);
+                        continueActionButton.Hidden = true;
                     });
                     break;
             }
