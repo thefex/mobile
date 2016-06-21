@@ -2,6 +2,7 @@ using System;
 using Foundation;
 using GalaSoft.MvvmLight.Views;
 using Google.Core;
+using Google.GoogleCloudMessaging;
 using Google.SignIn;
 using SQLite.Net.Interop;
 using SQLite.Net.Platform.XamarinIOS;
@@ -28,7 +29,7 @@ namespace Toggl.Ross
     // User Interface of the application, as well as listening (and optionally responding) to
     // application events from iOS.
     [Register("AppDelegate")]
-    public class AppDelegate : UIApplicationDelegate, IPlatformUtils
+    public class AppDelegate : UIApplicationDelegate, IPlatformUtils, IReceiverDelegate
     {
         private TogglWindow window;
         private int systemVersion;
@@ -67,15 +68,14 @@ namespace Toggl.Ross
             ServiceContainer.Register<INetworkPresence> (() => new NetworkPresence());
             ServiceContainer.Register<NetworkIndicatorManager> ();
             ServiceContainer.Register<TagChipCache> ();
-            ServiceContainer.Register<APNSManager> ();
             ServiceContainer.Register<IDialogService> (() => new DialogService());
+            ConfigureRemoteNotifications();
             Theme.Style.Initialize();
 
             // Make sure critical services are running are running:
             ServiceContainer.Resolve<UpgradeManger> ().TryUpgrade();
             ServiceContainer.Resolve<ILoggerClient> ();
             ServiceContainer.Resolve<ITracker> ();
-            ServiceContainer.Resolve<APNSManager> ();
 
             // This needs some services, like ITimeProvider, so run it at the end
             RxChain.Init(AppState.Init());
@@ -97,31 +97,55 @@ namespace Toggl.Ross
             return true;
         }
 
-        public override void RegisteredForRemoteNotifications(UIApplication application, NSData deviceToken)
+        #region GCM Configuration (see Google Cloud Messaging for iOS component Readme)
+        public void ConfigureRemoteNotifications()
         {
-            /*
-            Task.Run (async () => {
-                var service = ServiceContainer.Resolve<APNSManager> ();
-                //await service.RegisteredForRemoteNotificationsAsync (application, deviceToken);
-            });
-            */
+            // Configure and Start GCM
+            var gcmConfig = Config.DefaultConfig;
+            gcmConfig.ReceiverDelegate = this;
+            Service.SharedInstance.Start(gcmConfig);
+
+            // Register for remote notifications
+            var notTypes = UIUserNotificationType.Sound | UIUserNotificationType.Alert | UIUserNotificationType.Badge;
+            var settings = UIUserNotificationSettings.GetSettingsForTypes(notTypes, null);
+            //UIApplication.SharedApplication.RegisterUserNotificationSettings(settings);
+            //UIApplication.SharedApplication.RegisterForRemoteNotifications();
         }
 
-        public override void FailedToRegisterForRemoteNotifications(UIApplication application, NSError error)
+        public override void RegisteredForRemoteNotifications(UIApplication application, NSData deviceToken)
         {
-            ServiceContainer.Resolve<APNSManager> ().FailedToRegisterForRemoteNotifications(application, error);
+            // Configure and start Instance ID
+            var config = Google.InstanceID.Config.DefaultConfig;
+            Google.InstanceID.InstanceId.SharedInstance.Start(config);
+
+            RxChain.Send(new DataMsg.RegisterPush(deviceToken.ToString()));
         }
 
         public override void DidReceiveRemoteNotification(UIApplication application, NSDictionary userInfo, Action<UIBackgroundFetchResult> completionHandler)
         {
-            /*
-            Task.Run(async() =>
-            {
-                var service = ServiceContainer.Resolve<APNSManager> ();
-                await service.DidReceiveRemoteNotificationAsync(application, userInfo, completionHandler);
-            });
-            */
+            // Your own notification handling logic here
+
+            // Notify GCM we received the message
+            Service.SharedInstance.AppDidReceiveMessage(userInfo);
         }
+
+        // TODO: Disconnect in background?
+        //public override void OnActivated(UIApplication application)
+        //{
+        //    Service.SharedInstance.Connect(error =>
+        //    {
+        //        if (error != null)
+        //            Console.WriteLine("Could not connect to GCM: {0}", error.LocalizedDescription);
+        //        else
+        //            Console.WriteLine("Connected to GCM");
+        //    });
+        //}
+
+        //public override void DidEnterBackground(UIApplication application)
+        //{
+        //    Service.SharedInstance.Disconnect();
+        //}
+        #endregion
 
         #region Widget management
 

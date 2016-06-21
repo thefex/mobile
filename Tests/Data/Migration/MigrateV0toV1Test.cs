@@ -435,7 +435,7 @@ namespace Toggl.Phoebe.Tests.Data.Migration
         }
 
         [Test]
-        public void TestSettingsMigration()
+        public async System.Threading.Tasks.Task TestSettingsMigration()
         {
             // Settings are updated using a reducer.
             // We need to init the state first.
@@ -453,26 +453,39 @@ namespace Toggl.Phoebe.Tests.Data.Migration
             migrate();
 
             // Update state with migration data.
-            RxChain.Send(new DataMsg.InitStateAfterMigration());
-            var newSettings = StoreManager.Singleton.AppState.Settings;
+            var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
+            RxChain.Send(new DataMsg.InitStateAfterMigration(), new RxChain.Continuation(state =>
+            {
+                try
+                {
+                    var newSettings = state.Settings;
 
-            // Check settings.
-            Assert.That(newSettings.ChooseProjectForNew, Is.EqualTo(oldSettings.ChooseProjectForNew));
-            Assert.That(newSettings.GcmRegistrationId, Is.EqualTo(oldSettings.GcmRegistrationId));
-            Assert.That(newSettings.GetChangesLastRun, Is.EqualTo(oldSettings.SyncLastRun));
-            Assert.That(newSettings.GroupedEntries, Is.EqualTo(oldSettings.GroupedTimeEntries));
-            Assert.That(newSettings.IdleNotification, Is.EqualTo(oldSettings.IdleNotification));
-            Assert.That(newSettings.LastAppVersion, Is.EqualTo(oldSettings.LastAppVersion));
-            // newSettings.lastReportZoom uses default value.
-            // newSettings.ProjectSort is migrated with the default value cause is a new setting.
-            Assert.That(newSettings.ReportsCurrentItem, Is.EqualTo(oldSettings.ReportsCurrentItem));
-            Assert.That(newSettings.RossReadDurOnlyNotice, Is.EqualTo(oldSettings.RossReadDurOnlyNotice));
-            Assert.That(newSettings.ShowNotification, Is.EqualTo(oldSettings.ShowNotification));
-            Assert.That(newSettings.ShowWelcome, Is.EqualTo(oldSettings.ShowWelcome));
-            Assert.That(newSettings.UseDefaultTag, Is.EqualTo(oldSettings.UseDefaultTag));
-            Assert.That(newSettings.UserId, Is.EqualTo(oldSettings.UserId));
+                    // Check settings.
+                    Assert.That(newSettings.ChooseProjectForNew, Is.EqualTo(oldSettings.ChooseProjectForNew));
+                    Assert.That(newSettings.PushToken, Is.EqualTo(oldSettings.GcmRegistrationId));
+                    Assert.That(newSettings.GetChangesLastRun, Is.EqualTo(oldSettings.SyncLastRun));
+                    Assert.That(newSettings.GroupedEntries, Is.EqualTo(oldSettings.GroupedTimeEntries));
+                    Assert.That(newSettings.IdleNotification, Is.EqualTo(oldSettings.IdleNotification));
+                    Assert.That(newSettings.LastAppVersion, Is.EqualTo(oldSettings.LastAppVersion));
+                    // newSettings.lastReportZoom uses default value.
+                    // newSettings.ProjectSort is migrated with the default value cause is a new setting.
+                    Assert.That(newSettings.ReportsCurrentItem, Is.EqualTo(oldSettings.ReportsCurrentItem));
+                    Assert.That(newSettings.RossReadDurOnlyNotice, Is.EqualTo(oldSettings.RossReadDurOnlyNotice));
+                    Assert.That(newSettings.ShowNotification, Is.EqualTo(oldSettings.ShowNotification));
+                    Assert.That(newSettings.ShowWelcome, Is.EqualTo(oldSettings.ShowWelcome));
+                    Assert.That(newSettings.UseDefaultTag, Is.EqualTo(oldSettings.UseDefaultTag));
+                    Assert.That(newSettings.UserId, Is.EqualTo(oldSettings.UserId));
 
-            RxChain.Cleanup();
+                    RxChain.Cleanup();
+                    tcs.SetResult(true);
+                }
+                catch (Exception err)
+                {
+                    tcs.SetException(err);
+                }
+            }));
+
+            await tcs.Task;
         }
 
         #endregion

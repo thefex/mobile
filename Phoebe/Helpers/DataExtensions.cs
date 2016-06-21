@@ -202,15 +202,11 @@ namespace Toggl.Phoebe.Helpers
         /// <summary>
         /// Change duration of a time entry.
         /// </summary>
-        public static void SetDuration(this TimeEntryData data, TimeSpan value)
+        public static void SetDuration(this TimeEntryData data, TimeSpan value, bool isBeingCreatedManually)
         {
             var now = Time.UtcNow;
 
-            if (data.State == TimeEntryState.Finished)
-            {
-                data.StopTime = data.StartTime + value;
-            }
-            else if (data.State == TimeEntryState.New)
+            if (isBeingCreatedManually)
             {
                 if (value == TimeSpan.Zero)
                 {
@@ -227,7 +223,11 @@ namespace Toggl.Phoebe.Helpers
                     data.StopTime = now;
                 }
             }
-            else
+            if (data.State == TimeEntryState.Finished)
+            {
+                data.StopTime = data.StartTime + value;
+            }
+            else // time entry is running
             {
                 data.StartTime = now - value;
             }

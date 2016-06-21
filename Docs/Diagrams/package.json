@@ -10,7 +10,7 @@
   "author": "toggl",
   "license": "ISC",
   "dependencies": {
-    "mermaid": "^0.5.6",
-    "phantomjs": "^1.9.19"
+    "mermaid": "*",
+    "phantomjs": "*"
   }
 }

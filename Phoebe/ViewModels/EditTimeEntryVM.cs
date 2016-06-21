@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using GalaSoft.MvvmLight;
-using GalaSoft.MvvmLight.Views;
 using Toggl.Phoebe.Analytics;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Reactive;
-using Toggl.Phoebe.ViewModels.Timer;
+using System.Reactive.Concurrency;
 using XPlatUtils;
 
 namespace Toggl.Phoebe.ViewModels
@@ -31,71 +28,84 @@ namespace Toggl.Phoebe.ViewModels
         private RichTimeEntry previousData;
         private event EventHandler<string> DescriptionChanged;
 
-        public EditTimeEntryVM(AppState appState, Guid timeEntryId)
+        public static EditTimeEntryVM ForManualAddition(AppState appState)
         {
-            IsManual = timeEntryId == Guid.Empty;
+            return new EditTimeEntryVM(appState);
+        }
 
-            if (IsManual)
+        public static EditTimeEntryVM ForExistingTimeEntry(AppState appState, Guid timeEntryId)
+        {
+            if (timeEntryId == Guid.Empty)
             {
-                richData = new RichTimeEntry(appState.GetTimeEntryDraft(), appState);
-                UpdateView(x =>
-                {
-                    x.Tags = new List<string>(richData.Data.Tags);
-                    x.StartTime = Time.UtcNow.AddMinutes(-5);
-                    x.StopTime = Time.UtcNow;
-                    x.State = TimeEntryState.Finished;
-                });
-                previousData = new RichTimeEntry(richData.Data.With(x => x.Tags = new List<string>()), appState);
-            }
-            else
-            {
-                richData = appState.TimeEntries[timeEntryId];
-                previousData = new RichTimeEntry(richData.Data, richData.Info);
-                // TODO Rx First ugly code or patch from
-                // Unidirectional era. Why the DistinctUntilChanged doesn't
-                // work correctly? We should manage RemoteId-LocalId in
-                // a better way.
-                subscriptionState = StoreManager
-                                    .Singleton
-                                    .Observe()
-                                    .Where(x => x.State.TimeEntries.ContainsKey(timeEntryId))
-                                    .Select(x => x.State.TimeEntries[timeEntryId])
-                                    .DistinctUntilChanged(x => x.Data.RemoteId)
-                                    .ObserveOn(SynchronizationContext.Current)
-                                    .Subscribe(syncedRichData =>
-                {
-                    if (!richData.Data.RemoteId.HasValue && syncedRichData.Data.RemoteId.HasValue)
-                        richData = syncedRichData;
-                });
+                throw new Exception($"Do not create {nameof(EditTimeEntryVM)} with Guid.Empty. Use {nameof(ForManualAddition)} instead.");
             }
 
+            return new EditTimeEntryVM(appState, timeEntryId);
+        }
+
+        private EditTimeEntryVM(AppState appState)
+        {
+            IsManual = true;
+
+            richData = new RichTimeEntry(appState.GetTimeEntryDraft(), appState);
+            UpdateView(x =>
+            {
+                var now = Time.UtcNow;
+                x.Tags = new List<string>(richData.Data.Tags);
+                x.StartTime = now;
+                x.StopTime = now;
+                x.State = TimeEntryState.Finished;
+            });
+            previousData = new RichTimeEntry(richData.Data.With(x => x.Tags = new List<string>()), appState);
+
+            finishInit();
+        }
+
+        private EditTimeEntryVM(AppState appState, Guid timeEntryId)
+        {
+            richData = appState.TimeEntries[timeEntryId];
+            previousData = new RichTimeEntry(richData.Data, richData.Info);
+            // TODO Rx First ugly code or patch from
+            // Unidirectional era. Why the DistinctUntilChanged doesn't
+            // work correctly? We should manage RemoteId-LocalId in
+            // a better way.
+            subscriptionState = StoreManager
+                                .Singleton
+                                .Observe()
+                                .Where(x => x.State.TimeEntries.ContainsKey(timeEntryId))
+                                .Select(x => x.State.TimeEntries[timeEntryId])
+                                .DistinctUntilChanged(x => x.Data.RemoteId)
+                                .ObserveOn(SynchronizationContext.Current)
+                                .Subscribe(syncedRichData =>
+            {
+                if (!richData.Data.RemoteId.HasValue && syncedRichData.Data.RemoteId.HasValue)
+                {
+                    UpdateView(x => x.RemoteId = syncedRichData.Data.RemoteId);
+                }
+            });
+
+            finishInit();
+        }
+
+        private void finishInit()
+        {
             subscriptionTimer = Observable.Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond),
                                                  TimeSpan.FromSeconds(1))
                                 .ObserveOn(SynchronizationContext.Current)
                                 .Subscribe(x => UpdateDuration());
 
             Observable.FromEventPattern<string>(h => DescriptionChanged += h, h => DescriptionChanged -= h)
-                      .Select(ev => ev.EventArgs)
-                      .Where(desc => desc != null && desc.Length >= LoadSuggestionsCharLimit)
-                      .Throttle(TimeSpan.FromMilliseconds(LoadSuggestionsThrottleMilliseconds))
-                      .ObserveOn(SynchronizationContext.Current)
-                      .Subscribe(async desc => await SuggestEntries(desc));
+            // Observe on the task pool to prevent locking UI
+            .SubscribeOn(TaskPoolScheduler.Default)
+            .Select(ev => ev.EventArgs)
+            .Where(desc => desc != null && desc.Length >= LoadSuggestionsCharLimit)
+            .Throttle(TimeSpan.FromMilliseconds(LoadSuggestionsThrottleMilliseconds))
+            .Select(desc => LoadSuggestions(desc))
+            // Go back to current context (UI thread)
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(result => SuggestionsCollection.Reset(result));
 
-            ServiceContainer.Resolve<ITracker> ().CurrentScreen = "Edit Time Entry";
-        }
-
-
-        public void UpdateEntry(TimeEntryData data)
-        {
-            UpdateView(x =>
-            {
-                x.Description = data.Description;
-                x.ProjectRemoteId = data.ProjectRemoteId;
-                x.ProjectId = data.ProjectId;
-                x.WorkspaceId = data.WorkspaceId;
-                x.WorkspaceRemoteId = data.WorkspaceRemoteId;
-                x.IsBillable = data.IsBillable;
-            }, nameof(Description) , nameof(ProjectName), nameof(ClientName), nameof(ProjectColorHex), nameof(IsPremium), nameof(IsBillable));
+            ServiceContainer.Resolve<ITracker>().CurrentScreen = "Edit Time Entry";
         }
 
         public void Dispose()
@@ -106,7 +116,7 @@ namespace Toggl.Phoebe.ViewModels
         }
 
         #region viewModel State properties
-        public bool IsManual { get; private set; }
+        public bool IsManual { get; }
 
         public string Duration
         {
@@ -146,22 +156,6 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
-        public async Task<List<TimeEntryData>> LoadSuggestions(string description)
-        {
-            return await Task.Run(() =>
-            {
-                var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-                return dataStore.Table<TimeEntryData>()
-                       .OrderBy(r => r.StartTime)
-                       .Where(r => r.State != TimeEntryState.New
-                              && r.DeletedAt == null
-                              && r.Description != null
-                              && r.Description.Contains(description))
-                       .Take(LoadSuggestionsResultsLimit)
-                       .ToList();
-            });
-        }
-
         public bool IsRunning { get { return richData.Data.State == TimeEntryState.Running; } }
         public string Description { get { return richData.Data.Description ?? string.Empty; } }
         public bool IsBillable { get { return richData.Data.IsBillable; } }
@@ -171,13 +165,23 @@ namespace Toggl.Phoebe.ViewModels
         public string TaskName { get { return richData.Info.TaskData.Name ?? string.Empty; } }
         public string ClientName { get { return richData.Info.ClientData.Name ?? string.Empty; } }
         public List<string> Tags { get { return richData.Data.Tags.ToList(); } }
-
-        public List<TimeEntryData> SuggestionsCollection { get; private set; } = new List<TimeEntryData>();
-
+        public ObservableRangeCollection<ITimeEntryData> SuggestionsCollection { get; private set; } = new ObservableRangeCollection<ITimeEntryData>();
         #endregion
-        public async Task SuggestEntries(string desc)
+
+        public void ChangeTimeEntry(ITimeEntryData data)
         {
-            SuggestionsCollection = await LoadSuggestions(desc);
+            // Clean suggestion list.
+            SuggestionsCollection.Clear();
+
+            UpdateView(x =>
+            {
+                x.Description = data.Description;
+                x.ProjectRemoteId = data.ProjectRemoteId;
+                x.ProjectId = data.ProjectId;
+                x.WorkspaceId = data.WorkspaceId;
+                x.WorkspaceRemoteId = data.WorkspaceRemoteId;
+                x.IsBillable = data.IsBillable;
+            }, nameof(Description) , nameof(ProjectName), nameof(ClientName), nameof(ProjectColorHex), nameof(IsPremium), nameof(IsBillable));
         }
 
         public void ChangeProjectAndTask(Guid projectId, Guid taskId)
@@ -201,7 +205,7 @@ namespace Toggl.Phoebe.ViewModels
 
         public void ChangeTimeEntryDuration(TimeSpan newDuration)
         {
-            UpdateView(x => x.SetDuration(newDuration), nameof(Duration), nameof(StartDate), nameof(StopDate));
+            UpdateView(x => x.SetDuration(newDuration, IsManual), nameof(Duration), nameof(StartDate), nameof(StopDate));
             ServiceContainer.Resolve<ITracker> ().CurrentScreen = "Change Duration";
         }
 
@@ -216,9 +220,9 @@ namespace Toggl.Phoebe.ViewModels
             //if (richData.Data.State != TimeEntryState.Running)
             //    UpdateView(x => x.ChangeStartTime(newStartTime), nameof(Duration), nameof(StartDate), nameof(StopDate));
             //else
-                UpdateView(x => x.ChangeStartTime(newStartTime), nameof(Duration), nameof(StartDate));
+            UpdateView(x => x.ChangeStartTime(newStartTime), nameof(Duration), nameof(StartDate));
 
-            ServiceContainer.Resolve<ITracker> ().CurrentScreen = "Change Start Time";
+            ServiceContainer.Resolve<ITracker>().CurrentScreen = "Change Start Time";
         }
 
         public void ChangeTimeEntryStop(TimeSpan diffTime)
@@ -230,7 +234,7 @@ namespace Toggl.Phoebe.ViewModels
         {
             UpdateView(x => x.ChangeStoptime(newStopTime), nameof(Duration), nameof(StopDate));
 
-            ServiceContainer.Resolve<ITracker> ().CurrentScreen = "Change Stop Time";
+            ServiceContainer.Resolve<ITracker>().CurrentScreen = "Change Stop Time";
         }
 
         public void ChangeTagList(IEnumerable<string> newTags)
@@ -261,7 +265,7 @@ namespace Toggl.Phoebe.ViewModels
             {
                 // Check start and stop times
                 var isStartStopTimeCorrect =
-                    !richData.Data.StopTime.HasValue || richData.Data.StartTime < richData.Data.StopTime.Value;
+                    !richData.Data.StopTime.HasValue || richData.Data.StartTime <= richData.Data.StopTime.Value;
 
                 if (isStartStopTimeCorrect)
                 {
@@ -363,6 +367,20 @@ namespace Toggl.Phoebe.ViewModels
             if (previous.TaskId != current.TaskId)
                 return true;
             return false;
+        }
+
+        private List<ITimeEntryData> LoadSuggestions(string description)
+        {
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            return dataStore.Table<TimeEntryData>()
+                   .OrderBy(r => r.StartTime)
+                   .Where(r => r.State != TimeEntryState.New
+                          && r.DeletedAt == null
+                          && r.Description != null
+                          && r.Description.Contains(description))
+                   .Take(LoadSuggestionsResultsLimit)
+                   .Cast<ITimeEntryData> ()
+                   .ToList();
         }
     }
 }

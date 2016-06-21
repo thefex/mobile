@@ -10,6 +10,8 @@ namespace Toggl.Phoebe.Data
 {
     static class DatabaseHelper
     {
+        public const string QueueExtension = ".queue.db";
+
         public static bool FileExists(string path)
         {
             return File.Exists(path) && new FileInfo(path).Length > 0;
@@ -25,6 +27,17 @@ namespace Toggl.Phoebe.Data
             return Environment.GetFolderPath(Environment.SpecialFolder.Personal);
         }
 
+        public static void DeleteDatabase(string dbPath)
+        {
+            if (FileExists(dbPath))
+                File.Delete(dbPath);
+
+            // Delete Queue Database
+            var queueDbPath = Path.ChangeExtension(dbPath, QueueExtension);
+            if (FileExists(queueDbPath))
+                File.Delete(queueDbPath);
+        }
+
         public static void ResetToDBVersion(int version)
         {
             if (version == 0)
@@ -33,10 +46,8 @@ namespace Toggl.Phoebe.Data
             for (int i = 0; i < version; i++)
             {
                 // Delete previous version if exist.
-                var dir = GetDatabaseDirectory();
-                var path = GetDatabasePath(dir, i);
-                if (FileExists(path))
-                    File.Delete(path);
+                var dbPath = GetDatabasePath(GetDatabaseDirectory(), i);
+                DeleteDatabase(dbPath);
             }
         }
 
@@ -113,7 +124,7 @@ namespace Toggl.Phoebe.Data
             if (newDB != null) { newDB.Close(); }
 
             var dbPath = GetDatabasePath(dbDir, SyncSqliteDataStore.DB_VERSION);
-            if (FileExists(dbPath)) { File.Delete(dbPath); }
+            DeleteDatabase(dbPath);
         }
 
         public static bool Migrate(ISQLitePlatform platformInfo, string dbDir,
@@ -141,8 +152,8 @@ namespace Toggl.Phoebe.Data
                     validateMigrator(fromVersion, migrator, desiredVersion);
 
                     // Make sure the desiredDBPath doesn't exist to prevent corruption of data
-                    if (expectedNewVersion == desiredVersion && FileExists(desiredDBPath))
-                        File.Delete(desiredDBPath);
+                    if (expectedNewVersion == desiredVersion)
+                        DeleteDatabase(desiredDBPath);
 
                     newDB = new SQLiteConnection(platformInfo, expectedNewVersion == desiredVersion
                                                  ? desiredDBPath
@@ -160,7 +171,7 @@ namespace Toggl.Phoebe.Data
                     {
                         // Migration has been successful, delete old db
                         var oldDbPath = GetDatabasePath(dbDir, fromVersion);
-                        if (FileExists(oldDbPath)) { File.Delete(oldDbPath); }
+                        DeleteDatabase(oldDbPath);
                         return true;
                     }
 

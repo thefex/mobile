@@ -273,6 +273,19 @@ namespace Toggl.Phoebe.Data
                 Data = Either<SettingChangeInfo, Exception>.Left(info);
             }
         }
+
+        public sealed class RegisterPush : DataMsg
+        {
+            public readonly string DeviceToken;
+            public RegisterPush(string deviceToken)
+            {
+                DeviceToken = deviceToken;
+            }
+        }
+
+        public sealed class UnregisterPush : DataMsg
+        {
+        }
     }
 
     public abstract class ServerRequest

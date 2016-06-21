@@ -111,11 +111,11 @@ namespace Toggl.Ross.Widget
                 {
                     // Get current VC's navigation
                     var controllers = new List<UIViewController> (topVCList[0].NavigationController.ViewControllers);
-                    var editController = new EditTimeEntryViewController(currentTimeEntry);
+                    var editController = EditTimeEntryViewController.ForExistingEntry(currentTimeEntry);
                     controllers.Add(editController);
                     if (state.Settings.ChooseProjectForNew)
                     {
-                        controllers.Add(new ProjectSelectionViewController(wId, editController));
+                        controllers.Add(new ProjectSelectionViewController(editController));
                     }
                     topVCList[0].NavigationController.SetViewControllers(controllers.ToArray(), true);
                 }

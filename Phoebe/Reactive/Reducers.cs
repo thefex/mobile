@@ -77,7 +77,7 @@ namespace Toggl.Phoebe.Reactive
     {
         public static Reducer<AppState> Init()
         {
-            return new TagCompositeReducer<AppState> ()
+            return new TagCompositeReducer<AppState>()
                    .Add(typeof(DataMsg.ServerRequest), ServerRequest)
                    .Add(typeof(DataMsg.ServerResponse), ServerResponse)
                    .Add(typeof(DataMsg.TimeEntriesLoad), TimeEntriesLoad)
@@ -92,7 +92,43 @@ namespace Toggl.Phoebe.Reactive
                    .Add(typeof(DataMsg.UserDataPut), UserDataPut)
                    .Add(typeof(DataMsg.ResetState), Reset)
                    .Add(typeof(DataMsg.InitStateAfterMigration), InitStateAfterMigration)
-                   .Add(typeof(DataMsg.UpdateSetting), UpdateSettings);
+                   .Add(typeof(DataMsg.UpdateSetting), UpdateSettings)
+                   .Add(typeof(DataMsg.RegisterPush), RegisterPush)
+                   .Add(typeof(DataMsg.UnregisterPush), UnregisterPush);
+        }
+
+        static DataSyncMsg<AppState> RegisterPush(AppState state, DataMsg msg)
+        {
+            var pushMsg = msg as DataMsg.RegisterPush;
+            var pushToken = state.Settings.PushToken;
+
+            if (string.IsNullOrEmpty(pushToken))
+            {
+                pushToken = pushMsg.DeviceToken;
+                // Try to register PushToken in server silently
+                // Maybe is better to include the process inside
+                // SyncManager
+                var pushClient = ServiceContainer.Resolve<IPushClient>();
+                IgnoreTaskErrors(
+                    pushClient.Register(state.User.ApiToken, pushToken),
+                    "Failed to register push token to server.");
+            }
+
+            return DataSyncMsg.Create(state.With(settings: state.Settings.With(pushToken: pushToken)));
+        }
+
+        static DataSyncMsg<AppState> UnregisterPush(AppState state, DataMsg msg)
+        {
+            if (!string.IsNullOrEmpty(state.User.ApiToken) &&
+                    !string.IsNullOrEmpty(state.Settings.PushToken))
+            {
+                var pushClient = ServiceContainer.Resolve<IPushClient>();
+                IgnoreTaskErrors(
+                    pushClient.Unregister(state.User.ApiToken, state.Settings.PushToken),
+                    "Failed to unregister push token to server.");
+            }
+
+            return DataSyncMsg.Create(state.With(settings: state.Settings.With(pushToken: string.Empty)));
         }
 
         static DataSyncMsg<AppState> ServerRequest(AppState state, DataMsg msg)
@@ -276,11 +312,20 @@ namespace Toggl.Phoebe.Reactive
                         }
                     }
                 }
+
+                // ATTENTION If the AppState doesn't contains the entry
+                // with this Id yet, be sure we create a fresh entry
+                // with state = CreatePending.
+                var existing = ctx.Connection.Table<TimeEntryData>().FirstOrDefault(x => x.Id == entryData.Id);
+                if (existing == null && entryData.SyncState == SyncState.UpdatePending)
+                    entryData = TimeEntryData.Create(null, entryData);
+
                 // TODO: Entry sanity check
                 ctx.Put(entryData);
             });
             return DataSyncMsg.Create(updated, state.With(timeEntries: state.UpdateTimeEntries(updated),
-                                      tags: state.Update(state.Tags, updated)));
+                                      tags: state.Update(state.Tags, updated),
+                                      settings: state.Settings.With(showWelcome: false)));
         }
 
         static DataSyncMsg<AppState> TimeEntryRemove(AppState state, DataMsg msg)
@@ -534,7 +579,7 @@ namespace Toggl.Phoebe.Reactive
                                // iOS only values
                                rossReadDurOnlyNotice : oldSettings.RossReadDurOnlyNotice,
                                // Android only values
-                               gcmRegistrationId : oldSettings.GcmRegistrationId,
+                               pushToken : oldSettings.GcmRegistrationId,
                                idleNotification : oldSettings.IdleNotification,
                                showNotification : oldSettings.ShowNotification);
             }
@@ -796,6 +841,16 @@ namespace Toggl.Phoebe.Reactive
                 return group.Key;
             }
             return DateTime.MinValue;
+        }
+
+        private static void IgnoreTaskErrors(System.Threading.Tasks.Task task, string errorMessage)
+        {
+            task.ContinueWith(t =>
+            {
+                var e = t.Exception;
+                var log = ServiceContainer.Resolve<ILogger>();
+                log.Warning(nameof(Reducers), e, errorMessage);
+            }, TaskContinuationOptions.OnlyOnFaulted);
         }
         #endregion
     }

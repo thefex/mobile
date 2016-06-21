@@ -258,16 +258,26 @@ namespace Toggl.Ross.ViewControllers
 
         private void CloseMenu()
         {
-            fadeView.Hidden = true;
-            UIView.Animate(menuSlideAnimationDuration, 0, UIViewAnimationOptions.CurveEaseOut, () => MoveToLocation(0), null);
+            UIView.Animate(menuSlideAnimationDuration, 0, UIViewAnimationOptions.CurveEaseOut,
+                           () =>
+            {
+                MoveToLocation(0);
+                fadeView.Layer.Opacity = 0;
+            },
+            () => fadeView.Hidden = true);
         }
 
         private void OpenMenu()
         {
-            UIView.Animate(menuSlideAnimationDuration, 0, UIViewAnimationOptions.CurveEaseOut, () => MoveToLocation(Width - menuOffset), () =>
+            fadeView.Layer.Opacity = 0;
+            fadeView.Hidden = false;
+
+            UIView.Animate(menuSlideAnimationDuration, 0, UIViewAnimationOptions.CurveEaseOut,
+                           () =>
             {
-                fadeView.Hidden = false;
-            });
+                MoveToLocation(Width - menuOffset);
+                fadeView.Layer.Opacity = 1;
+            }, null);
         }
 
         private void MoveToLocation(nfloat x)

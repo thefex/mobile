@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -13,7 +12,6 @@ using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
-using System.Reactive.Concurrency;
 using System.Threading.Tasks.Dataflow;
 
 namespace Toggl.Phoebe.Reactive
@@ -109,9 +107,11 @@ namespace Toggl.Phoebe.Reactive
                 await EnqueueOrSend(msg);
             }, blockOptions);
 
+
             StoreManager.Singleton
             .Observe()
             .Subscribe(processingBlock.AsObserver());
+
         }
 
         void logError(Exception ex, string msg = "Failed to sync")
@@ -193,13 +193,11 @@ namespace Toggl.Phoebe.Reactive
                         }
                         catch (Exception ex)
                         {
-                            if (ex is RemoteIdException)
-                                logInfo(ex.Message);
-                            else
-                                logError(ex);
-
+                            // TODO After a bug, be optimistic and expect that
+                            // everything will be ok again?
                             Enqueue(data, enqueuedItems, dataStore);
                             queueEmpty = false;
+                            logError(ex);
                         }
                     }
                     else
@@ -243,7 +241,7 @@ namespace Toggl.Phoebe.Reactive
             string json = null;
             List<string> conflicting = new List<string>();
 
-            if (dataStore.TryPeek(QueueId, out json))
+            if (dataStore.TryPeekQueue(QueueId, out json))
             {
                 if (isConnected)
                 {
@@ -274,7 +272,7 @@ namespace Toggl.Phoebe.Reactive
                                 throw;
                             }
                         }
-                        while (dataStore.TryPeek(QueueId, out json));
+                        while (dataStore.TryPeekQueue(QueueId, out json));
 
                         // Put back in the queue conflicting items (if any)
                         foreach (var conflict in conflicting)
@@ -336,8 +334,8 @@ namespace Toggl.Phoebe.Reactive
                             break;
                         default:
                             throw new Exception(
-                                string.Format("Unexpected SyncState ({0}) of enqueued item: {1}",
-                                              Enum.GetName(typeof(SyncState), data.SyncState), data.Id));
+                                string.Format("Unexpected SyncState ({0}) of enqueued item:",
+                                              Enum.GetName(typeof(SyncState), data.SyncState)));
                     }
                     var resData = mapper.Map(response);
                     resData.Id = data.Id;
@@ -401,12 +399,28 @@ namespace Toggl.Phoebe.Reactive
                         // are present in local, for data sanity is better to pass them
                         // as deleted to local state.
                         remoteObjects.Add((CommonData)UpdateToDeletePending(data));
-                        logInfo("Object not found: " + data.GetType() +  " remoteId:" + data.RemoteId);
+                        logInfo("Object not found: " + data.GetType() + " remoteId:" + data.RemoteId);
                         return;
                     }
 
                     if (exception.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         return;
+                }
+
+                if (ex is RemoteIdException)
+                {
+                    if (data.DeletedAt == null)
+                    {
+                        data = UpdateToCreatePending(data);
+                        Enqueue(data, new List<QueueItem>(), ServiceContainer.Resolve<ISyncDataStore>());
+                        logWarning("Update translated to Create:" + data.GetType());
+                    }
+                    else
+                    {
+                        remoteObjects.Add((CommonData)UpdateToDeletePending(data));
+                        logWarning("Deleted local and not remote: " + data.GetType());
+                    }
+                    return;
                 }
 
                 throw;
@@ -795,7 +809,7 @@ namespace Toggl.Phoebe.Reactive
         {
             long? res = null;
             // Check first if we already received the RemoteId in the previous messages
-            var d = remoteObjects.SingleOrDefault(x => x.Id == localId);
+            var d = remoteObjects.FirstOrDefault(x => x.Id == localId);
             if (d != null)
             {
                 res = d.RemoteId;
@@ -851,7 +865,7 @@ namespace Toggl.Phoebe.Reactive
             if (!res.HasValue)
             {
                 // Wait for state update
-                throw new RemoteIdException($"RemoteId missing: {typ.Name} - {localId}");
+                throw new RemoteIdException($"RemoteId missing for: {typ.Name}");
             }
             return res.Value;
         }

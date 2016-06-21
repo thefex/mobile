@@ -34,10 +34,13 @@ namespace Toggl.Phoebe.Data
         }
 
         readonly SQLiteConnectionWithLock cnn;
+        readonly SQLiteConnectionWithLock queueCnn;
 
         public SyncSqliteDataStore(string dbPath, ISQLitePlatform platformInfo)
         {
             this.cnn = this.initDatabaseConnection(dbPath, platformInfo);
+            this.queueCnn = new SQLiteConnectionWithLock(
+                platformInfo, new SQLiteConnectionString(Path.ChangeExtension(dbPath, DatabaseHelper.QueueExtension), true));
 
             CleanOldDraftEntry();
         }
@@ -45,6 +48,7 @@ namespace Toggl.Phoebe.Data
         public void Dispose()
         {
             cnn.Close();
+            queueCnn.Close();
         }
 
         private SQLiteConnectionWithLock initDatabaseConnection(string dbPath, ISQLitePlatform platformInfo)
@@ -152,25 +156,25 @@ namespace Toggl.Phoebe.Data
 
         private void CreateQueueTable(string queueId)
         {
-            cnn.Execute(string.Format(QueueCreateSql, queueId));
+            queueCnn.Execute(string.Format(QueueCreateSql, queueId));
         }
 
         public int ResetQueue(string queueId)
         {
             CreateQueueTable(queueId);
-            return cnn.ExecuteScalar<int> (string.Format(QueueResetSql, queueId));
+            return queueCnn.ExecuteScalar<int> (string.Format(QueueResetSql, queueId));
         }
 
         public int GetQueueSize(string queueId)
         {
             CreateQueueTable(queueId);
-            return cnn.ExecuteScalar<int> (string.Format(QueueCountSql, queueId));
+            return queueCnn.ExecuteScalar<int> (string.Format(QueueCountSql, queueId));
         }
 
         public bool TryEnqueue(string queueId, string json)
         {
             CreateQueueTable(queueId);
-            var res = cnn.Execute(string.Format(QueueInsertSql, queueId), json);
+            var res = queueCnn.Execute(string.Format(QueueInsertSql, queueId), json);
             return res == 1;
         }
 
@@ -179,11 +183,11 @@ namespace Toggl.Phoebe.Data
             json = null;
             CreateQueueTable(queueId);
 
-            var cmd = cnn.CreateCommand(string.Format(QueueSelectFirstSql, queueId));
+            var cmd = queueCnn.CreateCommand(string.Format(QueueSelectFirstSql, queueId));
             var record = cmd.ExecuteQuery<QueueItem>().SingleOrDefault();
             if (record != null)
             {
-                cmd = cnn.CreateCommand(string.Format(QueueDeleteSql, queueId), record.RowId);
+                cmd = queueCnn.CreateCommand(string.Format(QueueDeleteSql, queueId), record.RowId);
                 var res = cmd.ExecuteNonQuery();
                 if (res != 1)
                 {
@@ -201,11 +205,11 @@ namespace Toggl.Phoebe.Data
             }
         }
 
-        public bool TryPeek(string queueId, out string json)
+        public bool TryPeekQueue(string queueId, out string json)
         {
             CreateQueueTable(queueId);
 
-            var cmd = cnn.CreateCommand(string.Format(QueueSelectFirstSql, queueId));
+            var cmd = queueCnn.CreateCommand(string.Format(QueueSelectFirstSql, queueId));
             var record = cmd.ExecuteQuery<QueueItem>().SingleOrDefault();
             if (record != null)
             {

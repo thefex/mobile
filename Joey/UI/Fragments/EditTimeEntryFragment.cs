@@ -125,7 +125,10 @@ namespace Toggl.Joey.UI.Fragments
         public override void OnViewCreated(View view, Bundle savedInstanceState)
         {
             base.OnViewCreated(view, savedInstanceState);
-            ViewModel = new EditTimeEntryVM(StoreManager.Singleton.AppState, TimeEntryId);
+
+            ViewModel = TimeEntryId == Guid.Empty
+                        ? EditTimeEntryVM.ForManualAddition(StoreManager.Singleton.AppState)
+                        : EditTimeEntryVM.ForExistingTimeEntry(StoreManager.Singleton.AppState, TimeEntryId);
 
             // TODO: in theory, this event could be binded but
             // the event "CheckedChange" isn't found when
@@ -142,11 +145,6 @@ namespace Toggl.Joey.UI.Fragments
 
             DurationTextView.Click += (sender, e) =>
             {
-                // TODO: Don't edit duration if Time entry is running?
-                if (ViewModel.IsRunning)
-                {
-                    return;
-                }
                 ChangeTimeEntryDurationDialogFragment.NewInstance(ViewModel.StopDate, ViewModel.StartDate)
                 .SetChangeDurationHandler(this)
                 .Show(FragmentManager, "duration_dialog");
@@ -300,7 +298,7 @@ namespace Toggl.Joey.UI.Fragments
                 {
                     dismiss = false;
                     XPlatUtils.ServiceContainer.Resolve<GalaSoft.MvvmLight.Views.IDialogService>()
-                              .ShowMessage(EditTimeEntryVM.StartTimeError, EditTimeEntryVM.ErrorTitle);
+                    .ShowMessage(EditTimeEntryVM.StartTimeError, EditTimeEntryVM.ErrorTitle);
                 }
             }
 

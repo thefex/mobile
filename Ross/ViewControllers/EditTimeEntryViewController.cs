@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using Cirrious.FluentLayouts.Touch;
 using CoreAnimation;
@@ -8,13 +7,9 @@ using CoreGraphics;
 using Foundation;
 using GalaSoft.MvvmLight.Helpers;
 using Toggl.Phoebe;
-using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
-using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels;
-using Toggl.Phoebe.ViewModels.Timer;
-using Toggl.Ross.DataSources;
 using Toggl.Ross.Theme;
 using Toggl.Ross.Views;
 using UIKit;
@@ -34,7 +29,6 @@ namespace Toggl.Ross.ViewControllers
         }
 
         private const string DefaultDurationText = " 00:00:00 ";
-        readonly static NSString EntryCellId = new NSString("autocompletionCell");
 
         private LayoutVariant layoutVariant = LayoutVariant.Default;
         private NSLayoutConstraint[] trackedWrapperConstraints;
@@ -47,39 +41,43 @@ namespace Toggl.Ross.ViewControllers
         private UIButton tagsButton;
         private UIButton deleteButton;
         private UIButton durationButton;
-        private UITableView autoCompletionTableView;
+        private UITableView autoComplete;
         private UIBarButtonItem autoCopmletionDoneBarButtonItem;
 
         private bool hideDatePicker = true;
-        private readonly List<NSObject> notificationObjects = new List<NSObject> ();
+        private readonly List<NSObject> notificationObjects = new List<NSObject>();
 
         // to avoid weak references to be removed
         private Binding<string, string> durationBinding, projectBinding, clientBinding, descriptionBinding, taskBinding, projectColorBinding;
         private Binding<DateTime, DateTime> startTimeBinding, stopTimeBinding;
         private Binding<List<string>, List<string>> tagBinding;
+        private Binding<int, int> suggestionBinding;
         private Binding<bool, bool> isBillableBinding, isRunningBinding, isPremiumBinding;
-        private Binding<List<TimeEntryData>, List<TimeEntryData>> collectionBinding;
 
         protected EditTimeEntryVM ViewModel { get; set; }
 
-        public EditTimeEntryViewController(Guid dataId)
+        public Guid WorkspaceId => ViewModel.WorkspaceId;
+        public DateTime StartDate => ViewModel.StartDate;
+        public DateTime StopDate => ViewModel.StopDate;
+
+        private EditTimeEntryViewController(EditTimeEntryVM vm)
         {
-            ViewModel = new EditTimeEntryVM(StoreManager.Singleton.AppState, dataId);
+            ViewModel = vm;
         }
 
-        class TGTableView : UITableView
+        public static EditTimeEntryViewController ForManualAddition()
         {
-            public override UIView TableFooterView
+            return new EditTimeEntryViewController(EditTimeEntryVM.ForManualAddition(StoreManager.Singleton.AppState));
+        }
+
+        public static EditTimeEntryViewController ForExistingEntry(Guid id)
+        {
+            if (id == Guid.Empty)
             {
-                get
-                {
-                    return base.TableFooterView;
-                }
-                set
-                {
-                    base.TableFooterView = value ?? new UIView();
-                }
+                throw new Exception("Do not open edit view with guid.empty.");
             }
+
+            return new EditTimeEntryViewController(EditTimeEntryVM.ForExistingTimeEntry(StoreManager.Singleton.AppState, id));
         }
 
         public override void LoadView()
@@ -96,7 +94,6 @@ namespace Toggl.Ross.ViewControllers
             {
                 TranslatesAutoresizingMaskIntoConstraints = false,
             });
-
             wrapper.Add(startStopView = new StartStopView
             {
                 TranslatesAutoresizingMaskIntoConstraints = false,
@@ -130,13 +127,16 @@ namespace Toggl.Ross.ViewControllers
             descriptionTextField.ShouldBeginEditing += (s) =>
             {
                 ForceDimissDatePicker();
-                initialDescription = s.Text;
                 return true;
             };
             descriptionTextField.ShouldEndEditing += s =>
             {
-                DescriptionEditingMode = false;
+                SuggestionMode = false;
                 return true;
+            };
+            descriptionTextField.EditingChanged += (sender, e) =>
+            {
+                ViewModel.ChangeDescription(descriptionTextField.Text);
             };
 
             wrapper.Add(tagsButton = new UIButton()
@@ -152,19 +152,16 @@ namespace Toggl.Ross.ViewControllers
             } .Apply(Style.EditTimeEntry.BillableContainer));
             billableSwitch.Label.Apply(Style.EditTimeEntry.BillableLabel);
 
+            var autoCompleteVC = new AutocompleteViewController(ViewModel, ViewModel.ChangeTimeEntry);
+            autoComplete = autoCompleteVC.TableView;
+            wrapper.Add(autoComplete);
+
             wrapper.Add(deleteButton = new UIButton()
             {
                 TranslatesAutoresizingMaskIntoConstraints = false,
             } .Apply(Style.EditTimeEntry.DeleteButton));
             deleteButton.SetTitle("EditEntryDelete".Tr(), UIControlState.Normal);
             deleteButton.TouchUpInside += OnDeleteButtonTouchUpInside;
-
-            wrapper.Add(autoCompletionTableView = new TGTableView()
-            {
-                TranslatesAutoresizingMaskIntoConstraints = false,
-                EstimatedRowHeight = 60.0f,
-                BackgroundColor = UIColor.Clear
-            });
 
             ResetWrapperConstraints();
             scrollView.AddConstraints(
@@ -177,10 +174,8 @@ namespace Toggl.Ross.ViewControllers
                 null
             );
 
-
             View = scrollView;
-
-            DescriptionEditingMode = false;
+            SuggestionMode = false;
         }
 
         public override void ViewDidLoad()
@@ -195,11 +190,18 @@ namespace Toggl.Ross.ViewControllers
             projectColorBinding = this.SetBinding(() => ViewModel.ProjectColorHex, () => projectButton.ProjectColorHex);
             taskBinding = this.SetBinding(() => ViewModel.TaskName, () => projectButton.TaskName);
             clientBinding = this.SetBinding(() => ViewModel.ClientName, () => projectButton.ClientName);
+            isBillableBinding = this.SetBinding(() => ViewModel.IsBillable, () => billableSwitch.Switch.On);
+            billableSwitch.Switch.ValueChanged += (sender, e) => { ViewModel.ChangeBillable(billableSwitch.Switch.On); };
             tagBinding = this.SetBinding(() => ViewModel.Tags).WhenSourceChanges(() =>
             {
                 FeedTags(ViewModel.Tags, tagsButton);
             });
             descriptionBinding = this.SetBinding(() => ViewModel.Description, () => descriptionTextField.Text);
+            ViewModel.SuggestionsCollection.CollectionChanged += (s, e) =>
+            {
+                SuggestionMode = ViewModel.SuggestionsCollection.Count > 0;
+            };
+
             isPremiumBinding = this.SetBinding(() => ViewModel.IsPremium, () => billableSwitch.Hidden).ConvertSourceToTarget(isPremium => !isPremium);
             isRunningBinding = this.SetBinding(() => ViewModel.IsRunning).WhenSourceChanges(() =>
             {
@@ -212,37 +214,17 @@ namespace Toggl.Ross.ViewControllers
                     startStopView.StopTime = ViewModel.StopDate;
                 }
             });
-            collectionBinding = this.SetBinding(() => ViewModel.SuggestionsCollection).WhenSourceChanges(() =>
-            {
-                if (DescriptionEditingMode)
-                {
-                    autoCompletionTableView.Source = new SuggestionSource(this);
-                    autoCompletionTableView.ReloadData();
-                }
-            });
-            isBillableBinding = this.SetBinding(() => ViewModel.IsBillable, () => billableSwitch.Switch.On);
 
-            // Events to edit some fields
-            descriptionTextField.EditingChanged += (sender, e) =>
-            {
-                ViewModel.ChangeDescription(descriptionTextField.Text);
-
-                if (descriptionTextField.Text.Length == 0 && initialDescription.Length > 0)
-                    initialDescription = descriptionTextField.Text;
-
-                if (shoudShowAutoComplete)
-                    DescriptionEditingMode = true;
-            };
-            billableSwitch.Switch.ValueChanged += (sender, e) => { ViewModel.ChangeBillable(billableSwitch.Switch.On); };
-
+            // UI Tricky. Fake back btn to validate
+            // if back is pressed.
             NavigationItem.HidesBackButton = true;
             var newBackButton = new UIBarButtonItem("EditEntryBack".Tr(), UIBarButtonItemStyle.Bordered, (sender, e) =>
             {
                 var savedProperly = ViewModel?.Save();
                 if (savedProperly == false)
                 {
-                    XPlatUtils.ServiceContainer.Resolve<GalaSoft.MvvmLight.Views.IDialogService>()
-                              .ShowMessage(EditTimeEntryVM.StartTimeError, EditTimeEntryVM.ErrorTitle);
+                    ServiceContainer.Resolve<GalaSoft.MvvmLight.Views.IDialogService>()
+                    .ShowMessage(EditTimeEntryVM.StartTimeError, EditTimeEntryVM.ErrorTitle);
                 }
                 else
                 {
@@ -250,91 +232,6 @@ namespace Toggl.Ross.ViewControllers
                 }
             });
             NavigationItem.LeftBarButtonItem = newBackButton;
-        }
-
-        private string initialDescription;
-
-        private bool shoudShowAutoComplete
-        {
-            get
-            {
-                if (DescriptionEditingMode)
-                    return true;
-
-                if (descriptionTextField.Text.Length >= EditTimeEntryVM.LoadSuggestionsCharLimit)
-                    return initialDescription.Length == 0;
-                return false;
-            }
-        }
-
-        private void ResetWrapperConstraints()
-        {
-            if (trackedWrapperConstraints != null)
-            {
-                wrapper.RemoveConstraints(trackedWrapperConstraints);
-                trackedWrapperConstraints = null;
-            }
-
-            switch (layoutVariant)
-            {
-                case LayoutVariant.Default:
-                    trackedWrapperConstraints = VerticalLinearLayout(wrapper).ToLayoutConstraints();
-                    break;
-                case LayoutVariant.Description:
-                    trackedWrapperConstraints = new []
-                    {
-                        descriptionTextField.AtTopOf(wrapper),
-                        descriptionTextField.AtLeftOf(wrapper),
-                        descriptionTextField.AtRightOf(wrapper),
-                        descriptionTextField.Height().EqualTo(60.0f),
-                        autoCompletionTableView.AtTopOf(wrapper, 65.0f),
-                        autoCompletionTableView.AtLeftOf(wrapper),
-                        autoCompletionTableView.AtRightOf(wrapper),
-                        autoCompletionTableView.AtBottomOf(wrapper)
-                    } .ToLayoutConstraints();
-                    break;
-            }
-
-            wrapper.AddConstraints(trackedWrapperConstraints);
-        }
-
-        private bool changedModeOnce = false;
-        private bool descriptionEditingMode__;
-        private bool DescriptionEditingMode
-        {
-            get { return descriptionEditingMode__; }
-            set
-            {
-                if (value == descriptionEditingMode__)
-                    return;
-                UIScrollView scrlView = (UIScrollView)View;
-                scrlView.ScrollEnabled = !value;
-                if (value)
-                {
-                    layoutVariant = LayoutVariant.Description;
-                    NavigationItem.Apply(BindAutoCompletionDoneBarButtonItem);
-                }
-                else
-                {
-                    descriptionTextField.ResignFirstResponder();
-                    layoutVariant = LayoutVariant.Default;
-                    NavigationItem.Apply(UnBindAutoCompletionDoneBarButtonItem);
-                }
-                ResetWrapperConstraints();
-                UIView.Animate(changedModeOnce ? 0.3f : 0.0f, delegate
-                {
-                    SetEditingModeViewsHidden(value);
-                    wrapper.LayoutIfNeeded();
-                });
-                descriptionEditingMode__ = value;
-                changedModeOnce = true;
-            }
-        }
-
-        private void SetEditingModeViewsHidden(bool editingMode)
-        {
-            billableSwitch.Alpha = tagsButton.Alpha = startStopView.Alpha = projectButton.Alpha = deleteButton.Alpha = editingMode ? 0 : 1;
-            autoCompletionTableView.Alpha = 1 - tagsButton.Alpha;
         }
 
         public override void ViewWillDisappear(bool animated)
@@ -358,6 +255,76 @@ namespace Toggl.Ross.ViewControllers
             base.ViewWillDisappear(animated);
         }
 
+        private void ResetWrapperConstraints()
+        {
+            if (trackedWrapperConstraints != null)
+            {
+                wrapper.RemoveConstraints(trackedWrapperConstraints);
+                trackedWrapperConstraints = null;
+            }
+
+            switch (layoutVariant)
+            {
+                case LayoutVariant.Default:
+                    trackedWrapperConstraints = VerticalLinearLayout(wrapper).ToLayoutConstraints();
+                    break;
+                case LayoutVariant.Description:
+                    trackedWrapperConstraints = new[]
+                    {
+                        descriptionTextField.AtTopOf(wrapper),
+                        descriptionTextField.AtLeftOf(wrapper),
+                        descriptionTextField.AtRightOf(wrapper),
+                        descriptionTextField.Height().EqualTo(60.0f),
+                        autoComplete.AtTopOf(wrapper, 65.0f),
+                        autoComplete.AtLeftOf(wrapper),
+                        autoComplete.AtRightOf(wrapper),
+                        autoComplete.AtBottomOf(wrapper)
+                    } .ToLayoutConstraints();
+                    break;
+            }
+
+            wrapper.AddConstraints(trackedWrapperConstraints);
+        }
+
+        private bool suggestionMode;
+
+        private bool SuggestionMode
+        {
+            get { return suggestionMode; }
+            set
+            {
+                if (value == suggestionMode)
+                    return;
+                suggestionMode = value;
+
+                UIScrollView scrlView = (UIScrollView)View;
+                scrlView.ScrollEnabled = !value;
+
+                if (suggestionMode)
+                {
+                    layoutVariant = LayoutVariant.Description;
+                    NavigationItem.Apply(BindAutoCompletionDoneBarButtonItem);
+                }
+                else
+                {
+                    descriptionTextField.ResignFirstResponder();
+                    layoutVariant = LayoutVariant.Default;
+                    NavigationItem.Apply(UnBindAutoCompletionDoneBarButtonItem);
+                }
+                ResetWrapperConstraints();
+                UIView.Animate(0.3f, delegate
+                {
+                    billableSwitch.Alpha =
+                        tagsButton.Alpha =
+                            startStopView.Alpha =
+                                projectButton.Alpha =
+                                    deleteButton.Alpha = suggestionMode ? 0 : 1;
+                    autoComplete.Alpha = 1 - tagsButton.Alpha;
+                    wrapper.LayoutIfNeeded();
+                });
+            }
+        }
+
         private void FeedTags(List<string> tagNames, UIButton btn)
         {
             // Construct tags attributed strings:
@@ -367,7 +334,7 @@ namespace Toggl.Ross.ViewControllers
 
                 var chip = NSAttributedString.CreateFrom(new NSTextAttachment
                 {
-                    Image = ServiceContainer.Resolve<TagChipCache> ().Get(tag, btn),
+                    Image = ServiceContainer.Resolve<TagChipCache>().Get(tag, btn),
                 });
 
                 if (text == null)
@@ -406,19 +373,13 @@ namespace Toggl.Ross.ViewControllers
 
         private void OnProjectButtonTouchUpInside(object sender, EventArgs e)
         {
-            var controller = new ProjectSelectionViewController(ViewModel.WorkspaceId, this);
+            var controller = new ProjectSelectionViewController(this);
             NavigationController.PushViewController(controller, true);
         }
 
         private void OnDurationButtonTouchUpInside(object sender, EventArgs e)
         {
-            // TODO: This condition is valid or not?
-            if (ViewModel.IsRunning)
-            {
-                return;
-            }
-
-            var controller = new DurationChangeViewController(ViewModel.StopDate, ViewModel.StartDate, this);
+            var controller = new DurationChangeViewController(this);
             NavigationController.PushViewController(controller, true);
         }
 
@@ -468,7 +429,8 @@ namespace Toggl.Ross.ViewControllers
             switch (startStopView.Selected)
             {
                 case TimeKind.Start:
-                    datePicker.Mode = ViewModel.IsRunning ? UIDatePickerMode.Time : UIDatePickerMode.DateAndTime;
+                    datePicker.Mode = UIDatePickerMode.DateAndTime;
+                    datePicker.MaximumDate = (NSDate)(ViewModel.IsRunning ? DateTime.Now : DateTime.Now + TimeSpan.FromDays(356));
                     if (currentValue != ViewModel.StartDate)
                     {
                         datePicker.SetDate(ViewModel.StartDate.ToNSDate(), animate);
@@ -484,19 +446,12 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        private SuggestionSource autocompletionTableViewSource;
-
-        private void BindAutocompletionTableView(UITableView v)
-        {
-            autocompletionTableViewSource = new SuggestionSource(this);
-        }
-
         private void BindAutoCompletionDoneBarButtonItem(UINavigationItem v)
         {
             autoCopmletionDoneBarButtonItem = new UIBarButtonItem(UIBarButtonSystemItem.Done);
             autoCopmletionDoneBarButtonItem.Clicked += (object sender, EventArgs e) =>
             {
-                DescriptionEditingMode = false;
+                SuggestionMode = false;
             };
             v.SetRightBarButtonItem(autoCopmletionDoneBarButtonItem, true);
         }
@@ -510,56 +465,6 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        private void UpdateEntry(TimeEntryData data)
-        {
-            ViewModel.UpdateEntry(data);
-            DescriptionEditingMode = false;
-        }
-
-        internal class SuggestionSource : UITableViewSource
-        {
-            private readonly EditTimeEntryViewController owner;
-            private readonly UITableView table;
-            private readonly List<TimeEntryData> collection;
-
-            public SuggestionSource(EditTimeEntryViewController owner)
-            {
-                collection = owner.ViewModel.SuggestionsCollection;
-                table = owner.autoCompletionTableView;
-                this.owner = owner;
-                table.RegisterClassForCellReuse(typeof(SuggestionTableViewCell), EntryCellId);
-            }
-
-            public override UITableViewCell GetCell(UITableView tableView, NSIndexPath indexPath)
-            {
-                UITableViewCell cell = tableView.DequeueReusableCell(EntryCellId);
-                var data = collection.ElementAt(indexPath.Row);
-                ((SuggestionTableViewCell)cell).Bind((TimeEntryData)data);
-
-                return cell;
-            }
-
-            public override nint RowsInSection(UITableView tableview, nint section)
-            {
-                return collection.Count;
-            }
-
-            public override nfloat EstimatedHeight(UITableView tableView, NSIndexPath indexPath)
-            {
-                return 60f;
-            }
-
-            public override nfloat GetHeightForRow(UITableView tableView, NSIndexPath indexPath)
-            {
-                return EstimatedHeight(tableView, indexPath);
-            }
-
-            public override void RowSelected(UITableView tableView, NSIndexPath indexPath)
-            {
-                owner.UpdateEntry(collection[indexPath.Row]);
-                tableView.DeselectRow(indexPath, false);
-            }
-        }
         private void ForceDimissDatePicker()
         {
             DatePickerHidden = true;
@@ -666,7 +571,7 @@ namespace Toggl.Ross.ViewControllers
             var subviews = container.Subviews.Where(v => !v.Hidden && !(v == datePicker && DatePickerHidden)).ToList();
             foreach (var v in subviews)
             {
-                var isLast = subviews [subviews.Count - 1] == v;
+                var isLast = subviews[subviews.Count - 1] == v;
 
                 if (prev == null)
                 {
@@ -940,7 +845,7 @@ namespace Toggl.Ross.ViewControllers
                         arrowImageView.RemoveFromSuperview();
                         stopDateTimeButton.RemoveFromSuperview();
 
-                        trackedConstraints.AddRange(new []
+                        trackedConstraints.AddRange(new[]
                         {
                             startDateTimeButton.WithSameCenterX(this),
                             startDateTimeButton.WithSameCenterY(this),
@@ -952,7 +857,7 @@ namespace Toggl.Ross.ViewControllers
                         AddSubview(arrowImageView);
                         AddSubview(stopDateTimeButton);
 
-                        trackedConstraints.AddRange(new []
+                        trackedConstraints.AddRange(new[]
                         {
                             startDateTimeButton.WithSameCenterX(this),
                             startDateTimeButton.WithSameCenterY(this),
@@ -971,7 +876,7 @@ namespace Toggl.Ross.ViewControllers
                         AddSubview(arrowImageView);
                         AddSubview(stopDateTimeButton);
 
-                        trackedConstraints.AddRange(new []
+                        trackedConstraints.AddRange(new[]
                         {
                             startDateTimeButton.AtTopOf(this, 10f),
                             startDateTimeButton.AtBottomOf(this, 10f),
@@ -1049,13 +954,13 @@ namespace Toggl.Ross.ViewControllers
                     AnchorPoint = CGPoint.Empty,
                     StartPoint = new CGPoint(0.0f, 0.0f),
                     EndPoint = new CGPoint(1.0f, 0.0f),
-                    Colors = new []
+                    Colors = new[]
                     {
                         UIColor.FromWhiteAlpha(1, 1).CGColor,
                         UIColor.FromWhiteAlpha(1, 1).CGColor,
                         UIColor.FromWhiteAlpha(1, 0).CGColor,
                     },
-                    Locations = new []
+                    Locations = new[]
                     {
                         NSNumber.FromFloat(0f),
                         NSNumber.FromFloat(0.9f),
@@ -1210,7 +1115,7 @@ namespace Toggl.Ross.ViewControllers
                 set
                 {
                     // If string Hex color is default or null:
-                    if (value == ProjectData.HexColors [ProjectData.DefaultColor] || string.IsNullOrEmpty(value))
+                    if (value == ProjectData.HexColors[ProjectData.DefaultColor] || string.IsNullOrEmpty(value))
                     {
                         projectLabel.Apply(Style.EditTimeEntry.ProjectHintLabel);
                         SetBackgroundImage(Color.White.ToImage(), UIControlState.Normal);
@@ -1231,111 +1136,6 @@ namespace Toggl.Ross.ViewControllers
                 return true;
             }
         }
-
-        public class SuggestionTableViewCell : UITableViewCell
-        {
-            private const float HorizPadding = 15.0f;
-            private readonly UIView textContentView;
-            private readonly UILabel projectLabel;
-            private readonly UILabel clientLabel;
-            private readonly UILabel descriptionLabel;
-
-            public SuggestionTableViewCell(IntPtr handle) : base(handle)
-            {
-                textContentView = new UIView();
-
-                projectLabel = new UILabel().Apply(Style.Recent.CellProjectLabel);
-                clientLabel = new UILabel().Apply(Style.Recent.CellClientLabel);
-                descriptionLabel = new UILabel().Apply(Style.Recent.CellDescriptionLabel);
-
-                textContentView.AddSubviews(projectLabel, clientLabel, descriptionLabel);
-
-                ContentView.AddSubview(textContentView);
-
-                ContentView.AddConstraints(new FluentLayout[]
-                {
-                    textContentView.AtTopOf(ContentView),
-                    textContentView.AtBottomOf(ContentView),
-                    textContentView.AtLeftOf(ContentView),
-                    textContentView.AtRightOf(ContentView)
-                } .ToLayoutConstraints());
-
-                textContentView.AddConstraints(new FluentLayout[]
-                {
-                    projectLabel.AtTopOf(textContentView, 8),
-                    projectLabel.AtLeftOf(textContentView, HorizPadding),
-                    clientLabel.WithSameCenterY(projectLabel).Plus(1),
-                    clientLabel.ToRightOf(projectLabel, 6),
-                    clientLabel.AtRightOf(textContentView, HorizPadding),
-                    descriptionLabel.Below(projectLabel, 4),
-                    descriptionLabel.AtLeftOf(textContentView, HorizPadding + 1),
-                    descriptionLabel.AtRightOf(textContentView, HorizPadding)
-                } .ToLayoutConstraints());
-
-                textContentView.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
-                ContentView.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
-            }
-
-
-            public void Bind(TimeEntryData data)
-            {
-                var projectName = "LogCellNoProject".Tr();
-                var projectColor = Color.Gray;
-                var clientName = String.Empty;
-
-                var info = StoreManager.Singleton.AppState.LoadTimeEntryInfo(data);
-                if (data.ProjectId != Guid.Empty)
-                {
-
-                    projectName = info.ProjectData.Name;
-
-                    var hex = info.ProjectData.Id != Guid.Empty
-                              ? ProjectData.HexColors[info.ProjectData.Color % ProjectData.HexColors.Length]
-                              : ProjectData.HexColors[ProjectData.DefaultColor];
-                    projectColor = UIColor.Clear.FromHex(hex);
-
-                    if (info.ProjectData.Id != Guid.Empty)
-                    {
-                        clientName = info.ClientData.Name;
-                    }
-                }
-
-                projectLabel.TextColor = projectColor;
-
-                if (projectLabel.Text != projectName)
-                {
-                    projectLabel.Text = projectName;
-                    projectLabel.InvalidateIntrinsicContentSize();
-                    SetNeedsLayout();
-                }
-
-                if (clientLabel.Text != clientName)
-                {
-                    clientLabel.Text = clientName;
-                    clientLabel.InvalidateIntrinsicContentSize();
-                    SetNeedsLayout();
-                }
-
-                var description = data.Description;
-                var descriptionHidden = String.IsNullOrWhiteSpace(description);
-
-                if (descriptionHidden)
-                {
-                    description = "LogCellNoDescription".Tr();
-                    descriptionHidden = false;
-                }
-
-                if (descriptionLabel.Text != description)
-                {
-                    descriptionLabel.Text = description;
-                    descriptionLabel.InvalidateIntrinsicContentSize();
-                    SetNeedsLayout();
-                }
-
-                LayoutIfNeeded();
-            }
-        }
-
         #endregion
     }
 }

@@ -206,6 +206,12 @@
     <Reference Include="System.Threading.Tasks.Dataflow">
       <HintPath>..\packages\Microsoft.Tpl.Dataflow.4.5.24\lib\portable-net45+wp8+wpa81\System.Threading.Tasks.Dataflow.dll</HintPath>
     </Reference>
+    <Reference Include="Google.InstanceID">
+      <HintPath>..\packages\Xamarin.Google.iOS.InstanceID.1.2.1.0\lib\Xamarin.iOS10\Google.InstanceID.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.GoogleCloudMessaging">
+      <HintPath>..\packages\Xamarin.Google.iOS.GoogleCloudMessaging.1.2.0.0\lib\Xamarin.iOS10\Google.GoogleCloudMessaging.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <BundleResource Include="Resources\en.lproj\Localizable.strings" />
@@ -422,7 +428,6 @@
     <Compile Include="Widget\WidgetService.cs" />
     <Compile Include="Views\TableViewRefreshView.cs" />
     <Compile Include="ViewControllers\WebViewController.cs" />
-    <Compile Include="Net\APNSManager.cs" />
     <Compile Include="ViewControllers\NewClientViewController.cs" />
     <Compile Include="DataSources\ObservableCollectionViewSource.cs" />
     <Compile Include="Views\SimpleEmptyView.cs" />
@@ -449,6 +454,7 @@
     <Compile Include="Misc\UIExtensions.cs" />
     <Compile Include="Views\TimerButtonIcon.cs" />
     <Compile Include="Views\CircleView.cs" />
+    <Compile Include="ViewControllers\AutocompleteViewController.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -499,6 +505,12 @@
   <ItemGroup>
     <Folder Include="Misc\" />
   </ItemGroup>
+  <ItemGroup>
+    <XamarinComponentReference Include="googleiosgcm">
+      <Version>1.2.0.0</Version>
+      <Visible>False</Visible>
+    </XamarinComponentReference>
+  </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" Condition="Exists('..\Phoebe\Phoebe.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Import Project="..\packages\Fody.1.29.4\build\portable-net+sl+win+wpa+wp\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\portable-net+sl+win+wpa+wp\Fody.targets')" />
@@ -508,4 +520,6 @@
   <Import Project="..\packages\Xamarin.Google.iOS.Core.2.0.4.0\build\Xamarin.Google.iOS.Core.targets" Condition="Exists('..\packages\Xamarin.Google.iOS.Core.2.0.4.0\build\Xamarin.Google.iOS.Core.targets')" />
   <Import Project="..\packages\Xamarin.Google.iOS.SignIn.3.0.0.0\build\Xamarin.Google.iOS.SignIn.targets" Condition="Exists('..\packages\Xamarin.Google.iOS.SignIn.3.0.0.0\build\Xamarin.Google.iOS.SignIn.targets')" />
   <Import Project="..\packages\Xamarin.Google.iOS.Analytics.3.14.0.5\build\Xamarin.Google.iOS.Analytics.targets" Condition="Exists('..\packages\Xamarin.Google.iOS.Analytics.3.14.0.5\build\Xamarin.Google.iOS.Analytics.targets')" />
+  <Import Project="..\packages\Xamarin.Google.iOS.InstanceID.1.2.1.0\build\Xamarin.Google.iOS.InstanceID.targets" Condition="Exists('..\packages\Xamarin.Google.iOS.InstanceID.1.2.1.0\build\Xamarin.Google.iOS.InstanceID.targets')" />
+  <Import Project="..\packages\Xamarin.Google.iOS.GoogleCloudMessaging.1.2.0.0\build\Xamarin.Google.iOS.GoogleCloudMessaging.targets" Condition="Exists('..\packages\Xamarin.Google.iOS.GoogleCloudMessaging.1.2.0.0\build\Xamarin.Google.iOS.GoogleCloudMessaging.targets')" />
 </Project>

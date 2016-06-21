@@ -269,9 +269,7 @@ namespace Toggl.Ross.ViewControllers
 
         private async void createManual()
         {
-            var te = await ViewModel.ManuallyCreateTimeEntry();
-
-            openEditViewForManualEntry(te);
+            openEditViewForManualEntry();
         }
 
         private async void startStop()
@@ -294,26 +292,27 @@ namespace Toggl.Ross.ViewControllers
 
         private void openEditViewForNewEntry(ITimeEntryData te)
         {
-            var editController = new EditTimeEntryViewController(te.Id);
-            var projectViewController = getProjectViewControllerIfChooseProjectForNew(te, editController);
+            var editController = EditTimeEntryViewController.ForExistingEntry(te.Id);
+            var projectViewController = getProjectViewControllerIfChooseProjectForNew(editController);
 
             NavigationController.PushViewControllers(true, editController, projectViewController);
         }
 
-        private void openEditViewForManualEntry(ITimeEntryData te)
+        private void openEditViewForManualEntry()
         {
-            var editController = new EditTimeEntryViewController(te.Id);
-            var durationViewController = new DurationChangeViewController(te.StopTime.Value, te.StartTime, editController);
-            var projectViewController = getProjectViewControllerIfChooseProjectForNew(te, editController);
+            var editController = EditTimeEntryViewController.ForManualAddition();
+            var now = DateTime.Now;
+            var durationViewController = new DurationChangeViewController(editController);
+            var projectViewController = getProjectViewControllerIfChooseProjectForNew(editController);
 
             NavigationController.PushViewControllers(true, editController, durationViewController, projectViewController);
         }
 
         private ProjectSelectionViewController getProjectViewControllerIfChooseProjectForNew(
-            ITimeEntryData te, EditTimeEntryViewController editController)
+            EditTimeEntryViewController editController)
         {
             return StoreManager.Singleton.AppState.Settings.ChooseProjectForNew
-                   ? new ProjectSelectionViewController(te.WorkspaceId, editController)
+                   ? new ProjectSelectionViewController(editController)
                    : null;
         }
 
@@ -433,7 +432,7 @@ namespace Toggl.Ross.ViewControllers
                 alert.Clicked += (sender, e) =>
                 {
                     var controllers = new List<UIViewController>(NavigationController.ViewControllers);
-                    var editController = new EditTimeEntryViewController(lastErrorInfo.Item2);
+                    var editController = EditTimeEntryViewController.ForExistingEntry(lastErrorInfo.Item2);
                     controllers.Add(editController);
                     NavigationController.SetViewControllers(controllers.ToArray(), true);
                 };
@@ -594,7 +593,7 @@ namespace Toggl.Ross.ViewControllers
             {
                 var holder = collection.ElementAt(indexPath.Row) as ITimeEntryHolder;
                 if (holder != null)
-                    owner.NavigationController.PushViewController(new EditTimeEntryViewController(holder.Entry.Data.Id), true);
+                    owner.NavigationController.PushViewController(EditTimeEntryViewController.ForExistingEntry(holder.Entry.Data.Id), true);
                 tableView.DeselectRow(indexPath, true);
             }
 

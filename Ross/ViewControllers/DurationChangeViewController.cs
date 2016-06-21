@@ -19,10 +19,10 @@ namespace Toggl.Ross.ViewControllers
         private TimeSpan duration;
         private readonly IChangeDuration handler;
 
-        public DurationChangeViewController(DateTime stopTime, DateTime startTime, IChangeDuration handler)
+        public DurationChangeViewController(EditTimeEntryViewController editView)
         {
-            duration = GetDuration(stopTime, startTime);
-            this.handler = handler;
+            duration = GetDuration(editView.StopDate, editView.StartDate);
+            this.handler = editView;
         }
 
         public override void LoadView()

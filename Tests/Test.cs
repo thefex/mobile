@@ -36,7 +36,7 @@ namespace Toggl.Phoebe.Tests
             ServiceContainer.Clear();
             if (databasePath != null)
             {
-                File.Delete(databasePath);
+                DatabaseHelper.DeleteDatabase(databasePath);
                 databasePath = null;
             }
         }

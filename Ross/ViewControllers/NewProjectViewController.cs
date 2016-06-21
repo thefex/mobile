@@ -158,8 +158,7 @@ namespace Toggl.Ross.ViewControllers
             handler.OnProjectSelected(newProjectData.Id, Guid.Empty);
 
             // Go back to EditTimeEntryViewController
-            NavigationController.PopViewController(true);
-            NavigationController.PopViewController(true);
+            NavigationController.PopViewControllers(true, 2);
         }
 
         private IEnumerable<FluentLayout> VerticalLinearLayout(UIView container)

@@ -4,15 +4,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using XPlatUtils;
 
 namespace Toggl.Phoebe.Net
 {
-    public enum PushService
-    {
-        GCM,
-        APNS
-    }
-
     public class PushRestClient : IPushClient
     {
         private readonly Uri v8Url;
@@ -26,7 +21,11 @@ namespace Toggl.Phoebe.Net
         {
             // Cannot share HttpClient instance between threads as it might (and will) cause InvalidOperationExceptions
             // occasionally.
+#if __TESTS__
             var client = new HttpClient()
+#else
+            var client = new HttpClient(new ModernHttpClient.NativeMessageHandler())
+#endif
             {
                 Timeout = TimeSpan.FromSeconds(10),
             };
@@ -39,23 +38,12 @@ namespace Toggl.Phoebe.Net
         }
 
 
-        private string GetPayload(PushService service, string regid)
+        private string GetPayload(string regid)
         {
-            switch (service)
-            {
-                case PushService.GCM:
-                    return new JObject(
-                               new JProperty("pushservicetype", "gcm"),
-                               new JProperty("regid", regid)
-                           ).ToString();
-                case PushService.APNS:
-                    return new JObject(
-                               new JProperty("pushservicetype", "apns"),
-                               new JProperty("devtoken", regid)
-                           ).ToString();
-                default:
-                    throw new ArgumentException("Unknown service", "service");
-            }
+            return new JObject(
+                       new JProperty("pushservicetype", "gcm"),
+                       new JProperty("regid", regid)
+                   ).ToString();
         }
 
         private void AddAuthToken(string authToken, HttpRequestMessage req)
@@ -65,12 +53,40 @@ namespace Toggl.Phoebe.Net
                                                string.Format("{0}:api_token", authToken))));
         }
 
-        public async Task Register(string authToken, PushService service, string regid)
+        /*
+        /// <summary>
+        /// deviceToken is only used for iOS
+        /// </summary>
+        public async Task<string> GetPushToken(object deviceToken = null)
+        {
+            var token = string.Empty;
+
+            // TODO: Probably not the best way to do this, we can move this code to the platform projects later
+            // Register APNS Token to GCM
+            var options = new Foundation.NSDictionary();
+            options.SetValueForKey((Foundation.NSObject)deviceToken, Google.InstanceID.Constants.RegisterAPNSOption);
+            options.SetValueForKey(new Foundation.NSNumber(true), Google.InstanceID.Constants.APNSServerTypeSandboxOption);
+
+            // Get our token
+            var tcs = new TaskCompletionSource<string>();
+
+            Google.InstanceID.InstanceId.SharedInstance.Token(
+                Build.GcmSenderId,
+                Google.InstanceID.Constants.ScopeGCM,
+                options,
+            (t, error) => { tcs.SetResult(t); });
+            token = await tcs.Task;
+
+            return token;
+        }
+        */
+
+        public async Task Register(string authToken, string pushToken)
         {
             using(var httpClient = MakeHttpClient())
             {
                 var url = new Uri(v8Url, "subscribe");
-                string json = GetPayload(service, regid);
+                string json = GetPayload(pushToken);
 
                 var httpReq = new HttpRequestMessage()
                 {
@@ -84,12 +100,12 @@ namespace Toggl.Phoebe.Net
             }
         }
 
-        public async Task Unregister(string authToken, PushService service, string regid)
+        public async Task Unregister(string authToken, string pushToken)
         {
             using(var httpClient = MakeHttpClient())
             {
                 var url = new Uri(v8Url, "unsubscribe");
-                string json = GetPayload(service, regid);
+                string json = GetPayload(pushToken);
 
                 var httpReq = new HttpRequestMessage()
                 {

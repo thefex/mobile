@@ -24,11 +24,11 @@ namespace Toggl.Ross.ViewControllers
         private ProjectListVM viewModel;
         private readonly IOnProjectSelectedHandler handler;
 
-        public ProjectSelectionViewController(Guid workspaceId, IOnProjectSelectedHandler handler) : base(UITableViewStyle.Plain)
+        public ProjectSelectionViewController(EditTimeEntryViewController editView) : base(UITableViewStyle.Plain)
         {
             Title = "ProjectTitle".Tr();
-            this.workspaceId = workspaceId;
-            this.handler = handler;
+            this.workspaceId = editView.WorkspaceId;
+            this.handler = editView;
         }
 
         public override void ViewDidLoad()
