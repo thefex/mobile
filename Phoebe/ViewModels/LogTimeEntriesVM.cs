@@ -14,6 +14,8 @@ using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels.Timer;
 using XPlatUtils;
 using System.Collections.Generic;
+using Toggl.Phoebe.Logging;
+using System.Reactive.Concurrency;
 
 namespace Toggl.Phoebe.ViewModels
 {
@@ -38,6 +40,8 @@ namespace Toggl.Phoebe.ViewModels
         private readonly IDisposable subscriptionState;
         private readonly SynchronizationContext uiContext;
         private IDisposable durationSubscriber;
+        private IDisposable subscriptionTimeEntries;
+        private ILogger logger;
 
         public bool IsFullSyncing { get; private set; }
         public bool HasSyncErrors { get; private set; }
@@ -62,12 +66,23 @@ namespace Toggl.Phoebe.ViewModels
                                 .Observe(x => x.State)
                                 .ObserveOn(uiContext)
                                 .StartWith(appState)
-                .DistinctUntilChanged(state => new { state.TimeEntries, state.RequestInfo, state.Settings})
-                .Subscribe(x => UpdateState(x.Settings, x.TimeEntries, x.RequestInfo));
+                .DistinctUntilChanged(state => new { state.RequestInfo, state.Settings})
+                .SubscribeOn(TaskPoolScheduler.Default)
+                .Subscribe(x => UpdateSettingsAndRequestInfo(x.Settings, x.RequestInfo));
+
+            subscriptionTimeEntries = StoreManager
+                .Singleton
+                .Observe(x => x.State)
+                .ObserveOn(uiContext)
+                .StartWith(appState)
+                .Select(state => state.TimeEntries.Values.Where(e => e.Data.State == TimeEntryState.Running))
+                .DistinctUntilChanged(x => x.Count())
+                .SubscribeOn(TaskPoolScheduler.Default)
+                .Subscribe(CheckActiveEntries);
 
             // TODO: Rx find a better solution to force
             // an inmediate update using Rx code.
-            UpdateState(appState.Settings, appState.TimeEntries, appState.RequestInfo);
+            UpdateSettingsAndRequestInfo(appState.Settings, appState.RequestInfo);
 
             TimerObservable = Observable
                                 .Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond), TimeSpan.FromSeconds(1))
@@ -94,6 +109,7 @@ namespace Toggl.Phoebe.ViewModels
             durationSubscriber?.Dispose();
             subscriptionState?.Dispose();
             timeEntryCollection?.Dispose();
+            subscriptionTimeEntries?.Dispose();
         }
 
         public void TriggerFullSync() => 
@@ -132,7 +148,7 @@ namespace Toggl.Phoebe.ViewModels
             RxChain.Send(new DataMsg.TimeEntryStart(), new RxChain.Continuation((state) =>
             {
                 ServiceContainer.Resolve<ITracker> ().SendTimerStartEvent(TimerStartSource.AppNew);
-                var activeEntry = AppState.GetActiveEntry(state.TimeEntries);
+                var activeEntry = state.TimeEntries.FindActiveEntry();
                 tcs.SetResult(activeEntry.Data);
             }));
 
@@ -142,7 +158,7 @@ namespace Toggl.Phoebe.ViewModels
         public void StopTimeEntry()
         {
             // TODO RX: Protect from requests in short time (double click...)?
-            var activeEntry = AppState.GetActiveEntry(StoreManager.Singleton.AppState.TimeEntries);
+            var activeEntry = StoreManager.Singleton.AppState.TimeEntries.FindActiveEntry();
             RxChain.Send(new DataMsg.TimeEntryStop(activeEntry.Data));
             ServiceContainer.Resolve<ITracker> ().SendTimerStopEvent(TimerStopSource.App);
         }
@@ -164,19 +180,15 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
-        public bool IsInExperiment()
-        {
-            return OBMExperimentManager.IncludedInExperiment(StoreManager.Singleton.AppState.User);
-        }
+        public bool IsInExperiment() => 
+            OBMExperimentManager.IncludedInExperiment(StoreManager.Singleton.AppState.User);
 
-        public bool ShowWelcomeScreen()
-        {
-            return StoreManager.Singleton.AppState.Settings.ShowWelcome;
-        }
+        public bool WelcomeScreenShouldBeShown => 
+            StoreManager.Singleton.AppState.Settings.ShowWelcome;
 
         #endregion
 
-        private void UpdateState(SettingsState settings, IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries, RequestInfo reqInfo)
+        private void UpdateSettingsAndRequestInfo(SettingsState settings, RequestInfo reqInfo)
         {
             if (settings.GroupedEntries != IsGroupedMode)
             {
@@ -204,10 +216,31 @@ namespace Toggl.Phoebe.ViewModels
             {
                 LoadInfo = newLoadInfo;
             }
+        }
 
-            ActiveEntry = timeEntries.Values.FirstOrDefault(x => x.Data.State == TimeEntryState.Running)
-                                     ?? new RichTimeEntry(new TimeEntryData(), StoreManager.Singleton.AppState);
-            IsEntryRunning = ActiveEntry.Data.State == TimeEntryState.Running;
+        private void CheckActiveEntries(IEnumerable<RichTimeEntry> activeEntries)
+        {
+            // this should never happen, however a user reported the case  
+            // TODO delete once the bug gets fixed
+            var ordered = activeEntries.OrderByDescending(x => x.Data.StartTime);
+            if (ordered.Count() > 1)
+            {
+                var wrongEntries = ordered.Skip(1).ToList();
+                foreach (var entry in wrongEntries)
+                {
+                    RxChain.Send(new DataMsg.TimeEntryStop(entry.Data));
+                }
+
+                logger = logger ?? ServiceContainer.Resolve<ILogger>();
+                logger.Error(nameof(LogTimeEntriesVM), "More than one active entry detected");
+            }
+
+            ActiveEntry = ordered.FirstOrDefault();
+
+            IsEntryRunning = ActiveEntry != null;
+
+            ActiveEntry = ActiveEntry ?? new RichTimeEntry(new TimeEntryData(), StoreManager.Singleton.AppState);
+
             UpdateDuration();
         }
 

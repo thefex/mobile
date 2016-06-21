@@ -513,7 +513,7 @@ namespace Toggl.Phoebe.Reactive
             var updated = dataStore.Update(ctx =>
             {
                 // Stop ActiveEntry if necessary
-                var activeEntry = AppState.GetActiveEntry(state.TimeEntries);
+                var activeEntry = state.TimeEntries.FindActiveEntry();
                 if(activeEntry != null 
                    && activeEntry.Data.Id != Guid.Empty 
                    && activeEntry.Data.State == TimeEntryState.Running)
@@ -558,7 +558,7 @@ namespace Toggl.Phoebe.Reactive
             var updated = dataStore.Update(ctx =>
             {
                 // Stop ActiveEntry if necessary
-                var activeEntry = AppState.GetActiveEntry(state.TimeEntries);
+                var activeEntry = state.TimeEntries.FindActiveEntry();
                 if (activeEntry != null
                    && activeEntry.Data.Id != Guid.Empty
                    && activeEntry.Data.State == TimeEntryState.Running)

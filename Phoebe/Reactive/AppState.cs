@@ -24,18 +24,6 @@ namespace Toggl.Phoebe.Reactive
         public IReadOnlyDictionary<Guid, ITagData> Tags { get; private set; }
         public IReadOnlyDictionary<Guid, RichTimeEntry> TimeEntries { get; private set; }
 
-        public static RichTimeEntry GetActiveEntry(IReadOnlyDictionary<Guid, RichTimeEntry> timeEntries)
-        {
-            var activeEntries = timeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
-            if (activeEntries.Count > 1)
-            {
-                // exception will allow us to investigate where this bug is comming from in case it raise again
-                throw new Exception("More than one active entry detected");
-            }
-
-            return activeEntries.FirstOrDefault();
-        }
-
         AppState(
             SettingsState settings,
             RequestInfo requestInfo,

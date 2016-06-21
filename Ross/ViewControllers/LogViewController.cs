@@ -120,7 +120,7 @@ namespace Toggl.Ross.ViewControllers
 
             var headerView = new TableViewRefreshView();
             headerView.AdaptToTableView(tableView);
-            headerView.ValueChanged += (sender, e) => ViewModel.TriggerFullSync();
+            headerView.ValueChanged += (sender, e) => ViewModel.TriggerFullSync(); // TODO potential memory leak (need to unsubscribe)
 
             // Bindings
             syncBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(() =>
@@ -367,7 +367,7 @@ namespace Toggl.Ross.ViewControllers
             }
 
             UIView emptyView = defaultEmptyView; // Default empty view.
-            var showWelcome = ViewModel.ShowWelcomeScreen();
+            var showWelcome = ViewModel.WelcomeScreenShouldBeShown;
             var hasItems = ViewModel.Collection.Count > 0;
             var isInExperiment = ViewModel.IsInExperiment();
 
@@ -382,15 +382,11 @@ namespace Toggl.Ross.ViewControllers
             tableView.TableFooterView = hasItems ? new UIView() : emptyView;
         }
 
-        private void OnCountinueTimeEntry(int index)
-        {
+        private void OnCountinueTimeEntry(int index) => 
             ViewModel.ContinueTimeEntry(index);
-        }
 
-        private void OnTryAgainBtnPressed()
-        {
+        private void OnTryAgainBtnPressed() =>
             ViewModel.LoadMore();
-        }
 
         private void OnNavigationBtnPressed(object sender, EventArgs e)
         {
@@ -398,10 +394,8 @@ namespace Toggl.Ross.ViewControllers
             main.ToggleMenu();
         }
 
-        private void OnStatusRetryBtnPressed()
-        {
+        private void OnStatusRetryBtnPressed() => 
             ViewModel.TriggerFullSync();
-        }
 
         private void ShowConstrainError(Tuple<string, Guid> lastErrorInfo)
         {

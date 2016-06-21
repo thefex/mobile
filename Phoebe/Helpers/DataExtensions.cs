@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using SQLite.Net.Async;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Reactive;
 
 namespace Toggl.Phoebe.Helpers
 {
@@ -394,5 +395,8 @@ namespace Toggl.Phoebe.Helpers
             data.StopTime = newValue;
             return data;
         }
+
+        public static RichTimeEntry FindActiveEntry(this IReadOnlyDictionary<Guid, RichTimeEntry> list) =>
+            list.Values.FirstOrDefault(x => x.Data.State == TimeEntryState.Running);
     }
 }
