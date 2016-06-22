@@ -514,9 +514,7 @@ namespace Toggl.Phoebe.Reactive
             {
                 // Stop ActiveEntry if necessary
                 var activeEntry = state.TimeEntries.FindActiveEntry();
-                if(activeEntry != null 
-                   && activeEntry.Data.Id != Guid.Empty 
-                   && activeEntry.Data.State == TimeEntryState.Running)
+                if(activeEntry != null)
                 {
                     ctx.Put(activeEntry.Data.With(x =>
                     {
@@ -559,9 +557,7 @@ namespace Toggl.Phoebe.Reactive
             {
                 // Stop ActiveEntry if necessary
                 var activeEntry = state.TimeEntries.FindActiveEntry();
-                if (activeEntry != null
-                   && activeEntry.Data.Id != Guid.Empty
-                   && activeEntry.Data.State == TimeEntryState.Running)
+                if (activeEntry != null)
                 {
                     ctx.Put(activeEntry.Data.With(x =>
                     {
