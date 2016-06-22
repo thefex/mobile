@@ -1,0 +1,12 @@
+graph TD;
+    A[Receive new-state message]-->B{Is Connected};
+    B-->|Yes| C{Is queue empty};
+    B-->|No| D[Enqueue CRUD operation];
+    C-->|Yes| E[Run async CRUD operation]
+    C-->|No| F[Try to empty queue]
+    F-->E
+    E-->G[Send CRUD update-state message]
+    G-->H[Run async request operation]
+    D-->H
+    H-->I[Send update-state message]
+    I-->A 

@@ -1,56 +1,167 @@
-# Unidirectional Architecture Proposal
+# Unidirectional Architecture
 
-This document proposes a new architecture for Toggl mobile apps to simplify the different app layers and the exchanges among them. The overall pattern can be seen in the following diagram.
+This document gives an overview of Toggl mobile apps architecture and its main
+components which form the _ReactiveChain_ (`RxChain`). So called because [Reactive Extensions](http://reactivex.io)
+are used to pass messages from one component to another in an asynchronous fashion.
 
-![Unidirectional Architecture Diagram](Diagrams/unidirectional_architecture.mmd.png)
-
-> The thick arrows represent subscriptions to Rx Observables.
-
-The **View Models** won't change much from the current model. They will contain most of the view logic in a common project (Phoebe) and notify the platform-specific objects through a framework like MVVM Light. The main difference is ``View Models`` shouldn't perform any I/O operation by themselves but send messages to the ``Dispatcher`` and wait for a notification from the ``Store``.
-
-The **Dispatcher** should be a simple class in charge of receiving requests from the ``View Models`` (using the [Reactive Extensions]() scheduler), process them with the appropriate callback from the ``Action Register`` and send the result to the ``Store`` (also through a Rx Observable).
-> The requests may contain arguments and must be identified with a **tag**. This applies to every message handled by Rx Observables.
-
-The **Action Register** acts as the application internal API. In its simplest form, it will be a dictionary with the signature: ``Dictionary<string, Func<object, Task<object>>``.
-
-The **Store** is the only class which can read and write from the local database. No other class can have access to it. The ``Store`` will have its own API in the form of *predefined queries* (sort of stored procedures). 
-
-<br>
-## Examples
-
-It's probably easier to imagine the new workflow with some specific examples.
-
-### **Load More Time Entries**
-
-1. DISPATCH: The ``View Model`` receives a request to display more items, so it sends a message to the ``Dispatcher`` with a tag (e.g. *LOAD_MORE_TIME_ENTRIES*) and shows the loading icon.
-> The loading icon must be a property of the ``View Model``.
-
-2. PROCESS: There must be a callback in the ``Action Register`` for the request tag. This callback will try to download entries from the internet served in the requested time frame.
-> There may be a cache to decide in advance whether the call to the server is necessary or not.
-
-3. READ_WRITE: This step depends on the message coming from the ``Dispatcher``. a) If the entries have been correctly downloaded from the server, the ``Store`` will **write** them to the database; b) if not, it'll try to **read** the local data instead.
-
-4. NOTIFY: The ``View Model`` receives a notification from the ``Store``, updates the time entries' collection accordingly and hides the loading icon.
-> It's important the ``Store`` launches the notification, even if there're no more items, to hide the loading icon.
+- AppState
+- Reducers
+- SyncManager
+- ViewModels
 
 
-### **Remove a Time Entry**
+## AppState
 
-1. DISPATCH: The Time Entries' Collection ``View Model`` removes the entry but waits a bit in case the user decides to undo. Only when the time is consumed, a request is sent to remove the entry. 
+The architecture is loosely related to [Redux](http://redux.js.org), that is,
+to prevent conflicts when different components try to mutate shared variables,
+all the values that must be accessed globally are contained in a single object
+(the _source of truth_ or `AppState` in our case). This object is immutable
+and is kept by the `StoreManager`. State updates can only be done by **reducers**
+(see below). Every time a component wants to update the `AppState` a message
+is sent to the `StoreManager` which passes the message an the current state
+to the appropriate reducer.
 
-2. PROCESS: The ``Dispatcher`` looks for the appropriate callback in the ``Action Register``, which in this case should be very simple: basically just letting the message pass through to the ``Store``.
+## Reducers
 
-3. READ_WRITE: The ``Store`` removes the entry and sends a notification.
+Reducers are just functions prepared to update the `AppState`. In our app they
+have the following signature:
 
-4. NOTIFY: The ``View Model`` receives the notification, but doesn't need to do anything as it already deleted the entry from the collection in memory.
+```csharp
+DataSyncMsg<AppState> Reducer(AppState state, DataMsg msg)
+```
 
-<br>
-## Advantages of this proposal
+They receive a message and the current `AppState` and return a different
+kind of message, `DataSyncMsg` which contains requests for the `SyncManager`
+and the updated state.
 
-* This architecture is a good fit for the MVVM pattern. Most of the view logic remains in the ``View Models`` (Phoebe), which send requests to the ``Dispatcher`` and receive notifications from the ``Store``.
+In our architecture reducers are not pure functions as they access the database
+(ideally, only reducers should touch the database) but besides that, they should
+be self-contained and not access any other component. This makes it much simpler
+to locate the source of errors.
 
-* Just by opening the ``Action Register`` class, the programmer can see the API of the application. This class won't contain the whole logic for every operation but mostly calls to static methods of Helper classes.
+All reducers compose to a single reducer responsible of updating the `AppState`.
+Here we only have the `TagCompositeReducer` which decides which reducer to
+apply upon the message tag (=type). All reducers are included in the same file,
+making it easy for the programmer to have a quick overview of the possible
+actions to update the `AppState`.
 
-* Models will be greatly simplified, as they cannot touch the database by themselves. Ideally, they would become dummy classes (no methods of their own) and the different versions (DataObject, Model, Json) would be unified.
+As the `AppState` is immutable, reducers cannot modify it, they always return
+a new copy with the updated fields (the `With` method is used for that purpose).
+This prevents conflicts if a ViewModel is accessing the old copy of the AppState
+at the same time from another thread.
 
-* If the response to an action must be awaited, a ``Task`` can be constructed that will complete when a notification with a specific tag comes from the ``Store``.
+## SyncManager
+
+The overall workflow can be seen in the following diagram:
+
+![SyncManager](Diagrams/syncmanager.mmd.png)
+
+A key component of the `SyncManager` is the **queue**. The queue is used to simplify
+the handling of messages when there's no internet connection available. Instead of
+relying on a flag like `IsSynced` to query records which need to be synced, reducers
+can send server requests to the `SyncManager` as events happen (time entry creation,
+editing...) and forget about internet availability. The `SyncManager` will try to
+connect with Toggl server, but if that's not possible, it will store the message in
+the queue to try again in the next cycle.
+
+> Database records actually contain a field named `SyncState`. However this is mainly
+used for the UI (e.g., to indicate which entries are synced and which not) and not to
+filter the records for bulk syncing.
+
+The queue is persistent and it's implemented just as a hidden table in the same SQLite
+database used to store other offline data.
+
+As `SyncManager` operations usually involve internet connection with Toggl server,
+it can be affected by [back pressure](http://reactivex.io/documentation/operators/backpressure.html) issues:
+i.e., notifications from `StoreManager` come too quickly before the previous
+event has been dealt with. To prevent problems a [TPL ActionBlock](https://msdn.microsoft.com/en-us/library/hh228603.aspx)
+is used to buffer messages and handle them sequentially:
+
+```csharp
+var blockOptions = new ExecutionDataflowBlockOptions
+{
+    MaxDegreeOfParallelism = 1,
+    BoundedCapacity = BufferSize
+};
+var processingBlock = new ActionBlock<DataSyncMsg<AppState>> (async(DataSyncMsg<AppState> msg) =>
+{
+    await EnqueueOrSend(msg);
+}, blockOptions);
+
+StoreManager.Singleton
+.Observe()
+.Subscribe(processingBlock.AsObserver());
+```
+
+> Note that setting `MaxDegreeOfParallelism` to 1 means the messages will always
+be processed sequentially and not in parallel.
+
+> There were some conflicts to build the iOS app when adding the `TPL DataFlow`
+nuget package. Instructions to fix the problem can be found [here](https://kb.xamarin.com/customer/portal/articles/2161671-how-can-i-resolv).
+
+
+## ViewModels
+
+ViewModels are the classes that control the logic for each view (usually
+a screen) in the UI. They're shared between the Android and iOS projects.
+ViewModels subscribe to `AppState` changes through `StoreManager.Observe`
+and send messages to modify the state with `RxChain.Send`. Accessing the
+`AppState` directly is not preferable but if necessary can be done throug
+`StoreManager.Singleton.AppState`.
+
+A difficulty with the `RxChain` model is sometimes ViewModels need to do
+an action right after updating the state. In theses cases, it's possible to
+pass a continuation together with the message sent to `RxChain`. With this
+mechanism is also possible to use `async/await`:
+
+```csharp
+var tcs = new TaskCompletionSource<ITimeEntryData> ();
+
+RxChain.Send(new DataMsg.TimeEntryStart(), new RxChain.Continuation((state) =>
+{
+    ServiceContainer.Resolve<ITracker> ().SendTimerStartEvent(TimerStartSource.AppNew);
+    tcs.SetResult(StoreManager.Singleton.AppState.ActiveEntry.Data);
+}));
+
+await tcs.Task;
+```
+
+Another point to consider when dealing with `Rx` messages from the ViewModels
+is that the notifications from `StoreManager` are usually raised in a background
+thread. If we need to update the UI we have to be sure our code runs on the
+UI thread using `ObserveOn`:
+
+```csharp
+public TimeEntryCollectionVM(TimeEntryGroupMethod groupMethod, SynchronizationContext uiContext)
+{
+    grouper = new TimeEntryGrouper(groupMethod);
+    disposable = StoreManager
+                    .Singleton
+                    .Observe(x => x.State.TimeEntries)
+                    .DistinctUntilChanged()
+                    .ObserveOn(uiContext) // Code after this will be run on the UI thread
+                    .Select(x => x.Values)
+                    .Scan(new InnerState(), GetDiffsFromNewValues)
+                    .Subscribe(state => UpdateCollection(state.Diffs));
+}
+```
+
+In some more complex scenarios, we may want to do part of the work of the pipeline
+on the background and finalize on the UI thread. In these cases we can use a combination
+of `SubscribeOn` and `ObserveOn`. These methods work as follows:
+
+- `SubscribeOn`: schedules the thread for the **whole** pipeline. To make the intention
+  clearer is better to put `SubscribeOn` on top of the pipeline.
+- `ObserveOn`: schedules the thread for the steps **below**.
+
+```csharp
+Observable.FromEventPattern<string>(h => DescriptionChanged += h, h => DescriptionChanged -= h)
+    // Observe on the task pool to prevent locking UI
+    .SubscribeOn(TaskPoolScheduler.Default)
+    .Select(ev => ev.EventArgs)
+    .Throttle(TimeSpan.FromMilliseconds(LoadSuggestionsThrottleMilliseconds))
+    .Select(desc => LoadSuggestions(desc))
+    // Go back to current context (UI thread)
+    .ObserveOn(SynchronizationContext.Current)
+    .Subscribe(result => SuggestionsCollection = result);
+```

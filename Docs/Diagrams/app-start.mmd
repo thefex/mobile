@@ -1,0 +1,17 @@
+graph TD;
+    A[App starts]-->B{Needs <br/> migration?};
+    B-->|Yes| C[Run migration process];
+    B-->|No| D[Request local data];
+    C-->E{Migration <br/> ended ok}
+    E-->|No| F[Run migration process again]
+    E-->|Yes| G[Display success message]
+    F-->H{Migration <br/>  ended ok}    
+    G-->D
+    H-->|No| I{Migration <br/> endpoint} 
+    H-->|Yes| G  
+    I-.->|Contact support!| A  
+    I-.->|Run app anyway| D
+    D-->J[Request remote data]
+    J-->K{Exists remote <br/> or local data}    
+    K-->|Yes| L[Display TE list]    
+    K-->|No| M[Display Welcome / OBM]

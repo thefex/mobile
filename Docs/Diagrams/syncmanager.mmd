@@ -1,0 +1,33 @@
+graph TD;
+    subgraph NON-CRUD REQUESTS
+    A3[TODO]
+    end
+
+    subgraph SEND CRUD REQUEST
+    A2{DeletedAt != null}
+    A2-->|No| B2[Build Remote <br /> Relationships]
+    A2-->|Yes| C2{RemoteId != null}
+    B2-.->|Error| D2[Raise Exception]
+    B2-->E2{Check SyncState}
+    E2-->|Create| F2[Send Create]
+    E2-->|Update| G2[Send Update]
+    F2-->H2[Store Response]
+    G2-->H2
+    C2-->|Yes| I2[Send Delete]
+    C2-->|No| J2[Ignore]
+    I2-->H2
+    end
+
+    subgraph GENERAL
+    A[Receive SyncMsg]-->B[Try Empty Queue]
+    B-->C{Is Queue Empty?}
+    C-->|Yes| D{Try Send Items <br /> in SyncMsg}
+    C-->|No| E[Queue Items in SyncMsg]
+    D-->|Success| F{Items Sent > 0?}
+    D-->|Fail| E
+    E-->F
+    F-->|Yes| G[Report to RxChain]
+    F-->|No| H[Handle non-CRUD Requests]
+    G-->H
+    end
+

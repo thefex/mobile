@@ -1,0 +1,20 @@
+graph TD
+    A[User wants to connect]-->B{Connect <br /> operation}
+    B-->|Login| C[Display Login UI]
+    B-->|Register| D[Display register UI]
+    C-->E[Notify data <br /> will be lost]          
+    C-->F[Login email/pass]
+    C-.->G[Get Remote <br /> Google id]
+    D-.->G 
+    D-->H[Register email/pass] 
+    F-->I[Get remote data]
+    H-->J[Update local TEs <br/> with new User data]
+    J-->M
+    J-.->L[Try publish local data]
+    I-->M{User has data}
+    M-->|No| N[Display Welcome/OBM]
+    M-->|Yes| K[Display TE list]
+    G-->W[Login w Google]
+    G-->Z[Register w Google]
+    W-->I
+    Z-->J
