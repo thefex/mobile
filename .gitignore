@@ -20,3 +20,5 @@ Resource.designer.cs
 node_modules
 .bitrise*
 .*yml
+.bitrise*
+TestResult.xml

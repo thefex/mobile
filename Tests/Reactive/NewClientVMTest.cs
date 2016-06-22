@@ -16,7 +16,6 @@ namespace Toggl.Phoebe.Tests.Reactive
     public class NewClientVMTest : Test
     {
         NewClientVM viewModel;
-        SyncSqliteDataStore dataStore;
         readonly ToggleClientMock togglClient = new ToggleClientMock();
         readonly NetworkSwitcher networkSwitcher = new NetworkSwitcher();
 
@@ -31,9 +30,9 @@ namespace Toggl.Phoebe.Tests.Reactive
             ServiceContainer.RegisterScoped<ITracker> (new TrackerMock());
             ServiceContainer.RegisterScoped<INetworkPresence>(networkSwitcher);
 
+
             RxChain.Init(initState);
             viewModel = new NewClientVM(initState, Util.WorkspaceId);
-            dataStore = new SyncSqliteDataStore(databasePath, platformUtils.SQLiteInfo);
         }
 
         public override void Cleanup()
@@ -46,6 +45,7 @@ namespace Toggl.Phoebe.Tests.Reactive
         public async Task TestSaveClient()
         {
             var name = "MyClient";
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore> ();
             networkSwitcher.SetNetworkConnection(false);
 
             IClientData client = await viewModel.SaveClientAsync(name);

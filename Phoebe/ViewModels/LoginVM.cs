@@ -10,6 +10,7 @@ using Toggl.Phoebe.Net;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.Analytics;
 using XPlatUtils;
+using System.Reactive.Concurrency;
 using System.Threading;
 
 namespace Toggl.Phoebe.ViewModels
@@ -40,7 +41,11 @@ namespace Toggl.Phoebe.ViewModels
                            .Singleton
                            .Observe(x => x.State.RequestInfo)
                            .DistinctUntilChanged(x => x.AuthResult)
+#if __MOBILE__
                            .ObserveOn(SynchronizationContext.Current)
+#else
+                           .ObserveOn(Scheduler.CurrentThread)
+#endif
                            .SubscribeSimple(reqInfo =>
             {
                 AuthResult = reqInfo.AuthResult;

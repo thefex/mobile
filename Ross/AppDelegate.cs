@@ -108,8 +108,8 @@ namespace Toggl.Ross
             // Register for remote notifications
             var notTypes = UIUserNotificationType.Sound | UIUserNotificationType.Alert | UIUserNotificationType.Badge;
             var settings = UIUserNotificationSettings.GetSettingsForTypes(notTypes, null);
-            //UIApplication.SharedApplication.RegisterUserNotificationSettings(settings);
-            //UIApplication.SharedApplication.RegisterForRemoteNotifications();
+            UIApplication.SharedApplication.RegisterUserNotificationSettings(settings);
+            UIApplication.SharedApplication.RegisterForRemoteNotifications();
         }
 
         public override void RegisteredForRemoteNotifications(UIApplication application, NSData deviceToken)

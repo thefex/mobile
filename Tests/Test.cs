@@ -1,5 +1,4 @@
 using System.IO;
-using System.Threading;
 using NUnit.Framework;
 using SQLite.Net.Platform.Generic;
 using Toggl.Phoebe.Data;
@@ -20,12 +19,11 @@ namespace Toggl.Phoebe.Tests
             databasePath = DatabaseHelper.GetDatabasePath(databaseDir, SyncSqliteDataStore.DB_VERSION);
             ServiceContainer.Register<ISyncDataStore> (
                 new SyncSqliteDataStore(databasePath, new SQLitePlatformGeneric()));
-
-            ServiceContainer.Register<MessageBus>(new MessageBus());
+            ServiceContainer.Register(new MessageBus());
             ServiceContainer.Register<ITimeProvider> (new DefaultTimeProvider());
-            ServiceContainer.Register<TimeCorrectionManager> (new TimeCorrectionManager());
-            ServiceContainer.Register<LogStore> ((LogStore)null);
-            ServiceContainer.Register<ILoggerClient> ((ILoggerClient)null);
+            ServiceContainer.Register(new TimeCorrectionManager());
+            ServiceContainer.Register((LogStore)null);
+            ServiceContainer.Register((ILoggerClient)null);
             ServiceContainer.Register<ILogger> (new VoidLogger());
             ServiceContainer.Register<INetworkPresence> (new Reactive.NetWorkPresenceMock());
         }

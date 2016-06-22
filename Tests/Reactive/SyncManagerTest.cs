@@ -41,6 +41,16 @@ namespace Toggl.Phoebe.Tests.Reactive
             togglClient.ReceivedItems.Clear();
         }
 
+        [TearDown]
+        public override void TearDown()
+        {
+            base.TearDown();
+            // Reset SyncManager queue after each test.
+            // Needed to pass bitrise tests. Locally it works
+            // ok without it.
+            ServiceContainer.Resolve<ISyncDataStore> ().ResetQueue("SYNC_OUT");
+        }
+
         [Test]
         public async Task TestSendMessageWithoutConnection()
         {

@@ -16,7 +16,6 @@ namespace Toggl.Phoebe.Tests.Reactive
     public class NewProjectVMTest : Test
     {
         NewProjectVM viewModel;
-        SyncSqliteDataStore dataStore;
         readonly ToggleClientMock togglClient = new ToggleClientMock();
         readonly NetworkSwitcher networkSwitcher = new NetworkSwitcher();
 
@@ -33,7 +32,6 @@ namespace Toggl.Phoebe.Tests.Reactive
 
             RxChain.Init(initState);
             viewModel = new NewProjectVM(initState, Util.WorkspaceId);
-            dataStore = new SyncSqliteDataStore(databasePath, platformUtils.SQLiteInfo);
         }
 
         public override void Cleanup()
@@ -47,7 +45,8 @@ namespace Toggl.Phoebe.Tests.Reactive
         {
             var pcolor = 2;
             var pname = "MyProject";
-            var tcs = Util.CreateTask<bool> ();
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore> ();
+
             networkSwitcher.SetNetworkConnection(false);
 
             IProjectData project  = await viewModel.SaveProjectAsync(pname, pcolor);
@@ -67,12 +66,11 @@ namespace Toggl.Phoebe.Tests.Reactive
             var pcolor = 5;
             var pname = "MyProject2";
             var client = ClientData.Create(x => x.Name = "MyClient");
-            var tcs = Util.CreateTask<bool> ();
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore> ();
+
             networkSwitcher.SetNetworkConnection(false);
-
             viewModel.SetClient(client);
-
-            var projectData = await viewModel.SaveProjectAsync(pname, pcolor);
+            await viewModel.SaveProjectAsync(pname, pcolor);
 
             Assert.That(StoreManager.Singleton.AppState.Projects.Values.SingleOrDefault(
                             x => x.Name == pname && x.ClientId == client.Id), Is.Not.Null);

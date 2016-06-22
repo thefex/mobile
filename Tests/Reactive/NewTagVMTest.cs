@@ -16,7 +16,6 @@ namespace Toggl.Phoebe.Tests.Reactive
     public class NewTagVMTest : Test
     {
         NewTagVM viewModel;
-        SyncSqliteDataStore dataStore;
         readonly ToggleClientMock togglClient = new ToggleClientMock();
         readonly NetworkSwitcher networkSwitcher = new NetworkSwitcher();
 
@@ -33,7 +32,6 @@ namespace Toggl.Phoebe.Tests.Reactive
 
             RxChain.Init(initState);
             viewModel = new NewTagVM(initState, Util.WorkspaceId);
-            dataStore = new SyncSqliteDataStore(databasePath, platformUtils.SQLiteInfo);
         }
 
         public override void Cleanup()
@@ -46,6 +44,7 @@ namespace Toggl.Phoebe.Tests.Reactive
         public async Task TestSaveTag()
         {
             var name = "MyTag";
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore> ();
             networkSwitcher.SetNetworkConnection(false);
 
             ITagData tag =  await viewModel.SaveTagAsync(name);
