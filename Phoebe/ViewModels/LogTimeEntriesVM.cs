@@ -174,7 +174,7 @@ namespace Toggl.Phoebe.ViewModels
 
         public void ReportExperiment(string actionKey, string actionValue)
         {
-            if (Collection.Count == 0 && StoreManager.Singleton.AppState.Settings.ShowWelcome)
+            if (Collection.Count == 0 && WelcomeScreenShouldBeShown)
             {
                 OBMExperimentManager.Send(actionKey, actionValue, StoreManager.Singleton.AppState.User);
             }
