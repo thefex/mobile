@@ -54,7 +54,7 @@
 		<string>Fonts/icomoon.ttf</string>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>25</string>
+	<string>26</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
