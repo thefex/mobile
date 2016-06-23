@@ -258,13 +258,13 @@ namespace Toggl.Joey.UI.Activities
             else if (id == DrawerListAdapter.LoginPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerLogin);
-                loginFragment.Value.Mode = LoginVM.LoginMode.Login;
+                loginFragment.Value.ChangeToLogin();
                 OpenFragment(loginFragment.Value);
             }
             else if (id == DrawerListAdapter.SignupPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerSignup);
-                loginFragment.Value.Mode = LoginVM.LoginMode.Signup;
+                loginFragment.Value.ChangeToRegister();
                 OpenFragment(loginFragment.Value);
             }
             else

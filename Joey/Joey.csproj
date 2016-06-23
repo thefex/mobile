@@ -265,6 +265,7 @@
     <Compile Include="UI\Fragments\ReportsNoApiFragment.cs" />
     <Compile Include="UI\Fragments\FeedbackNoApiFragment.cs" />
     <Compile Include="UI\Fragments\MigrationFragment.cs" />
+    <Compile Include="UI\Views\NoWorkspaceDialogFragment.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

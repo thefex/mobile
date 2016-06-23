@@ -272,13 +272,12 @@ namespace Toggl.Phoebe.Reactive
                 UserData user = serverMsg.User;
                 user.Id = state.User.Id;
                 user.DefaultWorkspaceId = state.Workspaces.Values.Single(x => x.RemoteId == user.DefaultWorkspaceRemoteId).Id;
+
                 // TODO: OBM data that comes in user object from this changes
                 // is totally wrong. In that way, we should keep this info before
                 // before process the object.
                 user.ExperimentIncluded = state.User.ExperimentIncluded;
                 user.ExperimentNumber = state.User.ExperimentNumber;
-
-
 
                 var userUpdated = (UserData)dataStore.Update(ctx => ctx.Put(user)).Single();
                 if (HasAnyData())
@@ -910,17 +909,6 @@ namespace Toggl.Phoebe.Reactive
 
         }
 
-        public static bool HasAnyData()
-        {
-            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-            if (dataStore.Table<TimeEntryData>().Count() > 0 ||
-                    dataStore.Table<ProjectData>().Count() > 0)
-            {
-                return true;
-            }
-            return false;
-
-        }
         static CommonData BuildLocalRelationships(AppState state, CommonData data)
         {
             // Build local relationships.
@@ -1024,7 +1012,7 @@ namespace Toggl.Phoebe.Reactive
             return DateTime.MinValue;
         }
 
-        private static void IgnoreTaskErrors(System.Threading.Tasks.Task task, string errorMessage)
+        private static void IgnoreTaskErrors(Task task, string errorMessage)
         {
             task.ContinueWith(t =>
             {

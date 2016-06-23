@@ -23,9 +23,7 @@ namespace Toggl.Phoebe.ViewModels
         public NewProjectVM(AppState appState, Guid workspaceId)
         {
             this.appState = appState;
-            this.workspace = workspaceId != Guid.Empty
-                             ? appState.Workspaces[workspaceId]
-                             : new WorkspaceData();
+            this.workspace = appState.Workspaces[workspaceId];
             ServiceContainer.Resolve<ITracker> ().CurrentScreen = "New Project";
         }
 

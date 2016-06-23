@@ -17,7 +17,6 @@ using Android.Views;
 using Android.Views.Animations;
 using Android.Widget;
 using GalaSoft.MvvmLight.Helpers;
-using Toggl.Joey.UI.Activities;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Helpers;
@@ -69,17 +68,6 @@ namespace Toggl.Joey.UI.Fragments
         private Binding<bool, bool> isAuthencticatedBinding, isAuthenticatingBinding;
         private Binding<LoginVM.LoginMode, LoginVM.LoginMode> modeBinding;
         private Binding<AuthResult, AuthResult> resultBinding;
-
-        private ArrayAdapter<string> MakeEmailsAdapter()
-        {
-            var am = AccountManager.Get(Activity);
-            var emails = am.GetAccounts()
-                         .Select(a => a.Name)
-                         .Where(a => a.Contains("@"))
-                         .Distinct()
-                         .ToList();
-            return new ArrayAdapter<string> (Activity, Android.Resource.Layout.SelectDialogItem, emails);
-        }
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
@@ -136,7 +124,6 @@ namespace Toggl.Joey.UI.Fragments
             .Build();
 
             ViewModel = new LoginVM();
-            ViewModel.ChangeLoginMode(mode);
             return view;
         }
 
@@ -148,7 +135,6 @@ namespace Toggl.Joey.UI.Fragments
             modeBinding = this.SetBinding(() => ViewModel.CurrentLoginMode).WhenSourceChanges(SetViewState);
             resultBinding = this.SetBinding(() => ViewModel.AuthResult).WhenSourceChanges(() =>
             {
-                ViewModel.SetAuthenticating(false);
                 switch (ViewModel.AuthResult)
                 {
                     case AuthResult.None:
@@ -189,24 +175,16 @@ namespace Toggl.Joey.UI.Fragments
 
         #region View state utils
 
-        public LoginVM.LoginMode Mode
+        public void ChangeToRegister()
         {
-            get
-            {
-                return ViewModel.CurrentLoginMode;
-            }
-            set
-            {
-                if (mode == value)
-                    return;
-                mode = value;
+            if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
+                ViewModel.ChangeLoginMode();
+        }
 
-                if (ViewModel != null)
-                {
-                    ViewModel.ChangeLoginMode(mode);
-                    SetViewState();
-                }
-            }
+        public void ChangeToLogin()
+        {
+            if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Signup)
+                ViewModel.ChangeLoginMode();
         }
 
         private void SetViewState()
@@ -324,20 +302,30 @@ namespace Toggl.Joey.UI.Fragments
             }
             if (ViewModel.IsAuthenticating) return;
 
-            ViewModel.SetAuthenticating(true);
-
             if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
             {
                 if (ViewModel.IsEmailValid(EmailEditText.Text))
                 {
-                    if (Reducers.HasAnyData())
+                    // Check if the state constains some data
+                    // already.
+                    if (StoreManager.Singleton.AppState.TimeEntries.Count > 0 ||
+                            StoreManager.Singleton.AppState.Clients.Count > 0 ||
+                            StoreManager.Singleton.AppState.Projects.Count > 0)
                     {
-                        var confirm = new AreYouSureDialogFragment(this);
-                        confirm.Show(FragmentManager, "confirm_reset_dialog");
+                        var dialog = new AlertDialog.Builder(Activity)
+                        .SetTitle(Resource.String.SettingsClearDataTitle)
+                        .SetMessage(Resource.String.SettingsClearDataText)
+                        .SetPositiveButton(Resource.String.SettingsClearDataOKButton, delegate
+                        {
+                            ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
+                        })
+                        .SetNegativeButton(Resource.String.SettingsClearDataCancelButton, delegate {})
+                        .Create();
+                        dialog.Show();
                     }
                     else
                     {
-                        StartLogin();
+                        ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
                     }
                 }
                 else
@@ -350,20 +338,14 @@ namespace Toggl.Joey.UI.Fragments
             {
                 if (ViewModel.IsPassValid(PasswordEditText.Text) && ViewModel.IsEmailValid(EmailEditText.Text))
                 {
-                    StartLogin();
+                    ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
                 }
                 else
                 {
                     ValidatePasswordField(false);
                     ValidateEmailField(false);
                 }
-
             }
-        }
-
-        public void StartLogin()
-        {
-            ViewModel.TryLogin(EmailEditText.Text, PasswordEditText.Text);
         }
 
         private void OnGoogleLoginButtonClick(object sender, EventArgs e)
@@ -378,12 +360,12 @@ namespace Toggl.Joey.UI.Fragments
             SetPasswordVisibility();
         }
 
-        private void OnEmailFocusChange(object sender, Android.Views.View.FocusChangeEventArgs e)
+        private void OnEmailFocusChange(object sender, View.FocusChangeEventArgs e)
         {
             ValidateEmailField();
         }
 
-        private void OnPasswordFocusChange(object sender, Android.Views.View.FocusChangeEventArgs e)
+        private void OnPasswordFocusChange(object sender, View.FocusChangeEventArgs e)
         {
             ValidatePasswordField();
         }
@@ -519,92 +501,9 @@ namespace Toggl.Joey.UI.Fragments
             dialog.Show();
         }
 
-        public class AreYouSureDialogFragment : DialogFragment
-        {
-            private LoginFragment fragment;
-
-            public AreYouSureDialogFragment(LoginFragment frag)
-            {
-                fragment = frag;
-            }
-
-            public override Dialog OnCreateDialog(Bundle savedInstanceState)
-            {
-                return new AlertDialog.Builder(Activity)
-                       .SetTitle(Resource.String.SettingsClearDataTitle)
-                       .SetMessage(Resource.String.SettingsClearDataText)
-                       .SetPositiveButton(Resource.String.SettingsClearDataOKButton, OnOkButtonClicked)
-                       .SetNegativeButton(Resource.String.SettingsClearDataCancelButton, OnCancelButtonClicked)
-                       .Create();
-            }
-
-            private void OnCancelButtonClicked(object sender, DialogClickEventArgs args)
-            {
-                fragment.ViewModel.SetAuthenticating(false);
-            }
-
-            private async void OnOkButtonClicked(object sender, DialogClickEventArgs args)
-            {
-                fragment.StartLogin();
-            }
-        }
-
-        public class NoWorkspaceDialogFragment : DialogFragment
-        {
-            private const string EmailKey = "com.toggl.timer.email";
-
-            public NoWorkspaceDialogFragment()
-            {
-            }
-
-            public NoWorkspaceDialogFragment(string email)
-            {
-                var args = new Bundle();
-                args.PutString(EmailKey, email);
-
-                Arguments = args;
-            }
-
-            private string Email
-            {
-                get
-                {
-                    if (Arguments == null)
-                    {
-                        return String.Empty;
-                    }
-                    return Arguments.GetString(EmailKey);
-                }
-            }
-
-            public override Dialog OnCreateDialog(Bundle savedInstanceState)
-            {
-                return new AlertDialog.Builder(Activity)
-                       .SetTitle(Resource.String.LoginNoWorkspaceDialogTitle)
-                       .SetMessage(Resource.String.LoginNoWorkspaceDialogText)
-                       .SetPositiveButton(Resource.String.LoginNoWorkspaceDialogOk, OnOkButtonClicked)
-                       .SetNegativeButton(Resource.String.LoginNoWorkspaceDialogCancel, OnCancelButtonClicked)
-                       .Create();
-            }
-
-            private void OnOkButtonClicked(object sender, DialogClickEventArgs args)
-            {
-                var intent = new Intent(Intent.ActionSend);
-                intent.SetType("message/rfc822");
-                intent.PutExtra(Intent.ExtraEmail, new[] { Resources.GetString(Resource.String.LoginNoWorkspaceDialogEmail) });
-                intent.PutExtra(Intent.ExtraSubject, Resources.GetString(Resource.String.LoginNoWorkspaceDialogSubject));
-                intent.PutExtra(Intent.ExtraText, string.Format(Resources.GetString(Resource.String.LoginNoWorkspaceDialogBody), Email));
-                StartActivity(Intent.CreateChooser(intent, (string)null));
-            }
-
-            private void OnCancelButtonClicked(object sender, DialogClickEventArgs args)
-            {
-            }
-        }
-
         private class TogglURLSPan : URLSpan
         {
-            public TogglURLSPan(String url) : base(url)
+            public TogglURLSPan(string url) : base(url)
             {
             }
 
@@ -615,6 +514,16 @@ namespace Toggl.Joey.UI.Fragments
             }
         }
 
+        private ArrayAdapter<string> MakeEmailsAdapter()
+        {
+            var am = AccountManager.Get(Activity);
+            var emails = am.GetAccounts()
+                         .Select(a => a.Name)
+                         .Where(a => a.Contains("@"))
+                         .Distinct()
+                         .ToList();
+            return new ArrayAdapter<string> (Activity, Android.Resource.Layout.SelectDialogItem, emails);
+        }
 
         private ISpannable FormattedLegalText
         {
@@ -630,19 +539,19 @@ namespace Toggl.Joey.UI.Fragments
                     var arg1idx = string.Format(template, arg0, "{1}").IndexOf("{1}", StringComparison.Ordinal);
 
                     var s = formattedLegalText = new SpannableString(string.Format(template, arg0, arg1));
-                    var mode = SpanTypes.InclusiveExclusive;
+                    var m = SpanTypes.InclusiveExclusive;
                     s.SetSpan(
                         new TogglURLSPan(Phoebe.Build.TermsOfServiceUrl.ToString()),
                         arg0idx,
                         arg0idx + arg0.Length,
-                        mode
+                        m
                     );
 
                     s.SetSpan(
                         new TogglURLSPan(Phoebe.Build.PrivacyPolicyUrl.ToString()),
                         arg1idx,
                         arg1idx + arg1.Length,
-                        mode
+                        m
                     );
                 }
 

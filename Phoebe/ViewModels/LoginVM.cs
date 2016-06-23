@@ -10,7 +10,6 @@ using Toggl.Phoebe.Net;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.Analytics;
 using XPlatUtils;
-using System.Reactive.Concurrency;
 using System.Threading;
 
 namespace Toggl.Phoebe.ViewModels
@@ -33,6 +32,7 @@ namespace Toggl.Phoebe.ViewModels
         {
             // Set initia state.
             AuthResult = AuthResult.None;
+            IsAuthenticated = false;
             IsAuthenticating = false;
             CurrentLoginMode = LoginMode.Login;
 
@@ -48,6 +48,7 @@ namespace Toggl.Phoebe.ViewModels
                            .SubscribeSimple(reqInfo =>
             {
                 AuthResult = reqInfo.AuthResult;
+                IsAuthenticating = reqInfo.Running.Any(x => x is ServerRequest.Authenticate);
             });
         }
 
@@ -60,9 +61,8 @@ namespace Toggl.Phoebe.ViewModels
         #region Properties for ViewModel binding
 
         public bool IsAuthenticating { get; private set; }
-
+        public bool IsAuthenticated { get; private set; }
         public LoginMode CurrentLoginMode { get; private set; }
-
         public AuthResult AuthResult { get; private set; }
 
         #endregion
@@ -70,11 +70,9 @@ namespace Toggl.Phoebe.ViewModels
 
         #region public ViewModel methods
 
-        public void ChangeLoginMode(LoginMode mode)
+        public void ChangeLoginMode()
         {
-            if (CurrentLoginMode == mode)
-                return;
-            CurrentLoginMode = mode;
+            CurrentLoginMode = (CurrentLoginMode == LoginMode.Login) ? LoginMode.Signup : LoginMode.Login;
             var screenStr = (CurrentLoginMode == LoginMode.Login) ? "Login" : "Signup";
             ServiceContainer.Resolve<ITracker> ().CurrentScreen = screenStr;
         }
@@ -114,11 +112,6 @@ namespace Toggl.Phoebe.ViewModels
         public bool IsPassValid(string pass)
         {
             return (pass ?? "").Length >= 6;
-        }
-
-        public void SetAuthenticating(bool isAuth)
-        {
-            IsAuthenticating = isAuth;
         }
         #endregion
     }
