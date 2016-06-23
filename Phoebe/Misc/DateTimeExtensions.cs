@@ -50,9 +50,9 @@ namespace Toggl.Phoebe
             return val.Value.Truncate(percisionTicks);
         }
 
-        public static DateTime Truncate(this DateTime val, long percisionTicks)
+        public static DateTime Truncate(this DateTime val, long precisionTicks)
         {
-            return val.AddTicks(- (val.Ticks % percisionTicks));
+            return val.AddTicks(- (val.Ticks % precisionTicks));
         }
 
         public static DateTime StartOfWeek(this DateTime dt, DayOfWeek startOfWeek)

@@ -1,4 +1,7 @@
 using System;
+using CoreAnimation;
+using CoreGraphics;
+using Toggl.Ross.Views;
 using UIKit;
 
 namespace Toggl.Ross.Theme
@@ -7,6 +10,15 @@ namespace Toggl.Ross.Theme
     {
         public static class TimeEntryCell
         {
+            public const float ProjectCircleRadius = 4;
+            public const float DescriptionTaskSeparatorRadius = 1;
+            public const float RunningIndicatorRadius = 9;
+            public const float IconSize = 24;
+
+            private const float fontHeight = 15;
+            private static readonly UIFont sharedFont = Font.Main(fontHeight);
+            private static readonly UIFont swipeButtonFont = Font.Main(20);
+
             public static void ContentView(UIView v)
             {
                 v.Opaque = true;
@@ -16,58 +28,85 @@ namespace Toggl.Ross.Theme
             public static void SwipeActionButton(UIButton v)
             {
                 v.SetTitleColor(Color.White, UIControlState.Normal);
-                v.Font = UIFont.FromName("HelveticaNeue", 18f);
+                v.Font = swipeButtonFont;
                 v.TitleLabel.TextAlignment = UITextAlignment.Center;
+            }
+
+            public static void BillableImage(UIImageView v)
+            {
+                v.ContentMode = UIViewContentMode.Center;
+                v.Image = Image.IconBillable;
+            }
+
+            public static void TagsImage(UIImageView v)
+            {
+                v.ContentMode = UIViewContentMode.Center;
+                v.Image = Image.IconTag;
+            }
+
+            public static void DescriptionTaskSeparator(UIView v)
+            {
+                v.Layer.CornerRadius = DescriptionTaskSeparatorRadius;
+                v.BackgroundColor = Color.OffBlack;
             }
 
             public static void ProjectLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue-Medium", 18f);
+                v.Font = sharedFont;
+                v.TextColor = Color.OffBlack;
             }
 
             public static void ClientLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue", 15f);
-                v.TextColor = UIColor.Gray;
+                v.Font = sharedFont;
+                v.TextColor = Color.OffSteel;
             }
 
             public static void TaskLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue-Bold", 14f);
+                v.Font = sharedFont;
+                v.TextColor = Color.OffSteel;
             }
 
             public static void DescriptionLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue", 14f);
+                v.Font = sharedFont;
+                v.TextColor = Color.OffBlack;
             }
 
             public static void DurationLabel(UILabel v)
             {
                 v.TextAlignment = UITextAlignment.Right;
-                v.Font = UIFont.FromName("HelveticaNeue-Light", 18f);
+                v.Font = Font.MinispacedDigits(fontHeight);
+                v.TextColor = Color.OffSteel;
             }
 
-            public static void TaskDescriptionSeparator(UIImageView v)
+            public static void RunningIndicator(CircleView v)
             {
-                v.Image = Image.IconArrowRight;
-                v.ContentMode = UIViewContentMode.Center;
+                v.Color = Color.StopButton.CGColor;
             }
 
-            public static void RunningIndicator(UIImageView v)
+            public static void RunningIndicatorPointer(CAShapeLayer l)
             {
-                v.ContentMode = UIViewContentMode.Center;
-                v.Image = Image.IconRunning;
-            }
+                l.StrokeColor = Color.White.CGColor;
+                l.LineWidth = 1.5f;
+                l.LineCap = CAShapeLayer.CapRound;
 
-            public static void ContinueState(UIView v)
-            {
-                v.BackgroundColor = Color.Green;
+                var path = new CGPath();
+
+                var r = RunningIndicatorRadius;
+
+                path.MoveToPoint(new CGPoint(0, 0));
+                path.AddLineToPoint(new CGPoint(0, 4 - r));
+
+                l.Path = path;
             }
 
             public static void NoSwipeState(UIView v)
             {
                 v.BackgroundColor = UIColor.Clear;
             }
+
         }
     }
 }

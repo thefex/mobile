@@ -12,6 +12,8 @@ namespace Toggl.Ross.DataSources
         protected readonly ObservableCollection<TData> collection;
         protected UITableView TableView  { get { return tableView; }}
 
+        public event EventHandler CollectionChanged;
+
         protected PlainObservableCollectionViewSource(UITableView tableView, ObservableCollection<TData> collection)
         {
             this.tableView = tableView;
@@ -68,6 +70,8 @@ namespace Toggl.Ross.DataSources
                 var toIndexPath = NSIndexPath.FromRowSection(e.NewStartingIndex, 0);
                 TableView.MoveRow(fromIndexPath, toIndexPath);
             }
+
+            CollectionChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public UIView EmptyView { get; set; }

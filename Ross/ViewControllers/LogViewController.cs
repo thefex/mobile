@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using CoreAnimation;
 using CoreGraphics;
 using Foundation;
@@ -21,6 +22,10 @@ namespace Toggl.Ross.ViewControllers
 {
     public class LogViewController : UIViewController
     {
+        private const float DateHeaderHeight = 58;
+        private const float TimeEntryHeight = 80;
+        private const float ListInsetTop = 20;
+
         private const int StatusBarHeight = 60;
         private const string DefaultDurationText = " 00:00:00 ";
         readonly static NSString EntryCellId = new NSString("EntryCellId");
@@ -29,12 +34,14 @@ namespace Toggl.Ross.ViewControllers
         private SimpleEmptyView defaultEmptyView;
         private UIView obmEmptyView;
         private UIView reloadView;
-        private UIButton durationButton;
-        private UIButton actionButton;
-        private UIBarButtonItem navigationButton;
         private UIActivityIndicatorView defaultFooterView;
         private StatusView statusView;
         private UITableView tableView;
+        private TimerBar timerBar;
+        private SectionCell floatingHeader;
+        private UIImageView navigationLogo;
+
+        private float heightOfTopBars;
 
         private Binding<LogTimeEntriesVM.LoadInfoType, LogTimeEntriesVM.LoadInfoType> loadInfoBinding, loadMoreBinding;
         private Binding<int, int> hasItemsBinding;
@@ -52,15 +59,28 @@ namespace Toggl.Ross.ViewControllers
                 Image.IconNav.ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal),
                 UIBarButtonItemStyle.Plain, OnNavigationBtnPressed);
 
-
-            var heightOfTopBars = (float)(NavigationController.NavigationBar.Bounds.Height
-                                          + UIApplication.SharedApplication.StatusBarFrame.Height);
+            heightOfTopBars = (float)(NavigationController.NavigationBar.Bounds.Height
+                                      + UIApplication.SharedApplication.StatusBarFrame.Height);
 
             var tableFrame = View.Frame;
-            tableFrame.Height -= heightOfTopBars;
+            tableFrame.Y -= heightOfTopBars;
+            var tableInset = new UIEdgeInsets(heightOfTopBars, 0, 72, 0);
+            var tableScrollInset = tableInset;
+            tableScrollInset.Top += DateHeaderHeight - ListInsetTop;
+            Add(tableView = new UITableView(tableFrame, UITableViewStyle.Plain)
+            {
+                ContentInset = tableInset,
+                ScrollIndicatorInsets = tableScrollInset,
+            } .Apply(Style.Log.EntryList));
 
-            tableView = new UITableView(tableFrame, UITableViewStyle.Plain);
-            Add(tableView);
+            Add(floatingHeader = new FloatingSectionCell { Hidden = true});
+
+            timerBar = new TimerBar
+            {
+                Frame = new CGRect(0, this.View.Frame.Height - 72 - heightOfTopBars, this.View.Bounds.Width, 72)
+            };
+            Add(timerBar);
+            timerBar.StartButtonHit += onTimerStartButtonHit;
 
             statusView = new StatusView
             {
@@ -88,27 +108,11 @@ namespace Toggl.Ross.ViewControllers
                 SyncButtonPressedHandler = OnTryAgainBtnPressed
             };
 
-            // Setup top toolbar
-            if (durationButton == null)
-            {
-                durationButton = new UIButton().Apply(Style.NavTimer.DurationButton);
-                durationButton.SetTitle(DefaultDurationText, UIControlState.Normal);  // Dummy content to use for sizing of the label
-                durationButton.SizeToFit();
-                durationButton.TouchUpInside += OnDurationButtonTouchUpInside;
-            }
-
-            if (navigationButton == null)
-            {
-                actionButton = new UIButton().Apply(Style.NavTimer.StartButton);
-                actionButton.SizeToFit();
-                actionButton.TouchUpInside += OnActionButtonTouchUpInside;
-                navigationButton = new UIBarButtonItem(actionButton);
-            }
+            navigationLogo = new UIImageView(Image.TogglLogo);
 
             // Attach views
             var navigationItem = NavigationItem;
-            navigationItem.TitleView = durationButton;
-            navigationItem.RightBarButtonItem = navigationButton;
+            navigationItem.TitleView = navigationLogo;
         }
 
         public override void ViewDidLoad()
@@ -151,10 +155,18 @@ namespace Toggl.Ross.ViewControllers
             });
             collectionBinding = this.SetBinding(() => ViewModel.Collection).WhenSourceChanges(() =>
             {
-                tableView.Source = new TimeEntriesSource(this, ViewModel);
+                var source = new TimeEntriesSource(this, ViewModel, floatingHeader);
+                if (tableView.Source != null)
+                {
+                    ((TimeEntriesSource)tableView.Source).Dispose();
+                }
+                source.Scroll += onTableViewScrolled;
+                tableView.Source = source;
+                updateFloatingHeader();
+                ViewModel.Collection.CollectionChanged += (s, e) => updateFloatingHeader();
             });
             isRunningBinding = this.SetBinding(() => ViewModel.IsEntryRunning).WhenSourceChanges(SetStartStopButtonState);
-            durationBinding = this.SetBinding(() => ViewModel.Duration).WhenSourceChanges(() => durationButton.SetTitle(ViewModel.Duration, UIControlState.Normal));
+            durationBinding = this.SetBinding(() => ViewModel.Duration).WhenSourceChanges(setDuration);
         }
 
         public override void ViewWillDisappear(bool animated)
@@ -176,12 +188,87 @@ namespace Toggl.Ross.ViewControllers
             statusView.Frame = new CGRect(0, View.Frame.Height, View.Frame.Width, StatusBarHeight);
         }
 
-        private async void OnDurationButtonTouchUpInside(object sender, EventArgs e)
+        private void onTableViewScrolled(object sender, EventArgs e)
+        {
+            updateFloatingHeader();
+        }
+
+        private void updateFloatingHeader()
+        {
+            var point = new CGPoint(0, heightOfTopBars + tableView.ContentOffset.Y);
+            var nsIndex = tableView.IndexPathForRowAtPoint(point);
+
+            if (nsIndex == null)
+            {
+                floatingHeader.Hidden = true;
+            }
+            else
+            {
+                var source = (TimeEntriesSource)tableView.Source;
+
+                var sectionIndex = source.GetSectionCellIndexForIndex(tableView, nsIndex.Row);
+
+                var sectionVM = source.GetSectionViewModelAt(sectionIndex);
+
+                var frame = getFloatingHeaderFrame(sectionVM);
+
+                if (frame == null)
+                {
+                    floatingHeader.Hidden = true;
+                    return;
+                }
+
+                floatingHeader.Bind(sectionVM);
+                floatingHeader.Frame = frame.Value;
+                floatingHeader.Hidden = false;
+            }
+        }
+
+        private CGRect? getFloatingHeaderFrame(DateHolder displayedSectionVM)
+        {
+            var source = (TimeEntriesSource)tableView.Source;
+
+            var point2 = new CGPoint(0, heightOfTopBars + tableView.ContentOffset.Y + DateHeaderHeight - 1 - ListInsetTop);
+            var nsIndex2 = tableView.IndexPathForRowAtPoint(point2);
+
+            var frame = new CGRect(0, 0, this.View.Frame.Width, DateHeaderHeight - ListInsetTop);
+
+            if (nsIndex2 != null)
+            {
+                var nextSectionVM = source.GetSectionViewModelAt(nsIndex2.Row);
+
+                if (nextSectionVM != null)
+                {
+                    if (nextSectionVM == displayedSectionVM)
+                        return null;
+
+                    var nextSectionRect = tableView.RectForRowAtIndexPath(nsIndex2);
+
+                    frame.Y = nextSectionRect.Y - tableView.ContentOffset.Y - DateHeaderHeight - heightOfTopBars + ListInsetTop;
+                }
+            }
+
+            return frame;
+        }
+
+        private void onTimerStartButtonHit(object sender, EventArgs e)
+        {
+            if (timerBar.IsManualModeSwitchOn)
+            {
+                createManual();
+            }
+            else
+            {
+                startStop();
+            }
+        }
+
+        private async void createManual()
         {
             openEditViewForManualEntry();
         }
 
-        private async void OnActionButtonTouchUpInside(object sender, EventArgs e)
+        private async void startStop()
         {
             // Send experiment data.
             ViewModel.ReportExperiment(OBMExperimentManager.StartButtonActionKey,
@@ -229,12 +316,19 @@ namespace Toggl.Ross.ViewControllers
         {
             if (ViewModel.IsEntryRunning)
             {
-                actionButton.Apply(Style.NavTimer.StopButton);
+                this.timerBar.SetState(TimerBar.State.TimerRunning);
             }
             else
             {
-                actionButton.Apply(Style.NavTimer.StartButton);
+                if (!this.timerBar.IsManualModeSwitchOn)
+                {
+                    this.timerBar.SetState(TimerBar.State.TimerInactive);
+                }
             }
+        }
+        private void setDuration()
+        {
+            timerBar.SetDurationText(ViewModel.Duration);
         }
 
         private void LoadMoreIfNeeded()
@@ -376,20 +470,47 @@ namespace Toggl.Ross.ViewControllers
             private readonly LogTimeEntriesVM VM;
             private LogViewController owner;
             private IDisposable durationSuscriber;
+            private readonly SectionCell floatingHeader;
 
-            public TimeEntriesSource(LogViewController owner, LogTimeEntriesVM viewModel) : base(owner.tableView, viewModel.Collection)
+            public event EventHandler Scroll;
+
+            public TimeEntriesSource(LogViewController owner, LogTimeEntriesVM viewModel, SectionCell floatingHeader)
+            : base(owner.tableView, viewModel.Collection)
             {
+                this.floatingHeader = floatingHeader;
                 this.owner = owner;
                 VM = viewModel;
-                durationSuscriber = viewModel.TimerObservable.Subscribe(x => UpdateDuration());
+                durationSuscriber = viewModel.TimerObservable.Subscribe(x => updateDuration());
             }
 
-            private void UpdateDuration()
+            private void updateDuration()
             {
                 foreach (var item in tableView.VisibleCells)
                 {
                     ((IDurationCell)item).UpdateDuration();
                 }
+                this.floatingHeader.UpdateDuration();
+            }
+
+            public int GetSectionCellIndexForIndex(UITableView tableView, int index)
+            {
+                var i = index;
+                while (true)
+                {
+                    var holder = collection.ElementAt(i);
+                    if (holder is ITimeEntryHolder)
+                    {
+                        i--;
+                        continue;
+                    }
+
+                    return i;
+                }
+            }
+
+            public DateHolder GetSectionViewModelAt(int index)
+            {
+                return collection.ElementAt(index) as DateHolder;
             }
 
             public override UITableViewCell GetCell(UITableView tableView, NSIndexPath indexPath)
@@ -428,15 +549,20 @@ namespace Toggl.Ross.ViewControllers
 
             public override nfloat EstimatedHeight(UITableView tableView, NSIndexPath indexPath)
             {
-                return 60f;
+                return TimeEntryHeight;
             }
 
             public override nfloat GetHeightForRow(UITableView tableView, NSIndexPath indexPath)
             {
+                if (indexPath.Row == 0)
+                {
+                    return DateHeaderHeight - ListInsetTop;
+                }
+
                 var holder = collection.ElementAt(indexPath.Row);
                 if (holder is DateHolder)
                 {
-                    return 42f;
+                    return DateHeaderHeight;
                 }
                 return EstimatedHeight(tableView, indexPath);
             }
@@ -482,6 +608,8 @@ namespace Toggl.Ross.ViewControllers
                     isLoading = true;
                     VM.LoadMore();
                 }
+
+                this.Scroll?.Invoke(this, EventArgs.Empty);
             }
 
             private void OnContinueTimeEntry(TimeEntryCell cell)
@@ -509,6 +637,7 @@ namespace Toggl.Ross.ViewControllers
                         durationSuscriber.Dispose();
                         durationSuscriber = null;
                     }
+                    this.Scroll = null;
                 }
                 base.Dispose(disposing);
             }
@@ -523,16 +652,19 @@ namespace Toggl.Ross.ViewControllers
 
         class TimeEntryCell : SwipableTimeEntryTableViewCell, IDurationCell
         {
-            private const float HorizPadding = 15f;
             private readonly UIView textContentView;
             private readonly UILabel projectLabel;
             private readonly UILabel clientLabel;
             private readonly UILabel taskLabel;
             private readonly UILabel descriptionLabel;
-            private readonly UIImageView taskSeparatorImageView;
-            private readonly UIImageView billableTagsImageView;
+            private readonly UIImageView billableImage;
+            private readonly UIImageView tagsImage;
             private readonly UILabel durationLabel;
-            private readonly UIImageView runningImageView;
+            private readonly CircleView runningCircle;
+            private readonly UIView descriptionTaskSeparator;
+            private readonly CircleView projectCircle;
+            private readonly CALayer runningCirclePointer;
+
             private bool isRunning;
             private TimeSpan duration;
             private Action<TimeEntryCell> OnContinueAction;
@@ -545,15 +677,23 @@ namespace Toggl.Ross.ViewControllers
                 clientLabel = new UILabel().Apply(Style.Log.CellClientLabel);
                 taskLabel = new UILabel().Apply(Style.Log.CellTaskLabel);
                 descriptionLabel = new UILabel().Apply(Style.Log.CellDescriptionLabel);
-                taskSeparatorImageView = new UIImageView().Apply(Style.Log.CellTaskDescriptionSeparator);
-                billableTagsImageView = new UIImageView();
+
+                descriptionTaskSeparator = new UIView().Apply(Style.TimeEntryCell.DescriptionTaskSeparator);
+                projectCircle = new CircleView();
+
+                billableImage = new UIImageView().Apply(Style.TimeEntryCell.BillableImage);
+                tagsImage = new UIImageView().Apply(Style.TimeEntryCell.TagsImage);
                 durationLabel = new UILabel().Apply(Style.Log.CellDurationLabel);
-                runningImageView = new UIImageView().Apply(Style.Log.CellRunningIndicator);
+                runningCircle = new CircleView().Apply(Style.TimeEntryCell.RunningIndicator);
+                runningCircle.Layer.AddSublayer(
+                    this.runningCirclePointer = new CAShapeLayer().Apply(Style.TimeEntryCell.RunningIndicatorPointer)
+                );
+                updateRunningIndicatorTransform();
 
                 textContentView.AddSubviews(
                     projectLabel, clientLabel,
                     taskLabel, descriptionLabel,
-                    taskSeparatorImageView
+                    descriptionTaskSeparator, projectCircle
                 );
 
                 var maskLayer = new CAGradientLayer()
@@ -570,7 +710,7 @@ namespace Toggl.Ross.ViewControllers
                     Locations = new[]
                     {
                         NSNumber.FromFloat(0f),
-                        NSNumber.FromFloat(0.9f),
+                        NSNumber.FromFloat(0.7f),
                         NSNumber.FromFloat(1f),
                     },
                 };
@@ -578,10 +718,15 @@ namespace Toggl.Ross.ViewControllers
 
                 ActualContentView.AddSubviews(
                     textContentView,
-                    billableTagsImageView,
+                    billableImage,
+                    tagsImage,
                     durationLabel,
-                    runningImageView
+                    runningCircle
                 );
+
+                PreservesSuperviewLayoutMargins = false;
+                SeparatorInset = UIEdgeInsets.Zero;
+                LayoutMargins = UIEdgeInsets.Zero;
             }
 
             public void Bind(ITimeEntryHolder dataSource, Action<TimeEntryCell> OnContinueAction)
@@ -589,14 +734,18 @@ namespace Toggl.Ross.ViewControllers
                 this.OnContinueAction = OnContinueAction;
 
                 var projectName = "LogCellNoProject".Tr();
-                var projectColor = Color.Gray;
+                var projectColor = Color.Gray.CGColor;
                 var clientName = string.Empty;
                 var info = dataSource.Entry.Info;
 
-                if (!string.IsNullOrWhiteSpace(info.ProjectData.Name))
+                var hasProject = !string.IsNullOrWhiteSpace(info.ProjectData.Name);
+
+                this.projectCircle.Hidden = !hasProject;
+
+                if (hasProject)
                 {
                     projectName = info.ProjectData.Name;
-                    projectColor = UIColor.Clear.FromHex(ProjectData.HexColors[info.ProjectData.Color % ProjectData.HexColors.Length]);
+                    projectColor = UIColor.Clear.FromHex(ProjectData.HexColors[info.ProjectData.Color % ProjectData.HexColors.Length]).CGColor;
 
                     if (!string.IsNullOrWhiteSpace(info.ClientData.Name))
                     {
@@ -604,7 +753,11 @@ namespace Toggl.Ross.ViewControllers
                     }
                 }
 
-                projectLabel.TextColor = projectColor;
+                if (projectCircle.Color != projectColor)
+                {
+                    projectCircle.Color = projectColor;
+                    SetNeedsLayout();
+                }
                 if (projectLabel.Text != projectName)
                 {
                     projectLabel.Text = projectName;
@@ -640,16 +793,30 @@ namespace Toggl.Ross.ViewControllers
                     descriptionLabel.Text = description;
                     SetNeedsLayout();
                 }
-                if (taskSeparatorImageView.Hidden != taskDeskSepHidden)
+                if (descriptionTaskSeparator.Hidden != taskDeskSepHidden)
                 {
-                    taskSeparatorImageView.Hidden = taskDeskSepHidden;
+                    descriptionTaskSeparator.Hidden = taskDeskSepHidden;
                     SetNeedsLayout();
                 }
+
 
                 // Set duration
                 duration = dataSource.GetDuration();
                 startTime = dataSource.GetStartTime();
                 isRunning = dataSource.Entry.Data.State == TimeEntryState.Running;
+
+
+                if (isRunning)
+                {
+                    setSwipeText("SwipeTimeEntryStop".Tr());
+                    setSwipeBackgroundColor(Color.StopButton);
+                }
+                else
+                {
+                    setSwipeText("SwipeTimeEntryContinue".Tr());
+                    setSwipeBackgroundColor(Color.StartButton);
+                }
+
                 RebindTags(dataSource);
                 RebindDuration();
                 LayoutIfNeeded();
@@ -668,31 +835,34 @@ namespace Toggl.Ross.ViewControllers
             // TODO: Try to find a stateless method.
             private void RebindDuration()
             {
-                runningImageView.Hidden = !isRunning;
+                runningCircle.Hidden = !isRunning;
                 durationLabel.Text = string.Format("{0:D2}:{1:mm}:{1:ss}", (int)duration.TotalHours, duration);
+                updateRunningIndicatorTransform();
+            }
+
+            private void updateRunningIndicatorTransform()
+            {
+                if (isRunning)
+                {
+                    runningCirclePointer.AffineTransform = CGAffineTransform.Rotate(
+                            CGAffineTransform.MakeTranslation(
+                                Style.TimeEntryCell.RunningIndicatorRadius + 1,
+                                Style.TimeEntryCell.RunningIndicatorRadius + 1),
+                            duration.Seconds / 60f * (float)Math.PI * 2f
+                                                           );
+                }
+                else
+                {
+                    runningCirclePointer.AffineTransform = CGAffineTransform.MakeTranslation(
+                            Style.TimeEntryCell.RunningIndicatorRadius + 1,
+                            Style.TimeEntryCell.RunningIndicatorRadius + 1);
+                }
             }
 
             private void RebindTags(ITimeEntryHolder dataSource)
             {
-                var hasTags = dataSource.Entry.Data.Tags.Count > 0;
-                var isBillable = dataSource.Entry.Data.IsBillable;
-
-                if (hasTags && isBillable)
-                {
-                    billableTagsImageView.Apply(Style.Log.BillableAndTaggedEntry);
-                }
-                else if (hasTags)
-                {
-                    billableTagsImageView.Apply(Style.Log.TaggedEntry);
-                }
-                else if (isBillable)
-                {
-                    billableTagsImageView.Apply(Style.Log.BillableEntry);
-                }
-                else
-                {
-                    billableTagsImageView.Apply(Style.Log.PlainEntry);
-                }
+                this.tagsImage.Hidden = dataSource.Entry.Data.Tags.Count == 0;
+                this.billableImage.Hidden = !dataSource.Entry.Data.IsBillable;
             }
 
             protected override void OnContinueGestureFinished()
@@ -709,105 +879,142 @@ namespace Toggl.Ross.ViewControllers
 
                 var contentFrame = ContentView.Frame;
 
-                const float durationLabelWidth = 80f;
-                durationLabel.Frame = new CGRect(
-                    x: contentFrame.Width - durationLabelWidth - HorizPadding,
-                    y: 0,
-                    width: durationLabelWidth,
-                    height: contentFrame.Height
-                );
+                const float labelHeight = 24;
+                const float paddingX = 16;
 
-                const float billableTagsHeight = 20f;
-                const float billableTagsWidth = 20f;
-                billableTagsImageView.Frame = new CGRect(
-                    y: (contentFrame.Height - billableTagsHeight) / 2,
-                    height: billableTagsHeight,
-                    x: durationLabel.Frame.X - billableTagsWidth,
-                    width: billableTagsWidth
-                );
+                var centerY = contentFrame.Height / 2;
 
-                var runningHeight = runningImageView.Image.Size.Height;
-                var runningWidth = runningImageView.Image.Size.Width;
-                runningImageView.Frame = new CGRect(
-                    y: (contentFrame.Height - runningHeight) / 2,
-                    height: runningHeight,
-                    x: contentFrame.Width - (HorizPadding + runningWidth) / 2,
-                    width: runningWidth
-                );
+                var topRowY = centerY - labelHeight;
 
-                textContentView.Frame = new CGRect(
-                    x: 0, y: 0,
-                    width: billableTagsImageView.Frame.X - 2f,
-                    height: contentFrame.Height
-                );
-                textContentView.Layer.Mask.Bounds = textContentView.Frame;
-
-                var bounds = GetBoundingRect(projectLabel);
-                projectLabel.Frame = new CGRect(
-                    x: HorizPadding,
-                    y: contentFrame.Height / 2 - bounds.Height,
-                    width: bounds.Width,
-                    height: bounds.Height
-                );
-
-                const float clientLeftMargin = 7.5f;
-                bounds = GetBoundingRect(clientLabel);
-                clientLabel.Frame = new CGRect(
-                    x: projectLabel.Frame.X + projectLabel.Frame.Width + clientLeftMargin,
-                    y: (float)Math.Floor(projectLabel.Frame.Y + projectLabel.Font.Ascender - clientLabel.Font.Ascender),
-                    width: bounds.Width,
-                    height: bounds.Height
-                );
-
-                const float secondLineTopMargin = 3f;
-                nfloat offsetX = HorizPadding + 1f;
-                if (!taskLabel.Hidden)
+                // duration, icons
                 {
-                    bounds = GetBoundingRect(taskLabel);
-                    taskLabel.Frame = new CGRect(
-                        x: offsetX,
-                        y: contentFrame.Height / 2 + secondLineTopMargin,
-                        width: bounds.Width,
-                        height: bounds.Height
+                    const float durationLabelWidth = 80f;
+                    durationLabel.Frame = new CGRect(
+                        x: contentFrame.Width - durationLabelWidth - paddingX,
+                        y: topRowY,
+                        width: durationLabelWidth,
+                        height: labelHeight
                     );
-                    offsetX += taskLabel.Frame.Width + 4f;
 
-                    if (!taskSeparatorImageView.Hidden)
+                    nfloat offsetX = contentFrame.Width - paddingX;
+
+                    var rowCenterY = centerY + labelHeight / 2;
+
+                    if (!runningCircle.Hidden)
                     {
-                        const float separatorOffsetY = -2f;
-                        var imageSize = taskSeparatorImageView.Image != null ? taskSeparatorImageView.Image.Size : CGSize.Empty;
-                        taskSeparatorImageView.Frame = new CGRect(
-                            x: offsetX,
-                            y: taskLabel.Frame.Y + taskLabel.Font.Ascender - imageSize.Height + separatorOffsetY,
-                            width: imageSize.Width,
-                            height: imageSize.Height
+                        offsetX -= Style.TimeEntryCell.RunningIndicatorRadius * 2 + 3;
+                        runningCircle.SetFrame(
+                            offsetX,
+                            rowCenterY - Style.TimeEntryCell.RunningIndicatorRadius,
+                            Style.TimeEntryCell.RunningIndicatorRadius * 2,
+                            Style.TimeEntryCell.RunningIndicatorRadius * 2
                         );
-
-                        offsetX += taskSeparatorImageView.Frame.Width + 4f;
+                        offsetX -= 3;
                     }
+
+                    if (!billableImage.Hidden)
+                    {
+                        offsetX -= Style.TimeEntryCell.IconSize;
+                        billableImage.Frame = new CGRect(
+                            offsetX,
+                            rowCenterY - Style.TimeEntryCell.IconSize / 2,
+                            Style.TimeEntryCell.IconSize,
+                            Style.TimeEntryCell.IconSize
+                        );
+                    }
+                    if (!tagsImage.Hidden)
+                    {
+                        offsetX -= Style.TimeEntryCell.IconSize;
+                        tagsImage.Frame = new CGRect(
+                            offsetX,
+                            rowCenterY - Style.TimeEntryCell.IconSize / 2,
+                            Style.TimeEntryCell.IconSize,
+                            Style.TimeEntryCell.IconSize
+                        );
+                    }
+                }
+
+                // text container
+                {
+                    textContentView.Frame = new CGRect(
+                        x: 0, y: 0,
+                        width: contentFrame.Width - 90,
+                        height: contentFrame.Height
+                    );
+                    textContentView.Layer.Mask.Bounds = textContentView.Frame;
+                }
+
+                // project, client
+                {
+                    nfloat offsetX = paddingX;
+
+                    var bounds = GetBoundingRect(projectLabel);
+                    projectLabel.Frame = new CGRect(
+                        x: offsetX,
+                        y: topRowY,
+                        width: bounds.Width,
+                        height: labelHeight
+                    );
+                    offsetX += bounds.Width + 6;
+
+                    if (!projectCircle.Hidden)
+                    {
+                        projectCircle.SetFrame(
+                            offsetX - 2,
+                            topRowY + labelHeight / 2 - Style.TimeEntryCell.ProjectCircleRadius + 1,
+                            Style.TimeEntryCell.ProjectCircleRadius * 2,
+                            Style.TimeEntryCell.ProjectCircleRadius * 2
+                        );
+                        offsetX += Style.TimeEntryCell.ProjectCircleRadius * 2 + 6;
+                    }
+
+                    bounds = GetBoundingRect(clientLabel);
+                    clientLabel.Frame = new CGRect(
+                        x: offsetX,
+                        y: topRowY,
+                        width: bounds.Width,
+                        height: labelHeight
+                    );
+                }
+
+                // description, task
+                {
+                    nfloat offsetX = paddingX;
 
                     if (!descriptionLabel.Hidden)
                     {
-                        bounds = GetBoundingRect(descriptionLabel);
+                        var bounds = GetBoundingRect(descriptionLabel);
                         descriptionLabel.Frame = new CGRect(
                             x: offsetX,
-                            y: (float)Math.Floor(taskLabel.Frame.Y + taskLabel.Font.Ascender - descriptionLabel.Font.Ascender),
+                            y: centerY,
                             width: bounds.Width,
-                            height: bounds.Height
+                            height: labelHeight
                         );
 
-                        offsetX += descriptionLabel.Frame.Width + 4f;
+                        offsetX += bounds.Width + 4;
                     }
-                }
-                else if (!descriptionLabel.Hidden)
-                {
-                    bounds = GetBoundingRect(descriptionLabel);
-                    descriptionLabel.Frame = new CGRect(
-                        x: offsetX,
-                        y: contentFrame.Height / 2 + secondLineTopMargin,
-                        width: bounds.Width,
-                        height: bounds.Height
-                    );
+
+                    if (!descriptionTaskSeparator.Hidden)
+                    {
+                        descriptionTaskSeparator.Frame = new CGRect(
+                            offsetX - 1,
+                            centerY + labelHeight / 2 - Style.TimeEntryCell.DescriptionTaskSeparatorRadius + 1,
+                            Style.TimeEntryCell.DescriptionTaskSeparatorRadius * 2,
+                            Style.TimeEntryCell.DescriptionTaskSeparatorRadius * 2
+                        );
+                        offsetX += Style.TimeEntryCell.DescriptionTaskSeparatorRadius * 2 + 4;
+                    }
+
+                    if (!taskLabel.Hidden)
+                    {
+                        var bounds = GetBoundingRect(taskLabel);
+                        taskLabel.Frame = new CGRect(
+                            x: offsetX,
+                            y: centerY,
+                            width: bounds.Width,
+                            height: labelHeight
+                        );
+                    }
                 }
             }
 
@@ -826,24 +1033,63 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
+        private class FloatingSectionCell : SectionCell
+        {
+            private UIView bottomBorder;
+
+            protected override void makeBackground()
+            {
+                BackgroundView = new UIToolbar().Apply(Style.Toolbar);
+                Add(bottomBorder = new UIView().Apply(Style.Log.SectionBorder));
+                ClipsToBounds = true;
+            }
+
+            public override void LayoutSubviews()
+            {
+                base.LayoutSubviews();
+                var contentFrame = ContentView.Frame;
+
+                bottomBorder.Frame = new CGRect(0, contentFrame.Height - 1, contentFrame.Width, 1);
+            }
+        }
+
         private class SectionCell : UITableViewCell, IDurationCell
         {
-            private const float HorizSpacing = 15f;
-            private readonly UILabel dateLabel;
-            private readonly UILabel totalDurationLabel;
+            private const float HorizSpacing = 16f;
+            private UILabel dateLabel;
+            private UILabel totalDurationLabel;
             private bool isRunning;
             private TimeSpan duration;
             private DateTime date;
 
             public SectionCell(IntPtr handle) : base(handle)
             {
-                UserInteractionEnabled = false;
+                this.setupUI();
+            }
+
+            protected SectionCell()
+            {
+                this.setupUI();
+            }
+
+            private void setupUI()
+            {
                 dateLabel = new UILabel().Apply(Style.Log.HeaderDateLabel);
                 ContentView.AddSubview(dateLabel);
 
                 totalDurationLabel = new UILabel().Apply(Style.Log.HeaderDurationLabel);
                 ContentView.AddSubview(totalDurationLabel);
 
+                PreservesSuperviewLayoutMargins = false;
+                SeparatorInset = UIEdgeInsets.Zero;
+                LayoutMargins = UIEdgeInsets.Zero;
+
+                makeBackground();
+            }
+
+            protected virtual void makeBackground()
+            {
+                UserInteractionEnabled = false;
                 BackgroundView = new UIView().Apply(Style.Log.HeaderBackgroundView);
             }
 
@@ -897,18 +1143,22 @@ namespace Toggl.Ross.ViewControllers
                 base.LayoutSubviews();
                 var contentFrame = ContentView.Frame;
 
+                var h = 14 + 18 * 2;
+                var w = (contentFrame.Width - 3 * HorizSpacing) / 2;
+                var y = contentFrame.Height - h;
+
                 dateLabel.Frame = new CGRect(
                     x: HorizSpacing,
-                    y: 0,
-                    width: (contentFrame.Width - 3 * HorizSpacing) / 2,
-                    height: contentFrame.Height
+                    y: y,
+                    width: w,
+                    height: h
                 );
 
                 totalDurationLabel.Frame = new CGRect(
-                    x: (contentFrame.Width - 3 * HorizSpacing) / 2 + 2 * HorizSpacing,
-                    y: 0,
-                    width: (contentFrame.Width - 3 * HorizSpacing) / 2,
-                    height: contentFrame.Height
+                    x: w + HorizSpacing * 2,
+                    y: y,
+                    width: w,
+                    height: h
                 );
             }
         }

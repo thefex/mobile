@@ -17,9 +17,9 @@ namespace Toggl.Ross.Views
 
         protected SwipableTimeEntryTableViewCell(IntPtr ptr) : base(ptr)
         {
-            continueActionButton = new UIButton().Apply(Style.TimeEntryCell.SwipeActionButton).Apply(Style.TimeEntryCell.ContinueState);
+            continueActionButton = new UIButton().Apply(Style.TimeEntryCell.SwipeActionButton);
+            continueActionButton.Hidden = true;
             actualContentView = new UIView().Apply(Style.Log.CellContentView);
-            continueActionButton.SetTitle("SwipeTimeEntryContinue".Tr(), UIControlState.Normal);
 
             BackgroundView = new UIView();
             SelectedBackgroundView = new UIView().Apply(Style.CellSelectedBackground);
@@ -32,6 +32,15 @@ namespace Toggl.Ross.Views
             {
                 ShouldRecognizeSimultaneously = (a, b) => !panLockInHorizDirection,
             });
+        }
+
+        protected void setSwipeText(string text)
+        {
+            continueActionButton.SetTitle(text, UIControlState.Normal);
+        }
+        protected void setSwipeBackgroundColor(UIColor color)
+        {
+            continueActionButton.BackgroundColor = color;
         }
 
         protected abstract void OnContinueGestureFinished();
@@ -48,6 +57,7 @@ namespace Toggl.Ross.Views
                     SetMainMenuActive(false);
                     panStart = gesture.TranslationInView(actualContentView);
                     panLockInHorizDirection = false;
+                    continueActionButton.Hidden = false;
                     break;
                 case UIGestureRecognizerState.Changed:
                     var currentPoint = gesture.TranslationInView(actualContentView);
@@ -103,6 +113,7 @@ namespace Toggl.Ross.Views
                             OnContinueGestureFinished();
                         }
                         SetMainMenuActive(true);
+                        continueActionButton.Hidden = true;
                     });
 
                     break;
@@ -111,6 +122,7 @@ namespace Toggl.Ross.Views
                     {
                         gesture.Enabled = isFinished;
                         SetMainMenuActive(true);
+                        continueActionButton.Hidden = true;
                     });
                     break;
             }

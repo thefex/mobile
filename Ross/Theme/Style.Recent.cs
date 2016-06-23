@@ -49,15 +49,6 @@ namespace Toggl.Ross.Theme
                 v.Apply(TimeEntryCell.DurationLabel);
             }
 
-            public static void CellTaskDescriptionSeparator(UIImageView v)
-            {
-                v.Apply(TimeEntryCell.TaskDescriptionSeparator);
-            }
-
-            public static void CellRunningIndicator(UIImageView v)
-            {
-                v.Apply(TimeEntryCell.RunningIndicator);
-            }
         }
     }
 }

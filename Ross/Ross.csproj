@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -244,8 +243,6 @@
     <BundleResource Include="Resources\icon-arrow-right%402x.png" />
     <BundleResource Include="Resources\icon-back.png" />
     <BundleResource Include="Resources\icon-back%402x.png" />
-    <BundleResource Include="Resources\icon-billable.png" />
-    <BundleResource Include="Resources\icon-billable%402x.png" />
     <BundleResource Include="Resources\icon-cancel.png" />
     <BundleResource Include="Resources\icon-cancel%402x.png" />
     <BundleResource Include="Resources\icon-duration-arrow.png" />
@@ -284,10 +281,6 @@
     <BundleResource Include="Resources\icon-settings-green%402x.png" />
     <BundleResource Include="Resources\icon-settings.png" />
     <BundleResource Include="Resources\icon-settings%402x.png" />
-    <BundleResource Include="Resources\icon-tag-billable.png" />
-    <BundleResource Include="Resources\icon-tag-billable%402x.png" />
-    <BundleResource Include="Resources\icon-tag.png" />
-    <BundleResource Include="Resources\icon-tag%402x.png" />
     <BundleResource Include="Resources\icon-timer-green.png" />
     <BundleResource Include="Resources\icon-timer-green%402x.png" />
     <BundleResource Include="Resources\icon-timer.png" />
@@ -304,6 +297,18 @@
     <BundleResource Include="Resources\toggler2.png" />
     <BundleResource Include="Resources\toggler2%402x.png" />
     <BundleResource Include="Resources\toggler2%403x.png" />
+    <BundleResource Include="Resources\iconBillable.png" />
+    <BundleResource Include="Resources\iconBillable%402x.png" />
+    <BundleResource Include="Resources\iconBillable%403x.png" />
+    <BundleResource Include="Resources\iconTag.png" />
+    <BundleResource Include="Resources\iconTag%402x.png" />
+    <BundleResource Include="Resources\iconTag%403x.png" />
+    <BundleResource Include="Resources\togglLogo.png" />
+    <BundleResource Include="Resources\togglLogo%402x.png" />
+    <BundleResource Include="Resources\togglLogo%403x.png" />
+    <BundleResource Include="Resources\splashLogo.png" />
+    <BundleResource Include="Resources\splashLogo%402x.png" />
+    <BundleResource Include="Resources\splashLogo%403x.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Info.plist" />
@@ -320,7 +325,6 @@
       <DependentUpon>Style.cs</DependentUpon>
     </Compile>
     <Compile Include="Theme\Style.cs" />
-    <Compile Include="Theme\Style.Migration.cs" />
     <Compile Include="Theme\Style.Login.cs">
       <DependentUpon>Style.cs</DependentUpon>
     </Compile>
@@ -354,6 +358,7 @@
       <DependentUpon>Style.cs</DependentUpon>
     </Compile>
     <Compile Include="ViewControllers\SignupViewController.cs" />
+    <Compile Include="Theme\Style.Migration.cs" />
     <Compile Include="Theme\Style.Signup.cs">
       <DependentUpon>Style.cs</DependentUpon>
     </Compile>
@@ -446,7 +451,12 @@
     <Compile Include="Misc\NSTimeProvider.cs" />
     <Compile Include="Misc\StringExtensions.cs" />
     <Compile Include="ViewControllers\MigrationViewController.cs" />
+    <Compile Include="Views\TimerBar.cs" />
+    <Compile Include="Theme\Style.Timer.cs" />
+    <Compile Include="Theme\Font.cs" />
     <Compile Include="Misc\UIExtensions.cs" />
+    <Compile Include="Views\TimerButtonIcon.cs" />
+    <Compile Include="Views\CircleView.cs" />
     <Compile Include="ViewControllers\AutocompleteViewController.cs" />
   </ItemGroup>
   <ItemGroup />
@@ -503,6 +513,9 @@
       <Version>1.2.0.0</Version>
       <Visible>False</Visible>
     </XamarinComponentReference>
+  </ItemGroup>
+  <ItemGroup>
+    <InterfaceDefinition Include="Resources\LaunchScreen.storyboard" />
   </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" Condition="Exists('..\Phoebe\Phoebe.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />

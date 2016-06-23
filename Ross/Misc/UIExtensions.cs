@@ -20,6 +20,15 @@ namespace Toggl.Ross
 
             controller.SetViewControllers(vcs.Take(vcs.Length - count).ToArray(), animated);
         }
+
+        public static T WithDebugBackground<T>(this T view)
+        where T : UIView
+        {
+#if DEBUG
+            view.BackgroundColor = new UIColor(1, 0, 0, 0.3f);
+#endif
+            return view;
+        }
     }
 }
 

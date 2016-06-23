@@ -9,33 +9,33 @@ namespace Toggl.Ross.Theme
         {
             public static void HeaderBackgroundView(UIView v)
             {
-                v.BackgroundColor = Color.LightestGray;
+                v.BackgroundColor = Color.Background;
             }
 
             public static void HeaderDateLabel(UILabel v)
             {
-                v.TextColor = Color.Gray;
+                v.TextColor = Color.OffSteel;
                 v.TextAlignment = UITextAlignment.Left;
-                v.Font = UIFont.FromName("HelveticaNeue-Medium", 14f);
+                v.Font = Font.Main(12);
             }
 
             public static void HeaderDurationLabel(UILabel v)
             {
-                v.TextColor = Color.Gray;
+                v.TextColor = Color.OffSteel;
                 v.TextAlignment = UITextAlignment.Right;
-                v.Font = UIFont.FromName("HelveticaNeue", 14f);
+                v.Font = Font.Main(12);
             }
 
             public static void ReloadTableViewFooterLabel(UILabel v)
             {
                 v.TextColor = Color.Gray;
                 v.TextAlignment = UITextAlignment.Center;
-                v.Font = UIFont.FromName("HelveticaNeue-Light", 12f);
+                v.Font = Font.MainLight(12);
             }
 
             public static void ReloadTableViewFooterButton(UIButton v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue", 13f);
+                v.Font = Font.Main(13);
                 v.SetTitleColor(Color.DarkGray, UIControlState.Normal);
             }
 
@@ -69,22 +69,6 @@ namespace Toggl.Ross.Theme
                 v.Apply(TimeEntryCell.DurationLabel);
             }
 
-            public static void CellTaskDescriptionSeparator(UIImageView v)
-            {
-                v.Apply(TimeEntryCell.TaskDescriptionSeparator);
-            }
-
-            public static void CellRunningIndicator(UIImageView v)
-            {
-                v.Apply(TimeEntryCell.RunningIndicator);
-            }
-
-            public static void BillableAndTaggedEntry(UIImageView v)
-            {
-                v.ContentMode = UIViewContentMode.Center;
-                v.Image = Image.IconTagBillable;
-            }
-
             public static void TaggedEntry(UIImageView v)
             {
                 v.ContentMode = UIViewContentMode.Center;
@@ -101,6 +85,19 @@ namespace Toggl.Ross.Theme
             {
                 v.Image = null;
             }
+
+            public static void SectionBorder(UIView v)
+            {
+                v.BackgroundColor = Color.Border;
+            }
+
+            public static void EntryList(UITableView v)
+            {
+                v.SeparatorInset = UIEdgeInsets.Zero;
+                v.SeparatorColor = Color.Border;
+                v.BackgroundColor = Color.Background;
+            }
         }
+
     }
 }

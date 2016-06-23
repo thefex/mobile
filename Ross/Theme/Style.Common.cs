@@ -13,11 +13,17 @@ namespace Toggl.Ross.Theme
 
         public static void NavigationBar(UINavigationBar v)
         {
+            v.BarTintColor = Color.BackgroundToolbar;
             var borderImage = v.GetBorderImage();
             if (borderImage != null)
             {
                 borderImage.Hidden = true;
             }
+        }
+
+        public static void Toolbar(UIToolbar v)
+        {
+            v.BarTintColor = Color.BackgroundToolbar;
         }
 
         public static void NavLabelButton(UIBarButtonItem v)
@@ -40,7 +46,7 @@ namespace Toggl.Ross.Theme
 
         public static void TableViewHeader(UIView v)
         {
-            v.BackgroundColor = Color.LightestGray;
+            v.BackgroundColor = Color.Background;
         }
 
         public static void CellSelectedBackground(UIView v)
