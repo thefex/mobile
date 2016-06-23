@@ -11,6 +11,7 @@ using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.Analytics;
 using XPlatUtils;
 using System.Threading;
+using System.Reactive.Concurrency;
 
 namespace Toggl.Phoebe.ViewModels
 {

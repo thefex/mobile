@@ -272,7 +272,6 @@ namespace Toggl.Phoebe.Reactive
                 UserData user = serverMsg.User;
                 user.Id = state.User.Id;
                 user.DefaultWorkspaceId = state.Workspaces.Values.Single(x => x.RemoteId == user.DefaultWorkspaceRemoteId).Id;
-
                 // TODO: OBM data that comes in user object from this changes
                 // is totally wrong. In that way, we should keep this info before
                 // before process the object.
@@ -280,34 +279,23 @@ namespace Toggl.Phoebe.Reactive
                 user.ExperimentNumber = state.User.ExperimentNumber;
 
                 var userUpdated = (UserData)dataStore.Update(ctx => ctx.Put(user)).Single();
-                if (HasAnyData())
-                {
-                    state = MergeOfflineDb(state, user.DefaultWorkspaceId, user.DefaultWorkspaceRemoteId, user.Id, user.RemoteId);
-                    RxChain.Send(new ServerRequest.UploadData());
-                }
 
                 var reqInfo = state.RequestInfo.With(
                                   errorInfo: null,
                                   hadErrors: false,
-                                  running: new List<ServerRequest>(),// .Append(request).ToList(),
+                                  running: new List<ServerRequest>(),
                                   getChangesLastRun: serverMsg.Timestamp);
 
                 return DataSyncMsg.Create(state.With(
                                               user: userUpdated,
                                               requestInfo: reqInfo,
                                               settings: state.Settings.With(getChangesLastRun: serverMsg.Timestamp)));
-
             },
             (ServerRequest.Authenticate _) =>
             {
                 // TODO RX: Right now, Authenticate responses send UserDataPut messages
                 throw new NotImplementedException();
-            },
-            (ServerRequest.UploadData req) =>
-            {
-                return DataSyncMsg.Create(state);
             }),
-
             ex =>
             {
                 // TODO Rx Clean running array?
@@ -433,6 +421,7 @@ namespace Toggl.Phoebe.Reactive
             return (msg as DataMsg.UserDataPut).Data.Match(
                        userData =>
             {
+                var reqList = new List<ServerRequest>();
                 var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
 
                 var updated = dataStore.Update(ctx => { ctx.Put(userData); });
@@ -443,9 +432,17 @@ namespace Toggl.Phoebe.Reactive
 
                 // ATTENTION After succesful login, send
                 // a request to get data state from server.
-                var req = new ServerRequest.GetCurrentState();
-                runningState.Add(req);
-                return DataSyncMsg.Create(req, state.With(
+                // If data exists, enqueue it first!
+
+                var crudRequests = new List<ServerRequest.CRUD>();
+                if (GetLocalDataAsCRUDRequests(dataStore, state, crudRequests: crudRequests))
+                    reqList.AddRange(crudRequests);
+
+                var getChangesRequest = new ServerRequest.GetCurrentState();
+                reqList.Add(getChangesRequest);
+                runningState.Add(getChangesRequest);
+
+                return DataSyncMsg.Create(reqList, state.With(
                                               user: userDataInDb,
                                               requestInfo: state.RequestInfo.With(authResult: AuthResult.Success, running: runningState),
                                               workspaces: state.Update(state.Workspaces, updated),
@@ -583,6 +580,8 @@ namespace Toggl.Phoebe.Reactive
 
         static DataSyncMsg<AppState> InitStateAfterMigration(AppState state, DataMsg msg)
         {
+            // Specific reducer to manage DB migration
+
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
             var userData = new UserData();
             var projects = new Dictionary<Guid, IProjectData>();
@@ -682,6 +681,22 @@ namespace Toggl.Phoebe.Reactive
         }
 
         #region Util
+
+        static bool GetLocalDataAsCRUDRequests(ISyncDataStore dataStore, AppState state, List<ServerRequest.CRUD> crudRequests)
+        {
+            var tEntries = dataStore.Table<TimeEntryData>().Where(x => true);
+
+            if (state.Clients.Count > 0)
+                crudRequests.Add(new ServerRequest.CRUD(state.Clients.Values));
+            if (state.Projects.Count > 0)
+                crudRequests.Add(new ServerRequest.CRUD(state.Projects.Values));
+            if (state.Tags.Count > 0)
+                crudRequests.Add(new ServerRequest.CRUD(state.Tags.Values));
+            if (tEntries.Count() > 0)
+                crudRequests.Add(new ServerRequest.CRUD(tEntries));
+
+            return crudRequests.Count > 0;
+        }
 
         static bool MergeOfflineTable<T>(ISyncDataStoreContext ctx, Tuple<Guid, long> ws = null, Tuple < Guid, long?> user = null)
         where T : CommonData

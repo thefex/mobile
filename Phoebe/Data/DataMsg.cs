@@ -314,10 +314,6 @@ namespace Toggl.Phoebe.Data
         {
         }
 
-        public sealed class UploadData : ServerRequest
-        {
-        }
-
         public sealed class Authenticate : ServerRequest
         {
             public enum Op
@@ -424,6 +420,9 @@ namespace Toggl.Phoebe.Data
 
         static public DataSyncMsg<T> Create<T> (ServerRequest request, T state) =>
         new DataSyncMsg<T> (state, new List<ServerRequest> { request });
+
+        static public DataSyncMsg<T> Create<T>(IEnumerable<ServerRequest> requestList, T state) =>
+        new DataSyncMsg<T>(state, requestList);
 
         static public DataSyncMsg<T> Create<T> (IEnumerable<ICommonData> syncData, T state) =>
         new DataSyncMsg<T> (state, new List<ServerRequest> { new ServerRequest.CRUD(syncData) });

@@ -150,7 +150,6 @@ namespace Toggl.Phoebe.Reactive
         {
             await request.MatchType(
                 (ServerRequest.DownloadEntries _) => DownloadEntries(request, state),
-                (ServerRequest.UploadData _) => PushOfflineChanges(request, state),
                 (ServerRequest.GetChanges _) => GetChanges(request, state),
                 (ServerRequest.GetCurrentState _) => GetChanges(request, state),
                 (ServerRequest.Authenticate req) =>
@@ -305,38 +304,6 @@ namespace Toggl.Phoebe.Reactive
                 return true;
             }
         }
-
-        #region Push offline methods
-
-        async Task PushOfflineChanges(ServerRequest request, AppState state)
-        {
-            var remoteObjects = new List<CommonData> ();
-            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-            dataStore.ResetQueue(QueueId);
-
-            var enqueuedItems = new List<QueueItem> ();
-            PushOfflineTable<TagData> (dataStore, state, enqueuedItems);
-            PushOfflineTable<ClientData> (dataStore, state, enqueuedItems);
-            PushOfflineTable<ProjectData> (dataStore, state, enqueuedItems);
-            PushOfflineTable<TaskData> (dataStore, state, enqueuedItems);
-            PushOfflineTable<TimeEntryData> (dataStore, state, enqueuedItems);
-
-            await TryEmptyQueue(remoteObjects, state, true, dataStore);
-            if (remoteObjects.Count > 0)
-            {
-                RxChain.Send(DataMsg.ServerResponse.CRUD(remoteObjects));
-            }
-
-            await GetChanges(request, state);
-        }
-
-        void PushOfflineTable<T> (ISyncDataStore dataStore, AppState state, List<QueueItem> enqueuedItems)
-        where T : CommonData, new()
-        {
-            dataStore.Table<T>().Where(x => x.RemoteId == null).ForEach(x => Enqueue(x, enqueuedItems, dataStore));
-        }
-
-        #endregion
 
         void Enqueue(ICommonData data, List<QueueItem> enqueuedItems, ISyncDataStore dataStore)
         {
