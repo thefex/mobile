@@ -17,7 +17,7 @@ namespace Toggl.Ross.Theme
 
             private const float fontHeight = 15;
             private static readonly UIFont sharedFont = Font.Main(fontHeight);
-            private static readonly UIFont swipeButtonFont = Font.Main(20);
+            private static readonly UIFont swipeButtonFont = Font.Main(18);
 
             public static void ContentView(UIView v)
             {
