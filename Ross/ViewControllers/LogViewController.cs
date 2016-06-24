@@ -111,8 +111,8 @@ namespace Toggl.Ross.ViewControllers
             navigationLogo = new UIImageView(Image.TogglLogo);
 
             // Attach views
-            var navigationItem = NavigationItem;
-            navigationItem.TitleView = navigationLogo;
+            NavigationItem.TitleView = navigationLogo;
+            NavigationItem.TitleView.Hidden = true;
         }
 
         public override void ViewDidLoad()

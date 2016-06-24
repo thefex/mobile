@@ -136,30 +136,36 @@ namespace Toggl.Ross.ViewControllers
             {
                 MenuEnabled = true;
 
-                UIView.Animate(0.35, 0, UIViewAnimationOptions.CurveEaseInOut, () => 
-                {
-                    // move the logo to the same position of the title view
-                    // and resize to match title view logo size
-                    var titleViewWidth = 72; // actual file image width
-                    var titleViewHeight = 22; // actual file image height
-                    var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
-                    var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
+                // TODO Rx @alfonso Keep this call here explicitly or init
+                // the state with the request if user is logged.
+                if (emptyStack)
+                    RxChain.Send(new ServerRequest.GetChanges());
 
+                var logViewcontroller = new LogViewController();
+                SetViewControllers(new[] { logViewcontroller }, !emptyStack);
+
+                // move the logo to the same position of the title view
+                // and resize it to match sizes
+                var titleViewWidth = 72; // actual file image width
+                var titleViewHeight = 22; // actual file image height
+                var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
+                var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
+
+                UIView.Animate(0.35, 0.6, UIViewAnimationOptions.CurveEaseInOut, () => 
+                {
                     splashLogo.Frame = new CGRect(centerX, titleViewY, titleViewWidth, titleViewHeight);
+                    splashBackground.Alpha = 0;
 
                 }, () =>
                 {
-                    // TODO Rx @alfonso Keep this call here explicitly or init
-                    // the state with the request if user is logged.
-                    if (emptyStack)
-                        RxChain.Send(new ServerRequest.GetChanges());
-                    
-                    SetViewControllers(new[] { new LogViewController() }, !emptyStack);
+                    splashBackground.RemoveFromSuperview();
+
+                    logViewcontroller.NavigationItem.TitleView.Hidden = false;
 
                     // give some time before hidding the splash logo because the LogViewController takes some time to load
-                    UIView.Animate(0.28, 0.3, UIViewAnimationOptions.CurveLinear,
-                                   () => { splashLogo.Alpha = 0; splashBackground.Alpha = 0; },
-                                   () => { splashLogo.RemoveFromSuperview(); splashBackground.RemoveFromSuperview(); });
+                    UIView.Animate(0.28, 0, UIViewAnimationOptions.CurveLinear,
+                                   () => { splashLogo.Alpha = 0; },
+                                   () => { splashLogo.RemoveFromSuperview(); });
                  });
             }
             else
