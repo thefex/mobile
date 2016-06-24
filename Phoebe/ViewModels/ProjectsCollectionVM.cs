@@ -38,7 +38,8 @@ namespace Toggl.Phoebe.ViewModels
             projects = appState.Projects.Values.Where(p => p.IsActive).Select(
                            p => new SuperProjectData(p,
                                    clients.FirstOrDefault(c => c.Id == p.ClientId),
-                                   tasks.Count(t => t.ProjectId == p.Id))).ToList();
+                                   tasks.Count(t => t.ProjectId == p.Id)))
+                       .OrderBy(p => p.Name).ToList();
 
             // Create collection
             CreateSortedCollection(projects);
@@ -117,7 +118,7 @@ namespace Toggl.Phoebe.ViewModels
                 enumerable.Where(p => p.ClientId == Guid.Empty && p.WorkspaceId == workspaceId).ForEach(data.Add);
 
                 // Add normal sections
-                var sectionHeaders = clients.Where(p => p.WorkspaceId == workspaceId);
+                var sectionHeaders = clients.Where(c => c.WorkspaceId == workspaceId);
                 foreach (var header in sectionHeaders)
                 {
                     var sectionItems = enumerable.Where(p => p.ClientId == header.Id && p.WorkspaceId == workspaceId).ToList();
