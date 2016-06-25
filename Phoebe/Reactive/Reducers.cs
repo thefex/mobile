@@ -423,21 +423,34 @@ namespace Toggl.Phoebe.Reactive
             {
                 var reqList = new List<ServerRequest>();
                 var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-
-                var updated = dataStore.Update(ctx => { ctx.Put(userData); });
                 var runningState = state.RequestInfo.Running.Where(x => !(x is ServerRequest.Authenticate)).ToList();
+                IReadOnlyList<ICommonData> updated;
+
+                // If some data exists, prepare them and
+                // flight them to the moon :)
+                var crudRequests = new List<ServerRequest.CRUD>();
+                if (GetLocalDataAsCRUDRequests(dataStore, state, crudRequests))
+                {
+                    // update existing workspace with remote id.
+                    var workspace = state.Workspaces.FirstOrDefault().Value;
+                    workspace = workspace.With(x => x.RemoteId = userData.DefaultWorkspaceRemoteId);
+                    reqList.AddRange(crudRequests);
+
+                    updated = dataStore.Update(ctx =>
+                    {
+                        ctx.Put(userData);
+                        ctx.Put(workspace);
+                    });
+                }
+                else
+                {
+                    updated = dataStore.Update(ctx => ctx.Put(userData));
+                }
 
                 // This will throw an exception if user hasn't been correctly updated
                 var userDataInDb = updated.OfType<UserData>().Single();
 
-                // ATTENTION After succesful login, send
-                // a request to get data state from server.
-                // If data exists, enqueue it first!
-
-                var crudRequests = new List<ServerRequest.CRUD>();
-                if (GetLocalDataAsCRUDRequests(dataStore, state, crudRequests: crudRequests))
-                    reqList.AddRange(crudRequests);
-
+                // Send a request to get data state from server.
                 var getChangesRequest = new ServerRequest.GetCurrentState();
                 reqList.Add(getChangesRequest);
                 runningState.Add(getChangesRequest);
@@ -686,136 +699,21 @@ namespace Toggl.Phoebe.Reactive
         {
             var tEntries = dataStore.Table<TimeEntryData>().Where(x => true);
 
+            // Create CRUD requests
+            // javascript code style? :0
             if (state.Clients.Count > 0)
-                crudRequests.Add(new ServerRequest.CRUD(state.Clients.Values));
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(state.Clients.Values)));
+
             if (state.Projects.Count > 0)
-                crudRequests.Add(new ServerRequest.CRUD(state.Projects.Values));
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(state.Projects.Values)));
+
             if (state.Tags.Count > 0)
-                crudRequests.Add(new ServerRequest.CRUD(state.Tags.Values));
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(state.Tags.Values)));
+
             if (tEntries.Count() > 0)
-                crudRequests.Add(new ServerRequest.CRUD(tEntries));
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(tEntries)));
 
             return crudRequests.Count > 0;
-        }
-
-        static bool MergeOfflineTable<T>(ISyncDataStoreContext ctx, Tuple<Guid, long> ws = null, Tuple < Guid, long?> user = null)
-        where T : CommonData
-        {
-            if (ctx == null) { throw new ArgumentNullException(nameof(ctx)); }
-            if (ws == null && user == null) { throw new ArgumentNullException($"{nameof(ws)} && {nameof(user)}"); }
-
-            var tableName = ctx.Connection.GetMapping<T>().TableName;
-
-            var sql = new List<string>();
-            var args = new List<object>();
-
-            if (ws != null)
-            {
-                var wsIdCol = Util.GetPropertyName<TimeEntryData, Guid>(x => x.WorkspaceId);
-                var wsRemoteIdCol = Util.GetPropertyName<TimeEntryData, long>(x => x.WorkspaceRemoteId);
-                var syncStateCol = Util.GetPropertyName<TimeEntryData, SyncState>(x => x.SyncState);
-
-                sql.Add($"{wsIdCol}=?, {wsRemoteIdCol}=?, {syncStateCol}=?");
-                args.Add(ws.Item1);
-                args.Add(ws.Item2);
-                args.Add(SyncState.CreatePending);
-            }
-
-            if (user != null)
-            {
-                var userIdCol = Util.GetPropertyName<TimeEntryData, Guid>(x => x.UserId);
-                var userRemoteIdCol = Util.GetPropertyName<TimeEntryData, long>(x => x.UserRemoteId);
-                sql.Add($"{userIdCol}=?, {userRemoteIdCol}=?");
-                args.Add(user.Item1);
-                args.Add(user.Item2);
-            }
-
-            return ctx.Connection.Execute($"UPDATE {tableName} SET {string.Join(", ", sql)}", args.ToArray()) > 0;
-        }
-
-        static IReadOnlyDictionary<Guid, T> MergeOfflineAppState<T>(
-            bool edit, IReadOnlyDictionary<Guid, T> oldItems, Func<T, Tuple<Guid, T>> mapper)
-        {
-            // If there've been no edits, return the state untouched
-            if (!edit)
-                return oldItems;
-
-            return oldItems.Values.Select(mapper).ToDictionary(x => x.Item1, x => x.Item2);
-        }
-
-        static AppState MergeOfflineDb(AppState state, Guid wsId, long wsRemoteId, Guid userId, long? userRemoteId)
-        {
-            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-
-            dataStore.Update(ctx =>
-            {
-                var ws = Tuple.Create(wsId, wsRemoteId);
-                var user = Tuple.Create(userId, userRemoteId);
-
-                // We're not using ctx.Put/Delete here so we need to update the state in-memory ourselves
-                // For performance, only touch the app state if there've been actual changes in the db
-                var edit1 = MergeOfflineTable<ProjectData>(ctx, ws);
-                var edit2 = MergeOfflineTable<ClientData>(ctx, ws);
-                var edit3 = MergeOfflineTable<TagData>(ctx, ws);
-                var edit4 = MergeOfflineTable<ProjectUserData>(ctx, user: user); // Attention, named parameter
-                var edit5 = MergeOfflineTable<WorkspaceUserData>(ctx, ws, user);
-                var edit6 = MergeOfflineTable<TimeEntryData>(ctx, ws, user);
-
-                ctx.Connection.Table<WorkspaceData> ().Delete(x => x.Id != wsId);
-
-                // Attention! We're modifying directly the objects in memory by unsafe casting
-                // This should be forbidden but there's no simple alternative in this case
-                state = state.With(
-                            projects: MergeOfflineAppState(edit1, state.Projects, x =>
-                {
-                    var y = (ProjectData)x;
-                    y.WorkspaceId = wsId;
-                    y.WorkspaceRemoteId = wsRemoteId;
-                    return Tuple.Create(y.Id, (IProjectData)y);
-                }),
-                clients: MergeOfflineAppState(edit2, state.Clients, x =>
-                {
-                    var y = (ClientData)x;
-                    y.WorkspaceId = wsId;
-                    y.WorkspaceRemoteId = wsRemoteId;
-                    return Tuple.Create(y.Id, (IClientData)y);
-                }),
-                tags: MergeOfflineAppState(edit3, state.Tags, x =>
-                {
-                    var y = (TagData)x;
-                    y.WorkspaceId = wsId;
-                    y.WorkspaceRemoteId = wsRemoteId;
-                    return Tuple.Create(y.Id, (ITagData)y);
-                }),
-                projectUsers: MergeOfflineAppState(edit4, state.ProjectUsers, x =>
-                {
-                    var y = (ProjectUserData)x;
-                    y.UserId = userId;
-                    y.UserRemoteId = userRemoteId ?? 0;
-                    return Tuple.Create(y.Id, (IProjectUserData)y);
-                }),
-                workspaceUsers: MergeOfflineAppState(edit5, state.WorkspaceUsers, x =>
-                {
-                    var y = (WorkspaceUserData)x;
-                    y.WorkspaceId = wsId;
-                    y.WorkspaceRemoteId = wsRemoteId;
-                    y.UserId = userId;
-                    y.UserRemoteId = userRemoteId ?? 0;
-                    return Tuple.Create(y.Id, (IWorkspaceUserData)y);
-                }),
-                timeEntries: MergeOfflineAppState(edit6, state.TimeEntries, x =>
-                {
-                    var y = (TimeEntryData)x.Data;
-                    y.WorkspaceId = wsId;
-                    y.WorkspaceRemoteId = wsRemoteId;
-                    y.UserId = userId;
-                    y.UserRemoteId = userRemoteId ?? 0;
-                    return Tuple.Create(y.Id, new RichTimeEntry(y, x.Info));
-                }),
-                workspaces: state.Workspaces.Values.Where(x => x.Id == wsId).ToDictionary(x => x.Id)
-                        );
-            });
-            return state;
         }
 
         static AppState UpdateStateWithNewData(AppState state, IEnumerable<CommonData> receivedData)
@@ -1036,6 +934,31 @@ namespace Toggl.Phoebe.Reactive
                 log.Warning(nameof(Reducers), e, errorMessage);
             }, TaskContinuationOptions.OnlyOnFaulted);
         }
+
+        private static IEnumerable<ICommonData> UpdateListToCreatePending(IEnumerable<ICommonData> list)
+        {
+            var data = new List<ICommonData> ();
+            list.ForEach(item => data.Add(UpdateToCreatePending(item)));
+            return data;
+        }
+
+        private static ICommonData UpdateToCreatePending(ICommonData data)
+        {
+            if (data is ITimeEntryData)
+                return ((ITimeEntryData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            if (data is IClientData)
+                return ((IClientData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            if (data is IProjectData)
+                return ((IProjectData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            if (data is ITagData)
+                return ((ITagData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            return data;
+        }
+
         #endregion
     }
 }
