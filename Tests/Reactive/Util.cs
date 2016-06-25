@@ -60,6 +60,19 @@ namespace Toggl.Phoebe.Tests.Reactive
 
         public Task<T> Create<T> (string authToken, T jsonObject) where T : CommonJson
         {
+            if (jsonObject is UserJson)
+            {
+                var user = new UserJson()
+                {
+                    Email = fakeUserEmail,
+                    Password = fakeUserPassword,
+                    Name = "Created",
+                    DefaultWorkspaceRemoteId = 123,
+                    ApiToken = "123"
+                };
+                jsonObject = user as T;
+            }
+
             ReceivedItems.Add(jsonObject);
             jsonObject.RemoteId = rnd.Next(100);
             return Task.FromResult(jsonObject);
@@ -93,15 +106,15 @@ namespace Toggl.Phoebe.Tests.Reactive
         }
         public Task<UserJson> GetUser(string username, string password)
         {
-            Task.Delay(500);
             if (username == fakeUserEmail && password == fakeUserPassword)
             {
                 var user = new UserJson()
                 {
                     Email = fakeUserEmail,
                     Password = fakeUserPassword,
-                    Name = "Test",
-                    DefaultWorkspaceRemoteId = 123
+                    Name = "Existing",
+                    DefaultWorkspaceRemoteId = 9876,
+                    ApiToken = "123"
                 };
                 return Task.FromResult(user);
             }
@@ -260,6 +273,35 @@ namespace Toggl.Phoebe.Tests.Reactive
             });
         }
 
+        public static IProjectData CreateProjectData(Guid clientId)
+        {
+            return ProjectData.Create(x =>
+            {
+                x.Name = "Project";
+                x.IsBillable = true;
+                x.Id = Guid.NewGuid();
+                x.ClientId = clientId;
+            });
+        }
+
+        public static IClientData CreateClientData()
+        {
+            return ClientData.Create(x =>
+            {
+                x.Name = "Client";
+                x.Id = Guid.NewGuid();
+            });
+        }
+
+        public static ITagData CreateTagData()
+        {
+            return TagData.Create(x =>
+            {
+                x.Name = "Tag";
+                x.Id = Guid.NewGuid();
+            });
+        }
+
         public static TaskCompletionSource<T> CreateTask<T> (int timeout = 10000)
         {
             var tcs = new TaskCompletionSource<T> ();
@@ -276,10 +318,12 @@ namespace Toggl.Phoebe.Tests.Reactive
         public static AppState GetInitAppState()
         {
             var userData = new UserData { Id = UserId };
-            var workspaceData = new WorkspaceData { Id = WorkspaceId };
+            var workspaces = new Dictionary<Guid, IWorkspaceData> ();
+            workspaces.Add(WorkspaceId, new WorkspaceData { Id = WorkspaceId });
 
             var init = AppState.Init();
-            return init.With(user: userData, workspaces: init.Update(init.Workspaces, new[] { workspaceData }));
+            return init.With(user: userData,
+                             workspaces: workspaces);
         }
     }
 
