@@ -194,8 +194,14 @@ namespace Toggl.Joey.UI.Activities
             if (tryMigrateDatabase(userData))
                 return;
 
-            // Make sure that the user will see newest data when they start the activity
-            RxChain.Send(new ServerRequest.GetChanges());
+            if (userData.Id == Guid.Empty)
+                // If user doesn't exists, create a dummy one
+                // and use it until the user connects to
+                // Toggl servers.
+                RxChain.Send(new DataMsg.NoUserDataPut());
+            else
+                // Make sure that the user will see newest data when they start the activity
+                RxChain.Send(new ServerRequest.GetChanges());
 
             // Configure left menu.
             DrawerListView.Adapter = drawerAdapter = new DrawerListAdapter(withApiToken: string.IsNullOrEmpty(userData.ApiToken));

@@ -252,6 +252,10 @@ namespace Toggl.Phoebe.Data
             }
         }
 
+        public sealed class NoUserDataPut : DataMsg
+        {
+        }
+
         public sealed class UpdateSetting : DataMsg
         {
             public class SettingChangeInfo : Tuple<string, object>

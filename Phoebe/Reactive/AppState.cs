@@ -225,7 +225,7 @@ namespace Toggl.Phoebe.Reactive
             });
         }
 
-        static UserData GetUserDraft(Guid workspaceId)
+        public static UserData GetUserDraft(Guid workspaceId)
         {
             return (UserData)UserData.Create(x =>
             {
@@ -239,7 +239,7 @@ namespace Toggl.Phoebe.Reactive
             });
         }
 
-        static IWorkspaceData GetWorkspaceDraft()
+        public static IWorkspaceData GetWorkspaceDraft()
         {
             return WorkspaceData.Create(x =>
             {
@@ -252,8 +252,6 @@ namespace Toggl.Phoebe.Reactive
 
         public static AppState Init()
         {
-            // TODO: RX take a measure of time to init state.
-
             var userData = new UserData();
             var settings = SettingsState.Init();
             var projects = new Dictionary<Guid, IProjectData> ();
@@ -266,40 +264,23 @@ namespace Toggl.Phoebe.Reactive
 
             try
             {
-                var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-
-                // First time app opened.
-                // Create user and workspace from scratch.
-                if (settings.UserId == Guid.Empty)
+                if (settings.UserId != Guid.Empty)
                 {
-                    var draftWorkspace = GetWorkspaceDraft();
-                    userData = GetUserDraft(draftWorkspace.Id);
-                    dataStore.Update(ctx =>
-                    {
-                        ctx.Put(draftWorkspace);
-                        ctx.Put(userData);
-                    });
-                    // Save userId in settings.
-                    settings = settings.With(userId: userData.Id);
-                }
-
-                // if migration is not needed.
-                if (dataStore.GetVersion() == SyncSqliteDataStore.DB_VERSION)
-                {
+                    var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
                     userData = dataStore.Table<UserData>().Single(x => x.Id == settings.UserId);
-                    dataStore.Table<WorkspaceData>().ForEach(x => workspaces.Add(x.Id, x));
-                    dataStore.Table<WorkspaceUserData>().ForEach(x => workspaceUserData.Add(x.Id, x));
-                    dataStore.Table<ProjectData>().ForEach(x => projects.Add(x.Id, x));
-                    dataStore.Table<ProjectUserData>().ForEach(x => projectUsers.Add(x.Id, x));
-                    dataStore.Table<ClientData>().ForEach(x => clients.Add(x.Id, x));
-                    dataStore.Table<TaskData>().ForEach(x => tasks.Add(x.Id, x));
-                    dataStore.Table<TagData>().ForEach(x => tags.Add(x.Id, x));
+                    dataStore.Table<WorkspaceData> ().ForEach(x => workspaces.Add(x.Id, x));
+                    dataStore.Table<WorkspaceUserData> ().ForEach(x => workspaceUserData.Add(x.Id, x));
+                    dataStore.Table<ProjectData> ().ForEach(x => projects.Add(x.Id, x));
+                    dataStore.Table<ProjectUserData> ().ForEach(x => projectUsers.Add(x.Id, x));
+                    dataStore.Table<ClientData> ().ForEach(x => clients.Add(x.Id, x));
+                    dataStore.Table<TaskData> ().ForEach(x => tasks.Add(x.Id, x));
+                    dataStore.Table<TagData> ().ForEach(x => tags.Add(x.Id, x));
                 }
             }
             catch (Exception ex)
             {
                 var logger = ServiceContainer.Resolve<Logging.ILogger> ();
-                logger.Error(typeof(AppState).Name, ex, "Error initializating state: {0}", ex.Message);
+                logger.Error(typeof(AppState).Name, ex, "UserId in settings not found in db: {0}", ex.Message);
 
                 // When data is corrupt and cannot find user
                 settings = settings.With(userId: Guid.Empty);

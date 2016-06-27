@@ -89,6 +89,7 @@ namespace Toggl.Phoebe.Reactive
                    .Add(typeof(DataMsg.TagsPut), TagsPut)
                    .Add(typeof(DataMsg.ClientDataPut), ClientDataPut)
                    .Add(typeof(DataMsg.ProjectDataPut), ProjectDataPut)
+                   .Add(typeof(DataMsg.NoUserDataPut), NoUserDataPut)
                    .Add(typeof(DataMsg.UserDataPut), UserDataPut)
                    .Add(typeof(DataMsg.ResetState), Reset)
                    .Add(typeof(DataMsg.InitStateAfterMigration), InitStateAfterMigration)
@@ -414,6 +415,27 @@ namespace Toggl.Phoebe.Reactive
             var updated = dataStore.Update(ctx => ctx.Put(data));
 
             return DataSyncMsg.Create(updated, state.With(projects: state.Update(state.Projects, updated)));
+        }
+
+        static DataSyncMsg<AppState> NoUserDataPut(AppState state, DataMsg msg)
+        {
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            var draftWorkspace = AppState.GetWorkspaceDraft();
+            var userData = AppState.GetUserDraft(draftWorkspace.Id);
+
+            var updated = dataStore.Update(ctx =>
+            {
+                ctx.Put(draftWorkspace);
+                ctx.Put(userData);
+            });
+
+            // This will throw an exception if user hasn't been correctly updated
+            var userDataInDb = updated.OfType<UserData>().Single();
+
+            return DataSyncMsg.Create(state.With(
+                                          user: userDataInDb,
+                                          workspaces: state.Update(state.Workspaces, updated),
+                                          settings: state.Settings.With(userId: userDataInDb.Id)));
         }
 
         static DataSyncMsg<AppState> UserDataPut(AppState state, DataMsg msg)
