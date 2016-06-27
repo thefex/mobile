@@ -48,6 +48,7 @@ namespace Toggl.Joey.UI.Fragments
         private bool mShouldResolve;
         private bool hasGoogleAccounts;
         private bool showPassword;
+        private LoginVM.LoginMode initialLoginMode = LoginVM.LoginMode.Login;
         private ISpannable formattedLegalText;
         protected LoginVM ViewModel { get; private set; }
         protected ScrollView ScrollView { get; private set; }
@@ -124,6 +125,7 @@ namespace Toggl.Joey.UI.Fragments
             .Build();
 
             ViewModel = new LoginVM();
+            ViewModel.ChangeLoginMode(initialLoginMode);
             return view;
         }
 
@@ -177,14 +179,19 @@ namespace Toggl.Joey.UI.Fragments
 
         public void ChangeToRegister()
         {
-            if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
-                ViewModel.ChangeLoginMode();
+            // A nullcheck is needed because this fragment
+            // is created lazily. The first time this method is called
+            // the ViewModel isn't created yet.
+            ViewModel?.ChangeLoginMode(LoginVM.LoginMode.Signup);
+            initialLoginMode = LoginVM.LoginMode.Signup;
         }
 
         public void ChangeToLogin()
         {
-            if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Signup)
-                ViewModel.ChangeLoginMode();
+            // A nullcheck is needed because this fragment
+            // is created lazily. The first time this method is called
+            // the ViewModel isn't created yet.
+            ViewModel?.ChangeLoginMode(LoginVM.LoginMode.Login);
         }
 
         private void SetViewState()

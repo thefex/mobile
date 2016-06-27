@@ -246,7 +246,10 @@ namespace Toggl.Phoebe.ViewModels
         {
             UpdateView(x => x.Description = description, nameof(Description));
 
-            DescriptionChanged(this, description);
+            // Required because Android call this method
+            // before create the handler.
+            if (DescriptionChanged != null)
+                DescriptionChanged(this, description);
         }
 
         public void ChangeBillable(bool billable)

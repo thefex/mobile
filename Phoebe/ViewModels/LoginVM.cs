@@ -71,7 +71,17 @@ namespace Toggl.Phoebe.ViewModels
 
         #region public ViewModel methods
 
-        public void ChangeLoginMode()
+        public void ChangeLoginMode(LoginMode mode)
+        {
+            if (CurrentLoginMode == mode)
+                return;
+
+            CurrentLoginMode = mode;
+            var screenStr = (CurrentLoginMode == LoginMode.Login) ? "Login" : "Signup";
+            ServiceContainer.Resolve<ITracker> ().CurrentScreen = screenStr;
+        }
+
+        public void ToggleLoginMode()
         {
             CurrentLoginMode = (CurrentLoginMode == LoginMode.Login) ? LoginMode.Signup : LoginMode.Login;
             var screenStr = (CurrentLoginMode == LoginMode.Login) ? "Login" : "Signup";

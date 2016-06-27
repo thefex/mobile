@@ -121,7 +121,7 @@ namespace Toggl.Ross.ViewControllers
             ViewModel = new LoginVM();
             if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Signup)
             {
-                ViewModel.ChangeLoginMode();
+                ViewModel.ToggleLoginMode();
             }
 
             isAuthenticatingBinding = this.SetBinding(() => ViewModel.IsAuthenticating, () => IsAuthenticating);
