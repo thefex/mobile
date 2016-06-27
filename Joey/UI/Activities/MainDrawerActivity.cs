@@ -187,8 +187,10 @@ namespace Toggl.Joey.UI.Activities
 
         private void ResetFragmentNavigation(IUserData userData)
         {
-            DrawerUserName.Text = userData.Name;
-            DrawerEmail.Text = userData.Email;
+            // TODO : Don't let both name/email empty.
+            // maybe an elegant solution is possible.
+            DrawerUserName.Text = string.IsNullOrEmpty(userData.Name) ? "John Doe" : userData.Name;
+            DrawerEmail.Text = string.IsNullOrEmpty(userData.Email) ? "support@toggl.com" : userData.Email;
             DrawerImage.ImageUrl = userData.ImageUrl;
 
             if (tryMigrateDatabase(userData))

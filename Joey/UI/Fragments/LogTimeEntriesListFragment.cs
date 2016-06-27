@@ -70,6 +70,7 @@ namespace Toggl.Joey.UI.Fragments
             experimentEmptyView = view.FindViewById<View> (Resource.Id.ExperimentEmptyMessageView);
             emptyMessageView = view.FindViewById<View> (Resource.Id.EmptyMessageView);
             welcomeView = view.FindViewById<View> (Resource.Id.WelcomeLayout);
+            welcomeView.Visibility = ViewStates.Gone;
 
             view.FindViewById<TextView>(Resource.Id.welcomeHelloTextView).SetFont(Font.TektonPro);
             view.FindViewById<TextView>(Resource.Id.welcomeSignInTextView).SetFont(Font.TektonPro);
@@ -312,7 +313,7 @@ namespace Toggl.Joey.UI.Fragments
             }
 
             // According to settings, show welcome message or no.
-            welcomeView.Visibility = isWelcome ? ViewStates.Visible : ViewStates.Gone;
+            welcomeView.Visibility = (isWelcome && !hasItems) ? ViewStates.Visible : ViewStates.Gone;
             emptyView.Visibility = (!isWelcome && !hasItems) ? ViewStates.Visible : ViewStates.Gone;
             recyclerView.Visibility = hasItems ? ViewStates.Visible : ViewStates.Gone;
         }
