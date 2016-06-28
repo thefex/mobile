@@ -723,7 +723,7 @@ namespace Toggl.Phoebe.Reactive
                 var pr = (ProjectData)data.Clone();
                 if (pr.WorkspaceRemoteId == 0)
                 {
-                    pr.WorkspaceRemoteId = GetRemoteId<ProjectData>(pr.WorkspaceId, remoteObjects, state);
+                    pr.WorkspaceRemoteId = GetRemoteId<WorkspaceData>(pr.WorkspaceId, remoteObjects, state);
                 }
                 if (pr.ClientId != Guid.Empty && !pr.ClientRemoteId.HasValue)
                 {
@@ -745,7 +745,7 @@ namespace Toggl.Phoebe.Reactive
                 var ts = (TaskData)data.Clone();
                 if (ts.WorkspaceRemoteId == 0)
                 {
-                    ts.WorkspaceRemoteId = GetRemoteId<TaskData> (ts.WorkspaceId, remoteObjects, state);
+                    ts.WorkspaceRemoteId = GetRemoteId<WorkspaceData> (ts.WorkspaceId, remoteObjects, state);
                 }
                 if (ts.ProjectRemoteId == 0)
                 {
@@ -789,7 +789,7 @@ namespace Toggl.Phoebe.Reactive
                 var ws = (WorkspaceUserData)data.Clone();
                 if (ws.WorkspaceRemoteId == 0)
                 {
-                    ws.WorkspaceRemoteId = GetRemoteId<ProjectData>(ws.WorkspaceId, remoteObjects, state);
+                    ws.WorkspaceRemoteId = GetRemoteId<WorkspaceData>(ws.WorkspaceId, remoteObjects, state);
                 }
                 if (ws.UserRemoteId == 0)
                 {
