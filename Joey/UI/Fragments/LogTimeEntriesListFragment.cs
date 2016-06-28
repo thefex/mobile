@@ -94,7 +94,6 @@ namespace Toggl.Joey.UI.Fragments
             // init viewModel
             ViewModel = new LogTimeEntriesVM(StoreManager.Singleton.AppState);
 
-            //activeEntryBinding =  this.SetBinding (()=> ViewModel.ActiveEntry).WhenSourceChanges (OnActiveEntryChanged);
             collectionBinding = this.SetBinding(() => ViewModel.Collection).WhenSourceChanges(() =>
             {
                 logAdapter = new LogTimeEntriesAdapter(recyclerView, ViewModel);

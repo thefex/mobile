@@ -36,11 +36,9 @@ namespace Toggl.Phoebe.ViewModels
             IsAuthenticated = false;
             IsAuthenticating = false;
             CurrentLoginMode = LoginMode.Login;
-
             subscription = StoreManager
                            .Singleton
                            .Observe(x => x.State.RequestInfo)
-                           .DistinctUntilChanged(x => x.AuthResult)
 #if __MOBILE__
                            .ObserveOn(SynchronizationContext.Current)
 #else
@@ -112,7 +110,6 @@ namespace Toggl.Phoebe.ViewModels
             {
                 RxChain.Send(ServerRequest.Authenticate.SignupWithGoogle(token));
             }
-
         }
 
         public bool IsEmailValid(string email)

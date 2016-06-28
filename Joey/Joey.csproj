@@ -398,7 +398,6 @@
     <AndroidResource Include="Resources\drawable-xhdpi\IcSyncGray.png" />
     <AndroidResource Include="Resources\drawable-mdpi\IcSyncGray.png" />
     <AndroidResource Include="Resources\drawable-hdpi\IcSyncGray.png" />
-    <AndroidResource Include="Resources\anim\SpinningAnimation.xml" />
     <AndroidResource Include="Resources\drawable\BottomBorder.xml" />
     <AndroidResource Include="Resources\drawable\DividerHorizontalLight.9.png" />
     <AndroidResource Include="Resources\drawable-mdpi\Icon.png" />
@@ -873,6 +872,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\drawable-ldpi\" />
+    <Folder Include="Resources\anim\" />
   </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" />
   <Import Project="..\packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\dotnet\Fody.targets')" />

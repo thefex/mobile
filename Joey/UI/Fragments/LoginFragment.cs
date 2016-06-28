@@ -58,7 +58,7 @@ namespace Toggl.Joey.UI.Fragments
         protected EditText PasswordEditText { get; private set; }
         protected Button PasswordToggleButton { get; private set; }
         protected Button SubmitButton { get; private set; }
-        protected ImageView SpinningImage { get; private set; }
+        protected ProgressBar LoginSpinner { get; private set; }
         protected TextView LegalTextView { get; private set; }
         protected FrameLayout GoogleLoginButton { get; private set; }
         protected TextView GoogleLoginText { get; private set; }
@@ -80,7 +80,7 @@ namespace Toggl.Joey.UI.Fragments
             PasswordEditText = view.FindViewById<EditText> (Resource.Id.PasswordEditText).SetFont(Font.RobotoLight);
             PasswordToggleButton = view.FindViewById<Button> (Resource.Id.PasswordToggleButton).SetFont(Font.Roboto);
             SubmitButton = view.FindViewById<Button> (Resource.Id.SubmitButton).SetFont(Font.Roboto);
-            SpinningImage = view.FindViewById<ImageView>(Resource.Id.RegisterLoadingImageView);
+            LoginSpinner = view.FindViewById<ProgressBar>(Resource.Id.LoginSpinner);
             LegalTextView = view.FindViewById<TextView> (Resource.Id.LegalTextView).SetFont(Font.RobotoLight);
             GoogleLoginButton = view.FindViewById<FrameLayout> (Resource.Id.GoogleLoginButton);
             GoogleLoginText = view.FindViewById<TextView> (Resource.Id.GoogleLoginText).SetFont(Font.Roboto);
@@ -102,10 +102,9 @@ namespace Toggl.Joey.UI.Fragments
             hasGoogleAccounts = GoogleAccounts.Count > 0;
             GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
             GoogleIntroText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
-
-            var spinningImageAnimation = AnimationUtils.LoadAnimation(Activity.BaseContext, Resource.Animation.SpinningAnimation);
-            SpinningImage.StartAnimation(spinningImageAnimation);
-            SpinningImage.ImageAlpha = 0;
+            LegalTextView.SetText(FormattedLegalText, TextView.BufferType.Spannable);
+            LegalTextView.MovementMethod = Android.Text.Method.LinkMovementMethod.Instance;
+            LoginSpinner.Visibility = ViewStates.Invisible;
 
             if (savedInstanceState != null)
             {
@@ -205,23 +204,16 @@ namespace Toggl.Joey.UI.Fragments
 
         private void SetViewState()
         {
-            // Views not loaded yet/anymore?
-            if (SubmitButton == null)
-            {
-                return;
-            }
-
+            int submitBtnTitleId;
             if (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Login)
             {
-                SubmitButton.SetText(ViewModel.IsAuthenticating ? Resource.String.LoginButtonProgressText : Resource.String.LoginButtonText);
+                submitBtnTitleId = Resource.String.LoginButtonText;
                 LegalTextView.Visibility = ViewStates.Gone;
                 GoogleLoginText.SetText(Resource.String.LoginGoogleButtonText);
             }
             else
             {
-                SubmitButton.SetText(ViewModel.IsAuthenticating ? Resource.String.LoginButtonSignupProgressText : Resource.String.LoginSignupButtonText);
-                LegalTextView.SetText(FormattedLegalText, TextView.BufferType.Spannable);
-                LegalTextView.MovementMethod = Android.Text.Method.LinkMovementMethod.Instance;
+                submitBtnTitleId = Resource.String.LoginSignupButtonText;
                 LegalTextView.Visibility = ViewStates.Visible;
                 GoogleLoginText.SetText(Resource.String.LoginSignupGoogleButtonText);
             }
@@ -229,8 +221,9 @@ namespace Toggl.Joey.UI.Fragments
             EmailEditText.Enabled = !ViewModel.IsAuthenticating;
             PasswordEditText.Enabled = !ViewModel.IsAuthenticating;
             GoogleLoginButton.Enabled = !ViewModel.IsAuthenticating;
-            SubmitButton.Text = ViewModel.IsAuthenticating ? String.Empty : Activity.Resources.GetString(Resource.String.LoginButtonText);
-            SpinningImage.ImageAlpha = ViewModel.IsAuthenticating ? 255 : 0;
+
+            SubmitButton.Text = ViewModel.IsAuthenticating ? string.Empty : Activity.Resources.GetString(submitBtnTitleId);
+            LoginSpinner.Visibility = ViewModel.IsAuthenticating ? ViewStates.Visible : ViewStates.Invisible;
 
             SetPasswordVisibility();
             ValidateEmailField();
