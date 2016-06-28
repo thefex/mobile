@@ -129,6 +129,14 @@ namespace Toggl.Joey.UI.Fragments
             return view;
         }
 
+        public override void OnDestroyView()
+        {
+            // TODO: remove bindings?
+            ViewModel.Dispose();
+            ViewModel = null;
+            base.OnDestroyView();
+        }
+
         public override void OnViewCreated(View view, Bundle savedInstanceState)
         {
             base.OnViewCreated(view, savedInstanceState);
@@ -192,6 +200,7 @@ namespace Toggl.Joey.UI.Fragments
             // is created lazily. The first time this method is called
             // the ViewModel isn't created yet.
             ViewModel?.ChangeLoginMode(LoginVM.LoginMode.Login);
+            initialLoginMode = LoginVM.LoginMode.Login;
         }
 
         private void SetViewState()
