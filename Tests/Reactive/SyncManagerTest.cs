@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Json;
@@ -252,5 +254,67 @@ namespace Toggl.Phoebe.Tests.Reactive
             }));
             await tcs.Task;
         }
+
+        [Test]
+        public async Task TestEmptyQuueOfSyncedElements()
+        {
+            // Set network as connected.
+            networkSwitcher.SetNetworkConnection(true);
+            var tcs = Util.CreateTask<bool> ();
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore> ();
+            var list = new List<ICommonData> ();
+
+            var toUpdate = Util.CreateTimeEntryData(DateTime.Now);
+            list.Add(toUpdate.With(x =>
+            {
+                x.RemoteId = 123;
+                x.SyncState = SyncState.Synced;
+            }));
+
+            var toDeleteLocal = Util.CreateTimeEntryData(DateTime.Now);
+            list.Add(toDeleteLocal.With(x =>
+            {
+                x.RemoteId = null;
+                x.DeletedAt = DateTime.Now;
+                x.SyncState = SyncState.Synced;
+            }));
+
+            var toCreate = Util.CreateTimeEntryData(DateTime.Now);
+            list.Add(toCreate.With(x =>
+            {
+                x.RemoteId = null;
+                x.SyncState = SyncState.Synced;
+            }));
+
+            // feel queue with synced data.
+            foreach (var data in list)
+            {
+                var queueItem = new SyncManager.QueueItem(data);
+                var serialized = JsonConvert.SerializeObject(queueItem);
+                dataStore.TryEnqueue("SYNC_OUT", serialized);
+            }
+
+            // Send a random message to try to empty the queue
+            RxChain.Send(new ServerRequest.GetChanges(), new RxChain.Continuation((_, sent, queued) =>
+            {
+                try
+                {
+                    // As there's connection, queue should be empty
+                    Assert.That(queued.Count(), Is.EqualTo(0));
+                    // As toDeleteLocal was deleted, only 2 should remain as sent
+                    Assert.That(sent.Count(), Is.EqualTo(2));
+
+                    tcs.SetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            }));
+
+            await tcs.Task;
+        }
+
+
     }
 }
