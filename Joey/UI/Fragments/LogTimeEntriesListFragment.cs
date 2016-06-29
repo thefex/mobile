@@ -38,8 +38,7 @@ namespace Toggl.Joey.UI.Fragments
         private View experimentEmptyView;
         private LogTimeEntriesAdapter logAdapter;
         private TimerComponent timerComponent;
-        private TextView welcomeMessage;
-        private TextView noItemsMessage;
+        private View welcomeView;
 
         // Recycler setup
         private DividerItemDecoration dividerDecoration;
@@ -67,12 +66,16 @@ namespace Toggl.Joey.UI.Fragments
         {
             var view = inflater.Inflate(Resource.Layout.LogTimeEntriesListFragment, container, false);
             view.FindViewById<TextView> (Resource.Id.EmptyTextTextView).SetFont(Font.RobotoLight);
-
             coordinatorLayout = view.FindViewById<CoordinatorLayout> (Resource.Id.logCoordinatorLayout);
             experimentEmptyView = view.FindViewById<View> (Resource.Id.ExperimentEmptyMessageView);
             emptyMessageView = view.FindViewById<View> (Resource.Id.EmptyMessageView);
-            welcomeMessage = view.FindViewById<TextView> (Resource.Id.WelcomeTextView);
-            noItemsMessage = view.FindViewById<TextView> (Resource.Id.EmptyTitleTextView);
+            welcomeView = view.FindViewById<View> (Resource.Id.WelcomeLayout);
+            welcomeView.Visibility = ViewStates.Gone;
+
+            view.FindViewById<TextView>(Resource.Id.welcomeHelloTextView).SetFont(Font.TektonPro);
+            view.FindViewById<TextView>(Resource.Id.welcomeSignInTextView).SetFont(Font.TektonPro);
+            view.FindViewById<TextView>(Resource.Id.welcomeStartTextView).SetFont(Font.TektonPro);
+
             recyclerView = view.FindViewById<RecyclerView> (Resource.Id.LogRecyclerView);
             recyclerView.SetLayoutManager(new LinearLayoutManager(Activity));
             swipeLayout = view.FindViewById<SwipeRefreshLayout> (Resource.Id.LogSwipeContainer);
@@ -91,7 +94,6 @@ namespace Toggl.Joey.UI.Fragments
             // init viewModel
             ViewModel = new LogTimeEntriesVM(StoreManager.Singleton.AppState);
 
-            //activeEntryBinding =  this.SetBinding (()=> ViewModel.ActiveEntry).WhenSourceChanges (OnActiveEntryChanged);
             collectionBinding = this.SetBinding(() => ViewModel.Collection).WhenSourceChanges(() =>
             {
                 logAdapter = new LogTimeEntriesAdapter(recyclerView, ViewModel);
@@ -233,7 +235,10 @@ namespace Toggl.Joey.UI.Fragments
         #region Sync
         public void OnRefresh()
         {
-            ViewModel.TriggerFullSync();
+            if (!ViewModel.IsNoUserMode)
+                ViewModel.TriggerFullSync();
+            else
+                swipeLayout.Refreshing = false;
         }
 
         private void OnActiveEntryChanged()
@@ -267,17 +272,19 @@ namespace Toggl.Joey.UI.Fragments
         private void SetFooterState()
         {
             var info = ViewModel.LoadInfo;
-            if (info.HasMore && !info.HadErrors)
+
+            if (!info.HasMore && !info.HadErrors)
+            {
+                logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Finished);
+                SetCollectionState();
+            }
+            else if (info.HasMore && !info.HadErrors)
             {
                 logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Loading);
             }
             else if (info.HasMore && info.HadErrors)
             {
                 logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Retry);
-            }
-            else if (!info.HasMore && !info.HadErrors)
-            {
-                logAdapter.SetFooterState(RecyclerCollectionDataAdapter<IHolder>.RecyclerLoadState.Finished);
             }
         }
 
@@ -305,9 +312,8 @@ namespace Toggl.Joey.UI.Fragments
             }
 
             // According to settings, show welcome message or no.
-            welcomeMessage.Visibility = isWelcome ? ViewStates.Visible : ViewStates.Gone;
-            noItemsMessage.Visibility = isWelcome ? ViewStates.Gone : ViewStates.Visible;
-            emptyView.Visibility = hasItems ? ViewStates.Gone : ViewStates.Visible;
+            welcomeView.Visibility = (isWelcome && !hasItems) ? ViewStates.Visible : ViewStates.Gone;
+            emptyView.Visibility = (!isWelcome && !hasItems) ? ViewStates.Visible : ViewStates.Gone;
             recyclerView.Visibility = hasItems ? ViewStates.Visible : ViewStates.Gone;
         }
         #endregion

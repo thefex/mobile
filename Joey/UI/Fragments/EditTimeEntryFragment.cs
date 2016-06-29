@@ -10,13 +10,12 @@ using GalaSoft.MvvmLight.Helpers;
 using Toggl.Joey.UI.Activities;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
+using Toggl.Phoebe.Reactive;
+using Toggl.Phoebe.ViewModels;
 using ActionBar = Android.Support.V7.App.ActionBar;
 using Activity = Android.Support.V7.App.AppCompatActivity;
 using Fragment = Android.Support.V4.App.Fragment;
 using Toolbar = Android.Support.V7.Widget.Toolbar;
-using Toggl.Phoebe.ViewModels;
-using Toggl.Phoebe.Reactive;
-using Toggl.Phoebe.Data.Models;
 
 namespace Toggl.Joey.UI.Fragments
 {
@@ -177,7 +176,11 @@ namespace Toggl.Joey.UI.Fragments
                               .ConvertSourceToTarget(dateTime => dateTime.ToDeviceTimeString());
             projectBinding = this.SetBinding(() => ViewModel.ProjectName, () => ProjectField.TextField.Text);
             clientBinding = this.SetBinding(() => ViewModel.ClientName, () => ProjectField.AssistViewTitle);
-            tagBinding = this.SetBinding(() => ViewModel.Tags, () => TagsField.TagNames);
+            tagBinding = this.SetBinding(() => ViewModel.Tags).WhenSourceChanges(() =>
+            {
+                TagsField.TagNames = ViewModel.Tags;
+            }
+                                                                                );
             descriptionBinding = this.SetBinding(() => ViewModel.Description, () => DescriptionField.TextField.Text);
             isPremiumBinding = this.SetBinding(() => ViewModel.IsPremium, () => BillableCheckBox.Visibility)
                                .ConvertSourceToTarget(isVisible => isVisible ? ViewStates.Visible : ViewStates.Gone);

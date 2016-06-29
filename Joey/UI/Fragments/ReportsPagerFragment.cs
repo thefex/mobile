@@ -7,13 +7,14 @@ using Android.OS;
 using Android.Views;
 using Android.Widget;
 using Toggl.Joey.UI.Activities;
+using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Utils;
 using Toggl.Phoebe;
+using Toggl.Phoebe.Analytics;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.Reports;
-using Toggl.Phoebe.Analytics;
 using XPlatUtils;
 using Fragment = Android.Support.V4.App.Fragment;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
@@ -23,7 +24,7 @@ using ViewPager = Android.Support.V4.View.ViewPager;
 
 namespace Toggl.Joey.UI.Fragments
 {
-    public class ReportsPagerFragment : Fragment, Toolbar.IOnMenuItemClickListener
+    public class ReportsPagerFragment : Fragment
     {
         private const string ExtraCurrentItem = "com.toggl.timer.current_item";
         private const int PagesCount = 500;
@@ -42,6 +43,7 @@ namespace Toggl.Joey.UI.Fragments
         private FrameLayout syncErrorBar;
         private ImageButton syncRetry;
         private Animator currentAnimation;
+        private LinearLayout reportsContainer;
 
         public ZoomLevel ZoomLevel
         {
@@ -134,23 +136,18 @@ namespace Toggl.Joey.UI.Fragments
             nextPeriod = view.FindViewById(Resource.Id.NextFrameLayout);
             syncErrorBar = view.FindViewById<FrameLayout> (Resource.Id.ReportsSyncBar);
             syncRetry = view.FindViewById<ImageButton> (Resource.Id.ReportsSyncRetryButton);
-
+            reportsContainer = view.FindViewById<LinearLayout> (Resource.Id.ReportsContainer);
             previousPeriod.Click += (sender, e) => NavigatePage(-1);
             nextPeriod.Click += (sender, e) => NavigatePage(1);
             syncRetry.Click += async(sender, e) => await ReloadCurrent();
-
+            HasOptionsMenu = true;
             var activity = (MainDrawerActivity)Activity;
             toolbar = activity.MainToolbar;
-
-            HasOptionsMenu = true;
 
             ResetAdapter();
             UpdatePeriod();
 
-            // TODO Rx Settings.
-            // find a correct way
             viewPager.CurrentItem = StoreManager.Singleton.AppState.Settings.ReportsCurrentItem;
-
             return view;
         }
 
@@ -249,14 +246,15 @@ namespace Toggl.Joey.UI.Fragments
             UpdatePeriod();
         }
 
+        #region Menu setup
+
         public override void OnCreateOptionsMenu(IMenu menu, MenuInflater inflater)
         {
             inflater.Inflate(Resource.Menu.ReportsToolbarMenu, menu);
-            toolbar.SetOnMenuItemClickListener(this);
             toolbar.OverflowIcon = Resources.GetDrawable(Resource.Drawable.IcReportsOverflow);
         }
 
-        public bool OnMenuItemClick(IMenuItem item)
+        public override bool OnOptionsItemSelected(IMenuItem item)
         {
             switch (item.ItemId)
             {
@@ -275,6 +273,8 @@ namespace Toggl.Joey.UI.Fragments
             }
             return true;
         }
+
+        #endregion
 
         private void ShowSyncError(bool visible)
         {
@@ -344,11 +344,11 @@ namespace Toggl.Joey.UI.Fragments
                 if (ZoomLevel == ZoomLevel.Week)
                 {
                     var endDate = ResolveEndDate(startDate);
-                    return String.Format("{0:MMM dd}th - {1:MMM dd}th", startDate, endDate);
+                    return string.Format("{0:MMM dd}th - {1:MMM dd}th", startDate, endDate);
                 }
                 else if (ZoomLevel == ZoomLevel.Month)
                 {
-                    return String.Format("{0:M}", startDate);
+                    return string.Format("{0:M}", startDate);
                 }
                 return startDate.Year.ToString();
             }

@@ -26,7 +26,6 @@ namespace Toggl.Joey.UI.Activities
             }
 
             var workspaceId = extras.GetString(WorkspaceIdArgument);
-            var fragment = ProjectListFragment.NewInstance(workspaceId);
             FragmentManager.BeginTransaction()
             .Add(Resource.Id.NewProjectActivityLayout, NewProjectFragment.NewInstance(workspaceId))
             .Commit();

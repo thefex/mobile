@@ -13,6 +13,66 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </android.support.v4.widget.SwipeRefreshLayout>
+    <RelativeLayout
+        android:id="@+id/WelcomeLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <ImageView
+            android:id="@+id/welcome_top_arrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_hello_arrow_up"
+            android:layout_marginLeft="18dp"
+            android:layout_marginTop="8dp" />
+        <TextView
+            android:textSize="25sp"
+            android:id="@+id/welcomeSignInTextView"
+            android:text="@string/WelcomeSignInCoahMark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="15dp"
+            android:translationY="15dp"
+            android:layout_toRightOf="@id/welcome_top_arrow"
+            android:layout_alignBottom="@id/welcome_top_arrow" />
+        <LinearLayout
+            android:translationY="-30dp"
+            android:orientation="vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true">
+            <ImageView
+                android:src="@drawable/ic_hello_toggler"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <TextView
+                android:textSize="22sp"
+                android:id="@+id/welcomeHelloTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/WelcomeTogglerHello"
+                android:layout_marginTop="0dp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/welcome_bottom_arrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_hello_arrow_down"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginBottom="70dp"
+            android:layout_marginRight="70dp" />
+        <TextView
+            android:textSize="25sp"
+            android:gravity="center"
+            android:id="@+id/welcomeStartTextView"
+            android:text="@string/WelcomeStartCoachMark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="70dp"
+            android:layout_alignParentRight="true"
+            android:layout_above="@id/welcome_bottom_arrow"
+            android:lines="2" />
+    </RelativeLayout>
     <LinearLayout
         android:id="@+id/EmptyMessageView"
         android:layout_width="match_parent"
@@ -20,13 +80,6 @@
         android:orientation="vertical"
         android:visibility="gone"
         android:gravity="center">
-        <TextView
-            android:id="@+id/WelcomeTextView"
-            style="@android:style/TextAppearance.Medium"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/NoItemsTitle"
-            android:gravity="center" />
         <TextView
             android:id="@+id/EmptyTitleTextView"
             style="@android:style/TextAppearance.Medium"

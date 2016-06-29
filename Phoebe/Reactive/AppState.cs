@@ -225,6 +225,31 @@ namespace Toggl.Phoebe.Reactive
             });
         }
 
+        public static UserData GetUserDraft(Guid workspaceId)
+        {
+            return (UserData)UserData.Create(x =>
+            {
+                x.Id = Guid.NewGuid();
+                x.Name = "John Doe";
+                x.Email = "support@toggl.com";
+                x.Locale = "locale";
+                x.StartOfWeek = DayOfWeek.Monday;
+                x.Timezone = Time.TimeZoneId; ;
+                x.DefaultWorkspaceId = workspaceId;
+            });
+        }
+
+        public static IWorkspaceData GetWorkspaceDraft()
+        {
+            return WorkspaceData.Create(x =>
+            {
+                x.Id = Guid.NewGuid();
+                x.Name = "My first workspace";
+                x.IsPremium = false;
+                x.IsAdmin = true;
+            });
+        }
+
         public static AppState Init()
         {
             var userData = new UserData();

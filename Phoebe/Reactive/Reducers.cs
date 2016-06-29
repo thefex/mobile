@@ -89,6 +89,7 @@ namespace Toggl.Phoebe.Reactive
                    .Add(typeof(DataMsg.TagsPut), TagsPut)
                    .Add(typeof(DataMsg.ClientDataPut), ClientDataPut)
                    .Add(typeof(DataMsg.ProjectDataPut), ProjectDataPut)
+                   .Add(typeof(DataMsg.NoUserDataPut), NoUserDataPut)
                    .Add(typeof(DataMsg.UserDataPut), UserDataPut)
                    .Add(typeof(DataMsg.ResetState), Reset)
                    .Add(typeof(DataMsg.InitStateAfterMigration), InitStateAfterMigration)
@@ -134,11 +135,27 @@ namespace Toggl.Phoebe.Reactive
         static DataSyncMsg<AppState> ServerRequest(AppState state, DataMsg msg)
         {
             var req = (msg as DataMsg.ServerRequest).Data;
+            RequestInfo reqInfo;
 
-            var reqInfo = state.RequestInfo.With(
+            // ATTENTION If ApiToken doesn't exist and the request
+            // is not related with authentication, user is not connecte
+            // just return an empty and anyoying answer :)
+            if (!(req is ServerRequest.Authenticate) &&
+                    string.IsNullOrEmpty(state.User.ApiToken))
+            {
+                reqInfo = state.RequestInfo.With(
                               hadErrors: false,
                               errorInfo: null,
-                              running: state.RequestInfo.Running.Append(req).ToList());
+                              hasMore: false,
+                              running: new List<ServerRequest>());
+
+                return DataSyncMsg.Create(state.With(requestInfo: reqInfo));
+            }
+
+            reqInfo = state.RequestInfo.With(
+                          hadErrors: false,
+                          errorInfo: null,
+                          running: state.RequestInfo.Running.Append(req).ToList());
 
             if (req is ServerRequest.Authenticate)
                 reqInfo = reqInfo.With(authResult: AuthResult.None);
@@ -165,15 +182,34 @@ namespace Toggl.Phoebe.Reactive
                             .OrderByDescending(r => r.StartTime)
                             .ToList();
 
-            var req = new ServerRequest.DownloadEntries();
-            var reqInfo = state.RequestInfo.With(
+            ServerRequest req;
+            RequestInfo reqInfo;
+
+            // If ApiToken doesn't exist user is not connected
+            if (string.IsNullOrEmpty(state.User.ApiToken))
+            {
+                reqInfo = state.RequestInfo.With(
+                              hadErrors: false,
+                              errorInfo: null,
+                              hasMore: false,
+                              running: new List<ServerRequest>());
+
+                return DataSyncMsg.Create(state.With(
+                                              requestInfo: reqInfo,
+                                              timeEntries: state.UpdateTimeEntries(dbEntries)));
+            }
+            else
+            {
+                req = new ServerRequest.DownloadEntries();
+                reqInfo = state.RequestInfo.With(
                               running: state.RequestInfo.Running.Append(req).ToList(),
                               downloadFrom: endDate,
                               nextDownloadFrom: dbEntries.Any() ? dbEntries.Min(x => x.StartTime) : endDate);
 
-            return DataSyncMsg.Create(req, state.With(
-                                          requestInfo: reqInfo,
-                                          timeEntries: state.UpdateTimeEntries(dbEntries)));
+                return DataSyncMsg.Create(req, state.With(
+                                              requestInfo: reqInfo,
+                                              timeEntries: state.UpdateTimeEntries(dbEntries)));
+            }
         }
 
         static DataSyncMsg<AppState> ServerResponse(AppState state, DataMsg msg)
@@ -381,24 +417,67 @@ namespace Toggl.Phoebe.Reactive
             return DataSyncMsg.Create(updated, state.With(projects: state.Update(state.Projects, updated)));
         }
 
+        static DataSyncMsg<AppState> NoUserDataPut(AppState state, DataMsg msg)
+        {
+            var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
+            var draftWorkspace = AppState.GetWorkspaceDraft();
+            var userData = AppState.GetUserDraft(draftWorkspace.Id);
+
+            var updated = dataStore.Update(ctx =>
+            {
+                ctx.Put(draftWorkspace);
+                ctx.Put(userData);
+            });
+
+            // This will throw an exception if user hasn't been correctly updated
+            var userDataInDb = updated.OfType<UserData>().Single();
+
+            return DataSyncMsg.Create(state.With(
+                                          user: userDataInDb,
+                                          workspaces: state.Update(state.Workspaces, updated),
+                                          settings: state.Settings.With(userId: userDataInDb.Id)));
+        }
+
         static DataSyncMsg<AppState> UserDataPut(AppState state, DataMsg msg)
         {
             return (msg as DataMsg.UserDataPut).Data.Match(
                        userData =>
             {
+                var reqList = new List<ServerRequest>();
                 var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
-                var updated = dataStore.Update(ctx => { ctx.Put(userData); });
                 var runningState = state.RequestInfo.Running.Where(x => !(x is ServerRequest.Authenticate)).ToList();
+                IReadOnlyList<ICommonData> updated;
+
+                // If some data exists, prepare them and
+                // flight them to the moon :)
+                var crudRequests = new List<ServerRequest.CRUD>();
+                if (GetLocalDataAsCRUDRequests(dataStore, state, crudRequests))
+                {
+                    // update existing workspace with remote id.
+                    var workspace = state.Workspaces.FirstOrDefault().Value;
+                    workspace = workspace.With(x => x.RemoteId = userData.DefaultWorkspaceRemoteId);
+                    reqList.AddRange(crudRequests);
+
+                    updated = dataStore.Update(ctx =>
+                    {
+                        ctx.Put(userData);
+                        ctx.Put(workspace);
+                    });
+                }
+                else
+                {
+                    updated = dataStore.Update(ctx => ctx.Put(userData));
+                }
 
                 // This will throw an exception if user hasn't been correctly updated
                 var userDataInDb = updated.OfType<UserData>().Single();
 
-                // ATTENTION After succesful login, send
-                // a request to get data state from server.
-                var req = new ServerRequest.GetCurrentState();
-                runningState.Add(req);
+                // Send a request to get data state from server.
+                var getChangesRequest = new ServerRequest.GetCurrentState();
+                reqList.Add(getChangesRequest);
+                runningState.Add(getChangesRequest);
 
-                return DataSyncMsg.Create(req, state.With(
+                return DataSyncMsg.Create(reqList, state.With(
                                               user: userDataInDb,
                                               requestInfo: state.RequestInfo.With(authResult: AuthResult.Success, running: runningState),
                                               workspaces: state.Update(state.Workspaces, updated),
@@ -520,6 +599,7 @@ namespace Toggl.Phoebe.Reactive
         {
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
             dataStore.WipeTables();
+            dataStore.ResetQueue(SyncManager.QueueId);
 
             // Clear platform settings.
             Settings.SerializedSettings = string.Empty;
@@ -535,6 +615,8 @@ namespace Toggl.Phoebe.Reactive
 
         static DataSyncMsg<AppState> InitStateAfterMigration(AppState state, DataMsg msg)
         {
+            // Specific reducer to manage DB migration
+
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
             var userData = new UserData();
             var projects = new Dictionary<Guid, IProjectData>();
@@ -634,6 +716,28 @@ namespace Toggl.Phoebe.Reactive
         }
 
         #region Util
+
+        static bool GetLocalDataAsCRUDRequests(ISyncDataStore dataStore, AppState state, List<ServerRequest.CRUD> crudRequests)
+        {
+            var tEntries = dataStore.Table<TimeEntryData>().Where(x => true);
+
+            // Create CRUD requests
+            // javascript code style? :0
+            if (state.Clients.Count > 0)
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(state.Clients.Values)));
+
+            if (state.Projects.Count > 0)
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(state.Projects.Values)));
+
+            if (state.Tags.Count > 0)
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(state.Tags.Values)));
+
+            if (tEntries.Count() > 0)
+                crudRequests.Add(new ServerRequest.CRUD(UpdateListToCreatePending(tEntries)));
+
+            return crudRequests.Count > 0;
+        }
+
         static AppState UpdateStateWithNewData(AppState state, IEnumerable<CommonData> receivedData)
         {
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
@@ -843,7 +947,7 @@ namespace Toggl.Phoebe.Reactive
             return DateTime.MinValue;
         }
 
-        private static void IgnoreTaskErrors(System.Threading.Tasks.Task task, string errorMessage)
+        private static void IgnoreTaskErrors(Task task, string errorMessage)
         {
             task.ContinueWith(t =>
             {
@@ -852,6 +956,31 @@ namespace Toggl.Phoebe.Reactive
                 log.Warning(nameof(Reducers), e, errorMessage);
             }, TaskContinuationOptions.OnlyOnFaulted);
         }
+
+        private static IEnumerable<ICommonData> UpdateListToCreatePending(IEnumerable<ICommonData> list)
+        {
+            var data = new List<ICommonData> ();
+            list.ForEach(item => data.Add(UpdateToCreatePending(item)));
+            return data;
+        }
+
+        private static ICommonData UpdateToCreatePending(ICommonData data)
+        {
+            if (data is ITimeEntryData)
+                return ((ITimeEntryData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            if (data is IClientData)
+                return ((IClientData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            if (data is IProjectData)
+                return ((IProjectData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            if (data is ITagData)
+                return ((ITagData)data).With(x => { x.SyncState = SyncState.CreatePending; x.RemoteId = null;});
+
+            return data;
+        }
+
         #endregion
     }
 }

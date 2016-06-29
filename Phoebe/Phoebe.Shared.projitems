@@ -125,6 +125,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Data\DatabaseMigrator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Data\DatabaseHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Misc\IOldSettingsStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Analytics\RegisterSource.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Analytics\UserMode.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Data\Models\Old\" />

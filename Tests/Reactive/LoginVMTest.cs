@@ -9,6 +9,9 @@ using Toggl.Phoebe.ViewModels;
 using Toggl.Phoebe.Analytics;
 using XPlatUtils;
 using System.Threading;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Reactive.Linq;
 
 namespace Toggl.Phoebe.Tests.Reactive
 {
@@ -47,7 +50,6 @@ namespace Toggl.Phoebe.Tests.Reactive
             viewModel.Dispose();
             var dataStore = ServiceContainer.Resolve<ISyncDataStore> ();
             dataStore.WipeTables();
-            dataStore.Table<UserData> ().Delete(e => true);
             RxChain.Cleanup();
         }
 
@@ -147,6 +149,86 @@ namespace Toggl.Phoebe.Tests.Reactive
 
             // None state.
             viewModel.TryLoginWithGoogle(ToggleClientMock.fakeGoogleId + "__");
+        }
+
+        [Test]
+        public async Task TestRegisterAfterActivity()
+        {
+            var registerTcs = Util.CreateTask<bool> ();
+            var getStateTcs = Util.CreateTask<bool> ();
+
+            var email = ToggleClientMock.fakeUserEmail;
+            var pass = ToggleClientMock.fakeUserPassword;
+            networkSwitcher.SetNetworkConnection(true); // Set state as connected.
+
+            // Create some previous data before login
+            var client = Util.CreateClientData().With(x => x.WorkspaceId = Util.WorkspaceId);
+            var tag = Util.CreateTagData().With(x => x.WorkspaceId = Util.WorkspaceId);
+            var project = Util.CreateProjectData(client.Id).With(x => x.WorkspaceId = Util.WorkspaceId);
+            var te = Util.CreateTimeEntryData(DateTime.Now, 0, 0);
+
+            te = te.With(t =>
+            {
+                t.WorkspaceId = Util.WorkspaceId;
+                t.ProjectId = project.Id;
+                t.Tags = new List<string> {tag.Name};
+            });
+
+            RxChain.Send(new DataMsg.ClientDataPut(client));
+            RxChain.Send(new DataMsg.ProjectDataPut(project));
+            RxChain.Send(new DataMsg.TagsPut(new List<ITagData> {tag}));
+            RxChain.Send(new DataMsg.TimeEntryPut(te));
+
+            // Register user
+            RxChain.Send(ServerRequest.Authenticate.Signup(email, pass), new RxChain.Continuation((_, sent, queued) =>
+            {
+                try
+                {
+                    // User should be registered correctly.
+                    Assert.That(_.User.RemoteId, Is.Not.Zero);
+                    Assert.That(_.User.ApiToken, Is.Not.Empty);
+                    registerTcs.SetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    registerTcs.SetException(ex);
+                }
+            }));
+
+            await registerTcs.Task;
+
+            StoreManager.Singleton
+            .Observe(msg => msg.State)
+            .Subscribe(state =>
+            {
+                if (state.Projects.First().Value.RemoteId != null)
+                {
+                    var mProject = state.Projects.First().Value;
+                    var mClient = state.Clients.First().Value;
+                    var mTag = state.Tags.First().Value;
+                    var mTimeEntry = state.TimeEntries.First().Value.Data;
+
+                    // Check that everything is synced!
+                    Assert.That(mProject.SyncState, Is.EqualTo(SyncState.Synced));
+                    Assert.That(mClient.SyncState, Is.EqualTo(SyncState.Synced));
+                    Assert.That(mTag.SyncState, Is.EqualTo(SyncState.Synced));
+                    Assert.That(mTimeEntry.SyncState, Is.EqualTo(SyncState.Synced));
+
+                    // Check that remoteIds are > 0
+                    Assert.That(mProject.RemoteId, Is.GreaterThan(0));
+                    Assert.That(mClient.RemoteId, Is.GreaterThan(0));
+                    Assert.That(mTag.RemoteId, Is.GreaterThan(0));
+                    Assert.That(mTimeEntry.RemoteId, Is.GreaterThan(0));
+
+                    // Check remote relationships
+                    Assert.That(mProject.ClientRemoteId, Is.EqualTo(mClient.RemoteId));
+                    Assert.That(mTimeEntry.ProjectRemoteId, Is.EqualTo(mProject.RemoteId));
+
+                    getStateTcs.SetResult(true);
+                }
+            });
+
+            await getStateTcs.Task;
         }
     }
 }

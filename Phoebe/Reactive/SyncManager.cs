@@ -5,11 +5,11 @@ using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Json;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
+using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
 using System.Threading.Tasks.Dataflow;
@@ -67,7 +67,7 @@ namespace Toggl.Phoebe.Reactive
         const int GetChangesSinceDateLimit = -56;
         const int BufferSize = 100;
 
-        const string QueueId = "SYNC_OUT";
+        public static string QueueId = "SYNC_OUT";
         const string DuplicatedNameMessage = "Name has already been taken";
         const string TimeEntryConstrainMessage = "This entry can't be saved";
         const string TimeEntryUnmetConstrainst = "time entry has unmet constraints";
@@ -177,47 +177,55 @@ namespace Toggl.Phoebe.Reactive
             var isConnected = networkPresence.IsNetworkPresent;
             var dataStore = ServiceContainer.Resolve<ISyncDataStore>();
 
-            try
+            // Process messages only for logged users
+            if (!string.IsNullOrEmpty(syncMsg.State.User.ApiToken))
             {
-                // Try to empty queue first
-                var queueEmpty = await TryEmptyQueue(remoteObjects, syncMsg.State, isConnected, dataStore);
-
-                // Deal with messages
-                foreach (var data in syncMsg.ServerRequests.OfType<ServerRequest.CRUD>().SelectMany(x => x.Items))
+                try
                 {
-                    if (queueEmpty && isConnected)
+                    // Try to empty queue first
+                    var queueEmpty = await TryEmptyQueue(remoteObjects, syncMsg.State, isConnected, dataStore);
+
+                    // Deal with messages
+                    foreach (var data in syncMsg.ServerRequests.OfType<ServerRequest.CRUD>().SelectMany(x => x.Items))
                     {
-                        try
+                        if (queueEmpty && isConnected)
                         {
-                            await SendData(data, remoteObjects, syncMsg.State);
+                            try
+                            {
+                                await SendData(data, remoteObjects, syncMsg.State);
+                            }
+                            catch (Exception ex)
+                            {
+                                // TODO After a bug, be optimistic and expect that
+                                // everything will be ok again?
+                                Enqueue(data, enqueuedItems, dataStore);
+                                queueEmpty = false;
+                                logError(ex);
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            // TODO After a bug, be optimistic and expect that
-                            // everything will be ok again?
                             Enqueue(data, enqueuedItems, dataStore);
                             queueEmpty = false;
-                            logError(ex);
                         }
                     }
-                    else
-                    {
-                        Enqueue(data, enqueuedItems, dataStore);
-                        queueEmpty = false;
-                    }
-                }
 
-                // TODO: Try to empty queue again?
-            }
-            catch (Exception ex)
-            {
-                logError(ex, $"{nameof(SyncManager)} Queue");
+                    // TODO: Try to empty queue again?
+                }
+                catch (Exception ex)
+                {
+                    if (ex is RemoteIdException)
+                        logInfo(ex.Message);
+                    else
+                        logError(ex);
+                }
             }
 
             // Return remote objects
             if (remoteObjects.Count > 0)
                 RxChain.Send(DataMsg.ServerResponse.CRUD(remoteObjects));
 
+            // Process other requests
             foreach (var req in syncMsg.ServerRequests.Where(x => x is ServerRequest.CRUD == false))
             {
                 await HandleRequest(req, syncMsg.State);
@@ -325,11 +333,9 @@ namespace Toggl.Phoebe.Reactive
                     switch (data.SyncState)
                     {
                         case SyncState.CreatePending:
-                            Console.WriteLine($"Remote create: {data.GetType().Name} {data.Id}");
                             response = await client.Create(authToken, json);
                             break;
                         case SyncState.UpdatePending:
-                            Console.WriteLine($"Remote update: {data.GetType().Name} {data.Id}");
                             response = await client.Update(authToken, json);
                             break;
                         default:
@@ -357,7 +363,6 @@ namespace Toggl.Phoebe.Reactive
                     var resData = mapper.Map(response);
                     resData.Id = data.Id;
                     remoteObjects.Add(resData);
-                    Console.WriteLine($"Remote received: {resData.GetType().Name} {resData.RemoteId} {resData.Id}");
                 }
                 else
                 {
@@ -570,7 +575,6 @@ namespace Toggl.Phoebe.Reactive
                            .Concat(changes.Tasks.Select(mapper.Map<TaskData>).Cast<CommonData> ())
                            .Concat(changes.TimeEntries.Select(mapper.Map<TimeEntryData>).Cast<CommonData> ())
                            .ToList();
-
                 RxChain.Send(
                     new DataMsg.ServerResponse(
                         request, data, mapper.Map<UserData> (changes.User), changes.Timestamp));
@@ -708,6 +712,7 @@ namespace Toggl.Phoebe.Reactive
             {
                 json.RemoteId = GetRemoteId(data.Id, remoteObjects, state, data.GetType());
             }
+
             return json;
         }
 
@@ -775,7 +780,7 @@ namespace Toggl.Phoebe.Reactive
                 var t = (TagData)data.Clone();
                 if (t.WorkspaceRemoteId == 0)
                 {
-                    t.WorkspaceRemoteId = GetRemoteId<TagData>(t.WorkspaceId, remoteObjects, state);
+                    t.WorkspaceRemoteId = GetRemoteId<WorkspaceData>(t.WorkspaceId, remoteObjects, state);
                 }
                 return t;
             }

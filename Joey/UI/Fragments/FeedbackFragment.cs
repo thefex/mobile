@@ -4,13 +4,15 @@ using Android.Content;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
-using XPlatUtils;
+using Toggl.Joey.UI.Activities;
+using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
+using Toggl.Phoebe.Reactive;
+using Toggl.Phoebe.ViewModels;
+using XPlatUtils;
 using Fragment = Android.Support.V4.App.Fragment;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
-using Toggl.Phoebe.ViewModels;
-using Toggl.Phoebe.Reactive;
 
 namespace Toggl.Joey.UI.Fragments
 {
@@ -22,7 +24,7 @@ namespace Toggl.Joey.UI.Fragments
         private Button submitFeedbackButton;
         private EditText feedbackMessageEditText;
         private int userRating;
-        private String userMessage;
+        private string userMessage;
         private bool isSendingFeedback;
 
         private static readonly int ratingNotSet = 0;
@@ -48,9 +50,7 @@ namespace Toggl.Joey.UI.Fragments
 
             submitFeedbackButton = view.FindViewById<Button> (Resource.Id.SendFeedbackButton).SetFont(Font.Roboto);
             submitFeedbackButton.Click += OnSendClick;
-
             SetRating(userRating);
-
             return view;
         }
 

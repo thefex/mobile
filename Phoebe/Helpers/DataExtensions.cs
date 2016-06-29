@@ -118,6 +118,38 @@ namespace Toggl.Phoebe.Helpers
             throw new Exception("Unknown type: " + item.GetType().FullName);
         }
 
+        public static TResult MatchType<T, T1, T2, T3, T4, T5, T6, TResult>(
+            this T item, Func<T1, TResult> f1, Func<T2, TResult> f2,
+            Func<T3, TResult> f3, Func<T4, TResult> f4, Func<T5, TResult> f5, Func<T6, TResult> f6)
+        where T1 : T where T2 : T where T3 : T where T4 : T where T5 : T where T6 : T
+        {
+            if (item is T1)
+            {
+                return f1((T1)item);
+            }
+            if (item is T2)
+            {
+                return f2((T2)item);
+            }
+            if (item is T3)
+            {
+                return f3((T3)item);
+            }
+            if (item is T4)
+            {
+                return f4((T4)item);
+            }
+            if (item is T5)
+            {
+                return f5((T5)item);
+            }
+            if (item is T6)
+            {
+                return f6((T6)item);
+            }
+            throw new Exception("Unknown type: " + item.GetType().FullName);
+        }
+
         public static bool UpdateData<T> (this IList<T> list, T data)
         where T : CommonData
         {

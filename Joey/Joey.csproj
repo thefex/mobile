@@ -31,7 +31,6 @@
     <ConsolePause>false</ConsolePause>
     <EmbedAssembliesIntoApk>False</EmbedAssembliesIntoApk>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <JavaMaximumHeapSize>1G</JavaMaximumHeapSize>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -105,7 +104,10 @@
     </Reference>
     <Reference Include="Plugin.Settings.Abstractions">
       <HintPath>..\packages\Xam.Plugins.Settings.2.1.0\lib\MonoAndroid10\Plugin.Settings.Abstractions.dll</HintPath>
-    </Reference>    
+    </Reference>
+    <Reference Include="Xamarin.GooglePlayServices.Auth">
+      <HintPath>..\packages\Xamarin.GooglePlayServices.Auth.29.0.0.1\lib\MonoAndroid41\Xamarin.GooglePlayServices.Auth.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -187,7 +189,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UI\Activities\LoginActivity.cs" />
     <Compile Include="AndroidApp.cs" />
     <Compile Include="UI\Activities\BaseActivity.cs" />
     <Compile Include="AndroidNotificationManager.cs" />
@@ -260,6 +261,11 @@
     <Compile Include="Net\InstanceIdListenerService.cs" />
     <Compile Include="Net\GcmRegistrationIntentService.cs" />
     <Compile Include="Net\GcmListenerService.cs" />
+    <Compile Include="UI\Fragments\LoginFragment.cs" />
+    <Compile Include="UI\Fragments\ReportsNoApiFragment.cs" />
+    <Compile Include="UI\Fragments\FeedbackNoApiFragment.cs" />
+    <Compile Include="UI\Fragments\MigrationFragment.cs" />
+    <Compile Include="UI\Views\NoWorkspaceDialogFragment.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -272,7 +278,6 @@
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\values\Strings.xml" />
-    <AndroidResource Include="Resources\layout\LoginActivity.axml" />
     <AndroidResource Include="Resources\values\Plurals.xml" />
     <AndroidResource Include="Resources\drawable-hdpi\IcDialogAlertHoloLight.png" />
     <AndroidResource Include="Resources\drawable-mdpi\IcDialogAlertHoloLight.png" />
@@ -382,7 +387,6 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\DividerVerticalLeftOpaque.9.png" />
     <AndroidResource Include="Resources\layout\TimeTrackingFragment.axml" />
     <AndroidResource Include="Resources\layout\MainDrawerListItem.axml" />
-    <AndroidResource Include="Resources\layout\MainDrawerListHeader.axml" />
     <AndroidResource Include="Resources\layout\MainDrawerActivity.axml" />
     <AndroidResource Include="Resources\drawable-hdpi\DrawerShadow.9.png" />
     <AndroidResource Include="Resources\drawable-mdpi\DrawerShadow.9.png" />
@@ -394,7 +398,6 @@
     <AndroidResource Include="Resources\drawable-xhdpi\IcSyncGray.png" />
     <AndroidResource Include="Resources\drawable-mdpi\IcSyncGray.png" />
     <AndroidResource Include="Resources\drawable-hdpi\IcSyncGray.png" />
-    <AndroidResource Include="Resources\anim\SpinningAnimation.xml" />
     <AndroidResource Include="Resources\drawable\BottomBorder.xml" />
     <AndroidResource Include="Resources\drawable\DividerHorizontalLight.9.png" />
     <AndroidResource Include="Resources\drawable-mdpi\Icon.png" />
@@ -743,10 +746,6 @@
     <AndroidResource Include="Resources\drawable\DropShadowVerticalReverse.xml" />
     <AndroidResource Include="Resources\drawable-v21\play_button_background.xml" />
     <AndroidResource Include="Resources\drawable\play_button_background.xml" />
-    <AndroidResource Include="Resources\drawable-hdpi\bgLoginScreen.jpg" />
-    <AndroidResource Include="Resources\drawable-mdpi\bgLoginScreen.jpg" />
-    <AndroidResource Include="Resources\drawable-xhdpi\bgLoginScreen.jpg" />
-    <AndroidResource Include="Resources\drawable-xxhdpi\bgLoginScreen.jpg" />
     <AndroidResource Include="Resources\drawable\ButtonRed.xml" />
     <AndroidResource Include="Resources\drawable\ButtonRedDefault.xml" />
     <AndroidResource Include="Resources\drawable\ButtonRedDisabled.xml" />
@@ -755,7 +754,6 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\IcGoogle.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\IcGoogle.png" />
     <AndroidResource Include="Resources\color\ButtonRedTextColor.xml" />
-    <AndroidResource Include="Resources\drawable\LoginBackground.xml" />
     <AndroidResource Include="Resources\drawable\swipe_background_shape.xml" />
     <AndroidResource Include="Resources\drawable-xxhdpi\icTasks.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\icTasksSelected.png" />
@@ -810,24 +808,71 @@
     <AndroidResource Include="Resources\drawable-mdpi\ic_delete_white_24dp.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\ic_delete_white_24dp.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\ic_delete_white_24dp.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_arrow.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_arrow.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_arrow.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_arrow.png" />
     <AndroidResource Include="Resources\drawable-hdpi\IcReportsOverflow.png" />
     <AndroidResource Include="Resources\drawable-mdpi\IcReportsOverflow.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\IcReportsOverflow.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\IcReportsOverflow.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_feedback.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\img_reports.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\IcGoogleWhite.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\IcGoogleWhite.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\IcGoogleWhite.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\IcGoogleWhite.png" />
     <AndroidResource Include="Resources\menu\ReportsToolbarMenu.axml" />
     <AndroidResource Include="Resources\drawable\splash_drawable.xml" />
+    <AndroidResource Include="Resources\layout\ConnectLayout.axml" />
+    <AndroidResource Include="Resources\layout\ReportsNoApiFragment.axml" />
+    <AndroidResource Include="Resources\layout\FeedbackNoApiFragment.axml" />
+    <AndroidResource Include="Resources\drawable-ldpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\profile.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_arrow_down.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_arrow_up.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\ic_hello_toggler.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\IcSpinner.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\IcSpinner.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\IcSpinner.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\IcSpinner.png" />
+    <AndroidResource Include="Resources\layout\MigrationFragment.axml" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>
     <AndroidAsset Include="Assets\fonts\Roboto-Light.ttf" />
     <AndroidAsset Include="Assets\fonts\Roboto-Medium.ttf" />
     <AndroidAsset Include="Assets\fonts\Roboto-Regular.ttf" />
+    <AndroidAsset Include="Assets\fonts\DIN-Medium.ttf" />
+    <AndroidAsset Include="Assets\fonts\TektonPro-Cond.otf" />
   </ItemGroup>
   <ItemGroup>
     <ProguardConfiguration Include="Proguard.cfg" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\drawable-ldpi\" />
+    <Folder Include="Resources\anim\" />
   </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" />
   <Import Project="..\packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\dotnet\Fody.targets')" />

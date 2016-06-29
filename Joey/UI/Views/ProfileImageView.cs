@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Android.Content;
@@ -7,7 +6,6 @@ using Android.Graphics;
 using Android.Util;
 using Android.Widget;
 using Toggl.Joey.UI.Utils;
-using Toggl.Phoebe;
 using Toggl.Phoebe.Logging;
 using XPlatUtils;
 
@@ -30,9 +28,8 @@ namespace Toggl.Joey.UI.Views
         {
         }
 
-        private String imageUrl;
-
-        public String ImageUrl
+        private string imageUrl = "noimage";
+        public string ImageUrl
         {
             get { return imageUrl; }
             set
@@ -41,7 +38,7 @@ namespace Toggl.Joey.UI.Views
             }
         }
 
-        private async Task<Bitmap> GetImage(String url)
+        private async Task<Bitmap> GetImage(string url)
         {
             Bitmap bitmap = CachingUtil.GetBitmapFromCacheByUrl(url, Context);
             if (bitmap != null)
@@ -82,6 +79,7 @@ namespace Toggl.Joey.UI.Views
 
             return Bitmap.CreateScaledBitmap(bitmap, scaledWidth, scaledHeight, false);
         }
+
         //Make image rectangular
         private static Bitmap CropImage(Bitmap bitmap)
         {
@@ -119,7 +117,7 @@ namespace Toggl.Joey.UI.Views
             return output;
         }
 
-        private async void SetImage(String imageUrl)
+        private async void SetImage(string imageUrl)
         {
             if (this.imageUrl == imageUrl)
             {
@@ -128,7 +126,14 @@ namespace Toggl.Joey.UI.Views
             this.imageUrl = imageUrl;
 
             Bitmap bitmap = null;
-            if (imageUrl != null)
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                bitmap = BitmapFactory.DecodeResource(Resources, Resource.Drawable.profile);
+                bitmap = ScaleImage(bitmap, Resources.DisplayMetrics);
+                bitmap = CropImage(bitmap);
+                bitmap = MakeImageRound(bitmap);
+            }
+            else
             {
                 bitmap = await GetImage(imageUrl);
             }

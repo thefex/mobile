@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Android.Views;
 using Android.Widget;
 using Toggl.Joey.UI.Utils;
@@ -14,48 +16,71 @@ namespace Toggl.Joey.UI.Adapters
         public static readonly int SettingsPageId = 2;
         public static readonly int LogoutPageId = 3;
         public static readonly int FeedbackPageId = 4;
+        public static readonly int LoginPageId = 5;
+        public static readonly int SignupPageId = 6;
+
         private List<DrawerItem> rowItems;
 
-        public DrawerListAdapter()
+        public DrawerListAdapter(bool withApiToken)
         {
             rowItems = new List<DrawerItem> ()
             {
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = TimerPageId,
                     TextResId = Resource.String.MainDrawerTimer,
                     ImageResId = Resource.Drawable.IcNavTimer,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = ReportsPageId,
                     TextResId = Resource.String.MainDrawerReports,
                     ImageResId = Resource.Drawable.IcNavReports,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = SettingsPageId,
                     TextResId = Resource.String.MainDrawerSettings,
                     ImageResId = Resource.Drawable.IcNavSettings,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = FeedbackPageId,
                     TextResId = Resource.String.MainDrawerFeedback,
                     ImageResId = Resource.Drawable.IcNavFeedback,
                     IsEnabled = true,
                 },
-                new DrawerItem()
+                new DrawerItem
                 {
                     Id = LogoutPageId,
                     TextResId = Resource.String.MainDrawerLogout,
                     ImageResId = Resource.Drawable.IcNavLogout,
                     IsEnabled = true,
+                    VMode = VisibilityMode.Normal,
+                },
+                new DrawerItem
+                {
+                    Id = LoginPageId,
+                    TextResId = Resource.String.MainDrawerLogin,
+                    ImageResId = Resource.Drawable.IcNavLogout,
+                    IsEnabled = true,
+                    VMode = VisibilityMode.NoApiToken,
+                },
+                new DrawerItem
+                {
+                    Id = SignupPageId,
+                    TextResId = Resource.String.MainDrawerSignup,
+                    ImageResId = Resource.Drawable.IcNavLogout,
+                    IsEnabled = true,
+                    VMode = VisibilityMode.NoApiToken,
                 }
             };
+
+            var visibility = withApiToken ? VisibilityMode.NoApiToken : VisibilityMode.Normal;
+            rowItems = rowItems.Where(item => (item.VMode == visibility || item.VMode == VisibilityMode.Both)).ToList();
         }
 
         public override View GetView(int position, View convertView, ViewGroup parent)
@@ -87,7 +112,7 @@ namespace Toggl.Joey.UI.Adapters
         public int GetItemPosition(int id)
         {
             var idx = rowItems.FindIndex(i => i.Id == id);
-            return idx >= 0 ? idx + 1 : -1;
+            return idx >= 0 ? idx : -1;
         }
 
         private DrawerItem GetDrawerItem(int position)
@@ -113,6 +138,22 @@ namespace Toggl.Joey.UI.Adapters
             public int ImageResId;
             public int ChildOf = 0;
             public bool IsEnabled;
+            public bool Expanded = false;
+            public VisibilityMode VMode = VisibilityMode.Both;
+
+            public DrawerItem With(List<DrawerItem> subItems)
+            {
+                return new DrawerItem
+                {
+                    Id = this.Id,
+                    TextResId = this.TextResId,
+                    ImageResId = this.ImageResId,
+                    ChildOf = this.ChildOf,
+                    IsEnabled = this.IsEnabled,
+                    Expanded = this.Expanded,
+                    VMode = this.VMode,
+                };
+            }
         }
 
         private class DrawerItemViewHolder : BindableViewHolder<DrawerItem>
@@ -138,6 +179,12 @@ namespace Toggl.Joey.UI.Adapters
                 TitleTextView.SetText(DataSource.TextResId);
                 TitleTextView.Enabled = DataSource.IsEnabled;
             }
+        }
+        public enum VisibilityMode
+        {
+            Normal,
+            NoApiToken,
+            Both
         }
     }
 }

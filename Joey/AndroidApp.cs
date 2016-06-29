@@ -4,19 +4,19 @@ using Android.App;
 using Android.Content;
 using SQLite.Net.Interop;
 using SQLite.Net.Platform.XamarinAndroid;
-using Xamarin;
 using Toggl.Joey.Analytics;
+using Toggl.Joey.Data;
 using Toggl.Joey.Logging;
 using Toggl.Joey.Net;
 using Toggl.Joey.UI.Activities;
 using Toggl.Phoebe;
-using Toggl.Phoebe.Net;
-using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.Analytics;
 using Toggl.Phoebe.Logging;
-using XPlatUtils;
 using Toggl.Phoebe.Misc;
-using Toggl.Joey.Data;
+using Toggl.Phoebe.Net;
+using Toggl.Phoebe.Reactive;
+using Xamarin;
+using XPlatUtils;
 
 namespace Toggl.Joey
 {
