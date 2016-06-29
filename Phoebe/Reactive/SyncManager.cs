@@ -333,9 +333,26 @@ namespace Toggl.Phoebe.Reactive
                             response = await client.Update(authToken, json);
                             break;
                         default:
-                            throw new Exception(
-                                string.Format("Unexpected SyncState ({0}) of enqueued item:",
-                                              Enum.GetName(typeof(SyncState), data.SyncState)));
+                            // If a queued element is already synced.
+                            // try to update its state or remove it locally.
+                            if (data.RemoteId != null)
+                            {
+                                data = UpdateToUpdatePending(data);
+                                Enqueue(data, new List<QueueItem>(), ServiceContainer.Resolve<ISyncDataStore>());
+                                logWarning("Synced translated to UpdatePending:" + data.GetType());
+                            }
+                            else if (data.DeletedAt != null)
+                            {
+                                remoteObjects.Add((CommonData)UpdateToDeletePending(data));
+                                logWarning("Wrong synced object locally deleted:" + data.GetType());
+                            }
+                            else
+                            {
+                                data = UpdateToCreatePending(data);
+                                Enqueue(data, new List<QueueItem>(), ServiceContainer.Resolve<ISyncDataStore>());
+                                logWarning("Synced translated to CreatePeding:" + data.GetType());
+                            }
+                            return;
                     }
                     var resData = mapper.Map(response);
                     resData.Id = data.Id;
@@ -723,7 +740,7 @@ namespace Toggl.Phoebe.Reactive
                 var pr = (ProjectData)data.Clone();
                 if (pr.WorkspaceRemoteId == 0)
                 {
-                    pr.WorkspaceRemoteId = GetRemoteId<ProjectData>(pr.WorkspaceId, remoteObjects, state);
+                    pr.WorkspaceRemoteId = GetRemoteId<WorkspaceData>(pr.WorkspaceId, remoteObjects, state);
                 }
                 if (pr.ClientId != Guid.Empty && !pr.ClientRemoteId.HasValue)
                 {
@@ -745,7 +762,7 @@ namespace Toggl.Phoebe.Reactive
                 var ts = (TaskData)data.Clone();
                 if (ts.WorkspaceRemoteId == 0)
                 {
-                    ts.WorkspaceRemoteId = GetRemoteId<TaskData> (ts.WorkspaceId, remoteObjects, state);
+                    ts.WorkspaceRemoteId = GetRemoteId<WorkspaceData> (ts.WorkspaceId, remoteObjects, state);
                 }
                 if (ts.ProjectRemoteId == 0)
                 {
@@ -789,7 +806,7 @@ namespace Toggl.Phoebe.Reactive
                 var ws = (WorkspaceUserData)data.Clone();
                 if (ws.WorkspaceRemoteId == 0)
                 {
-                    ws.WorkspaceRemoteId = GetRemoteId<ProjectData>(ws.WorkspaceId, remoteObjects, state);
+                    ws.WorkspaceRemoteId = GetRemoteId<WorkspaceData>(ws.WorkspaceId, remoteObjects, state);
                 }
                 if (ws.UserRemoteId == 0)
                 {
@@ -868,6 +885,23 @@ namespace Toggl.Phoebe.Reactive
                 throw new RemoteIdException($"RemoteId missing for: {typ.Name}");
             }
             return res.Value;
+        }
+
+        private ICommonData UpdateToUpdatePending(ICommonData data)
+        {
+            if (data is ITimeEntryData)
+                return ((ITimeEntryData)data).With(x => { x.SyncState = SyncState.UpdatePending;});
+
+            if (data is IClientData)
+                return ((IClientData)data).With(x => { x.SyncState = SyncState.UpdatePending;});
+
+            if (data is IProjectData)
+                return ((IProjectData)data).With(x => { x.SyncState = SyncState.UpdatePending;});
+
+            if (data is ITagData)
+                return ((ITagData)data).With(x => { x.SyncState = SyncState.UpdatePending;});
+
+            return data;
         }
 
         private ICommonData UpdateToCreatePending(ICommonData data)
