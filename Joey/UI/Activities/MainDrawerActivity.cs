@@ -212,13 +212,31 @@ namespace Toggl.Joey.UI.Activities
             OpenPage(DrawerListAdapter.TimerPageId);
         }
 
+
+#if DEBUG // TODO: DELETE TEST CODE --------
+        bool firstTime = true;
         private bool tryMigrateDatabase(IUserData userData)
         {
+            if (firstTime)
+            {
+                firstTime = false;
+                MigrationFragment.CreateOldDbForTesting();
+            }
+#else
+        private bool tryMigrateDatabase(IUserData userData)
+        {
+#endif
             var oldVersion = DatabaseHelper.CheckOldDb(DatabaseHelper.GetDatabaseDirectory());
             if (oldVersion == -1)
                 return false;
 
-            var migrationFragment = MigrationFragment.Init(oldVersion, SyncSqliteDataStore.DB_VERSION);
+            Fragment migrationFragment = null;
+            migrationFragment = MigrationFragment.NewInstance(oldVersion, success =>
+            {
+                FragmentManager.BeginTransaction()
+                .Detach(migrationFragment)
+                .Commit();
+            });
             OpenFragment(migrationFragment);
             return true;
         }

@@ -2,11 +2,101 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <TextView
-        android:text="Migration content here!"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:textSize="16sp"
-        android:layout_centerInParent="true" />
+    <LinearLayout
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:layout_width="320dp"
+        android:layout_height="320dp">
+        <TextView
+            android:id="@+id/topLabel"
+            android:textSize="24dp"
+            android:layout_gravity="center"
+            android:text="@string/MigratingUpdateTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:id="@+id/descLabel"
+            android:textSize="16dp"
+            android:text="@string/MigratingUpdateDesc"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <ImageView
+            android:id="@+id/toggler1"
+            android:background="@color/abc_search_url_text_normal"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:layout_width="109dp"
+            android:layout_height="167dp" />
+        <ImageView
+            android:visibility="gone"
+            android:id="@+id/toggler2"
+            android:layout_gravity="center"
+            android:background="@color/abc_search_url_text_normal"
+            android:layout_marginTop="52dp"
+            android:layout_width="80dp"
+            android:layout_height="134dp" />
+        <TextView
+            android:id="@+id/percente"
+            android:text="65%"
+            android:textSize="18dp"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:layout_marginTop="7dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <ProgressBar
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:id="@+id/migrationProgressBar"
+            android:progress="20"
+            android:indeterminate="false" />
+        <TextView
+            android:visibility="gone"
+            android:id="@+id/discardLabel"
+            android:textSize="12dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_marginTop="24dp"
+            android:text="@string/MigratingDiscardTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:visibility="gone"
+            android:id="@+id/discardDesc"
+            android:text="@string/MigratingDiscardDesc"
+            android:textSize="14dp"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:layout_marginTop="24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <Button
+            android:visibility="gone"
+            android:id="@+id/tryAgainBtn"
+            style="@style/Button.Green"
+            android:textColor="@color/white"
+            android:text="@string/MigratingTryBtn"
+            android:layout_width="240dp"
+            android:layout_height="40dp"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_centerInParent="true" />
+        <Button
+            android:visibility="gone"
+            android:text="@string/MigratingDiscardBtn"
+            android:id="@+id/discardBtn"
+            android:layout_gravity="center"
+            android:background="@android:color/transparent"
+            android:textSize="14dp"
+            android:textAllCaps="false"
+            android:layout_marginTop="12dp"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp" />
+    </LinearLayout>
 </RelativeLayout>
