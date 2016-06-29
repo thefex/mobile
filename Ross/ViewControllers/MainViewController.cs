@@ -151,7 +151,7 @@ namespace Toggl.Ross.ViewControllers
                 var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
                 var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
 
-                UIView.Animate(0.35, 0.6, UIViewAnimationOptions.CurveEaseInOut, () => 
+                UIView.Animate(0.35, 0.6, UIViewAnimationOptions.CurveEaseInOut, () =>
                 {
                     splashLogo.Frame = new CGRect(centerX, titleViewY, titleViewWidth, titleViewHeight);
                     splashBackground.Alpha = 0;
@@ -160,13 +160,14 @@ namespace Toggl.Ross.ViewControllers
                 {
                     splashBackground.RemoveFromSuperview();
 
-                    logViewcontroller.NavigationItem.TitleView.Hidden = false;
+                    // set Toggl logo as header.
+                    logViewcontroller.NavigationItem.TitleView = new UIImageView(Image.TogglLogo);
 
                     // give some time before hidding the splash logo because the LogViewController takes some time to load
                     UIView.Animate(0.28, 0, UIViewAnimationOptions.CurveLinear,
-                                   () => { splashLogo.Alpha = 0; },
-                                   () => { splashLogo.RemoveFromSuperview(); });
-                 });
+                    () => { splashLogo.Alpha = 0; },
+                    () => { splashLogo.RemoveFromSuperview(); });
+                });
             }
             else
             {
