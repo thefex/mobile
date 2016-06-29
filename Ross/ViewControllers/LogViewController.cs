@@ -39,8 +39,6 @@ namespace Toggl.Ross.ViewControllers
         private UITableView tableView;
         private TimerBar timerBar;
         private SectionCell floatingHeader;
-        private UIImageView navigationLogo;
-
         private float heightOfTopBars;
 
         private Binding<LogTimeEntriesVM.LoadInfoType, LogTimeEntriesVM.LoadInfoType> loadInfoBinding, loadMoreBinding;
@@ -107,12 +105,6 @@ namespace Toggl.Ross.ViewControllers
             {
                 SyncButtonPressedHandler = OnTryAgainBtnPressed
             };
-
-            navigationLogo = new UIImageView(Image.TogglLogo);
-
-            // Attach views
-            NavigationItem.TitleView = navigationLogo;
-            NavigationItem.TitleView.Hidden = true;
         }
 
         public override void ViewDidLoad()
