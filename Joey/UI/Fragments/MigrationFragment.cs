@@ -68,7 +68,6 @@ namespace Toggl.Joey.UI.Fragments
 #endif
 
         private int oldVersion;
-        private int newVersion;
         private bool userTriedAgain;
 
         private TextView topLabel;
@@ -155,12 +154,12 @@ namespace Toggl.Joey.UI.Fragments
                 var migrationResult = DatabaseHelper.Migrate(
                                           ServiceContainer.Resolve<IPlatformUtils>().SQLiteInfo,
                                           DatabaseHelper.GetDatabaseDirectory(),
-                                          oldVersion, newVersion,
+                                          oldVersion, SyncSqliteDataStore.DB_VERSION,
                                           setProgress
                                       );
 
 #if DEBUG // TODO: DELETE TEST CODE --------
-                System.Threading.Thread.Sleep(1000);
+                System.Threading.Thread.Sleep(5000);
 #endif
 
                 if (migrationResult)
@@ -241,9 +240,12 @@ namespace Toggl.Joey.UI.Fragments
 
         private void setProgress(float percentage)
         {
-            var per = Math.Truncate(percentage * 100);
-            progressBar.Progress = Convert.ToInt16(per);
-            percente.Text = per + " %";
+            BaseActivity.CurrentActivity.RunOnUiThread(() =>
+            {
+                var per = Math.Truncate(percentage * 100);
+                progressBar.Progress = Convert.ToInt16(per);
+                percente.Text = per + " %";
+            });
         }
     }
 }
