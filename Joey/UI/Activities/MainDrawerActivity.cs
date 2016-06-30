@@ -35,9 +35,6 @@ namespace Toggl.Joey.UI.Activities
          Theme = "@style/Theme.Toggl.Main")]
     public class MainDrawerActivity : BaseActivity
     {
-        private const string PageStackExtra = "com.toggl.timer.page_stack";
-        private const string LastSyncArgument = "com.toggl.timer.last_sync";
-        private const string LastSyncResultArgument = "com.toggl.timer.last_sync_result";
         private readonly TimerComponent barTimer = new TimerComponent();
         private readonly Lazy<LogTimeEntriesListFragment> trackingFragment = new Lazy<LogTimeEntriesListFragment> ();
         private readonly Lazy<SettingsListFragment> settingsFragment = new Lazy<SettingsListFragment> ();
@@ -47,9 +44,7 @@ namespace Toggl.Joey.UI.Activities
         private readonly Lazy<FeedbackFragment> feedbackFragment = new Lazy<FeedbackFragment>();
         private readonly Lazy<FeedbackNoApiFragment> feedbackNoApiFragment = new Lazy<FeedbackNoApiFragment> ();
 
-        private readonly List<int> pageStack = new List<int> ();
         private DrawerListAdapter drawerAdapter;
-        private ToolbarModes toolbarMode;
         private IDisposable stateObserver;
 
         private ListView DrawerListView { get; set; }
@@ -60,19 +55,6 @@ namespace Toggl.Joey.UI.Activities
         protected ActionBarDrawerToggle DrawerToggle { get; private set; }
         private FrameLayout DrawerSyncView { get; set; }
         public Toolbar MainToolbar { get; set; }
-
-        public ToolbarModes ToolbarMode
-        {
-            get
-            {
-                return toolbarMode;
-            }
-            set
-            {
-                toolbarMode = value;
-                AdjustToolbar();
-            }
-        }
 
         bool userWithoutApiToken
         {
@@ -124,8 +106,8 @@ namespace Toggl.Joey.UI.Activities
                             .Observe(x => x.State.User)
                             .StartWith(StoreManager.Singleton.AppState.User)
                             .ObserveOn(SynchronizationContext.Current)
-                            .DistinctUntilChanged(x => x.ApiToken)
-                            .Subscribe(userData => ResetFragmentNavigation(userData));
+            .DistinctUntilChanged(x => new {x.ApiToken, x.Id})
+            .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
         protected override void OnDestroy()
@@ -136,7 +118,6 @@ namespace Toggl.Joey.UI.Activities
 
         protected override void OnSaveInstanceState(Bundle outState)
         {
-            outState.PutIntArray(PageStackExtra, pageStack.ToArray());
             base.OnSaveInstanceState(outState);
         }
 
@@ -151,38 +132,9 @@ namespace Toggl.Joey.UI.Activities
             return DrawerToggle.OnOptionsItemSelected(item) || base.OnOptionsItemSelected(item);
         }
 
-        public override void OnBackPressed()
-        {
-            if (pageStack.Count > 0)
-            {
-                pageStack.RemoveAt(pageStack.Count - 1);
-                var pageId = pageStack.Count > 0 ? pageStack [pageStack.Count - 1] : DrawerListAdapter.TimerPageId;
-                OpenPage(pageId);
-            }
-            else
-            {
-                base.OnBackPressed();
-            }
-        }
-
         public override void Finish()
         {
             base.Finish();
-        }
-
-        private void AdjustToolbar()
-        {
-            switch (toolbarMode)
-            {
-                case ToolbarModes.Timer:
-                    SupportActionBar.SetDisplayShowTitleEnabled(false);
-                    Timer.Hide = false;
-                    break;
-                case ToolbarModes.Normal:
-                    Timer.Hide = true;
-                    SupportActionBar.SetDisplayShowTitleEnabled(true);
-                    break;
-            }
         }
 
         private void ResetFragmentNavigation(IUserData userData)
@@ -230,26 +182,19 @@ namespace Toggl.Joey.UI.Activities
             if (oldVersion == -1)
                 return false;
 
-            Fragment migrationFragment = null;
-            migrationFragment = MigrationFragment.NewInstance(oldVersion, success =>
-            {
-                FragmentManager.BeginTransaction()
-                .Detach(migrationFragment)
-                .Commit();
-            });
+            SetToolbarTimerVisible(false);
+            SupportActionBar.SetTitle(Resource.String.MigratingScreenTitle);
+            var migrationFragment = MigrationFragment.NewInstance(oldVersion);
             OpenFragment(migrationFragment);
-            return true;
-        }
 
-        private void SetMenuSelection(int pos)
-        {
-            DrawerListView.ClearChoices();
-            DrawerListView.ChoiceMode = (ChoiceMode)ListView.ChoiceModeSingle;
-            DrawerListView.SetItemChecked(pos, true);
+            return true;
         }
 
         public void OpenPage(int id)
         {
+            // Configure timer component for selected page:
+            SetToolbarTimerVisible(id == DrawerListAdapter.TimerPageId);
+
             if (id == DrawerListAdapter.SettingsPageId)
             {
                 OpenFragment(settingsFragment.Value);
@@ -298,15 +243,10 @@ namespace Toggl.Joey.UI.Activities
                 SupportActionBar.SetTitle(Resource.String.MainDrawerTimer);
                 OpenFragment(trackingFragment.Value);
             }
-            SetMenuSelection(drawerAdapter.GetItemPosition(id));
 
-            pageStack.Remove(id);
-            pageStack.Add(id);
-            // Make sure we don't store the timer page as the first page (this is implied)
-            if (pageStack.Count == 1 && id == DrawerListAdapter.TimerPageId)
-            {
-                pageStack.Clear();
-            }
+            DrawerListView.ClearChoices();
+            DrawerListView.ChoiceMode = (ChoiceMode)ListView.ChoiceModeSingle;
+            DrawerListView.SetItemChecked(drawerAdapter.GetItemPosition(id), true);
         }
 
         private void OpenFragment(Fragment fragment)
@@ -337,16 +277,6 @@ namespace Toggl.Joey.UI.Activities
             {
                 DrawerLayout.CloseDrawers();
                 return;
-            }
-
-            // Configure timer component for selected page:
-            if (e.Id != DrawerListAdapter.TimerPageId)
-            {
-                ToolbarMode = ToolbarModes.Normal;
-            }
-            else
-            {
-                ToolbarMode = ToolbarModes.Timer;
             }
 
             if (e.Id == DrawerListAdapter.TimerPageId)
@@ -382,15 +312,15 @@ namespace Toggl.Joey.UI.Activities
             DrawerLayout.CloseDrawers();
         }
 
+        private void SetToolbarTimerVisible(bool isVisible)
+        {
+            SupportActionBar.SetDisplayShowTitleEnabled(!isVisible);
+            Timer.Hide = !isVisible;
+        }
+
         public TimerComponent Timer
         {
             get { return barTimer; }
-        }
-
-        public enum ToolbarModes
-        {
-            Normal,
-            Timer
         }
     }
 }
