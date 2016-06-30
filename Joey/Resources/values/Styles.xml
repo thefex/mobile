@@ -70,7 +70,7 @@
     <style name="Button">
     </style>
 
-    <style name="Button.Green">
+    <style name="Button.Green" parent="@style/Widget.AppCompat.Button.Borderless" >
         <item name="android:background">@drawable/buttongreen</item>
         <item name="android:textColor">@color/buttongreentextcolor</item>
         <item name="android:textAllCaps">false</item>

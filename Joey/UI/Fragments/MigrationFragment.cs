@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Android.OS;
+using Android.Support.V7.App;
 using Android.Views;
 using Android.Widget;
 using Toggl.Joey.UI.Activities;
@@ -81,8 +82,6 @@ namespace Toggl.Joey.UI.Fragments
         private ImageView toggler1;
         private ImageView toggler2;
 
-        Action<bool> completionListener;
-
         public MigrationFragment()
         {
         }
@@ -91,14 +90,13 @@ namespace Toggl.Joey.UI.Fragments
         {
         }
 
-        public static MigrationFragment NewInstance(int oldVersion, Action<bool> completionListener)
+        public static MigrationFragment NewInstance(int oldVersion)
         {
             // TODO Block press back button from
             // this screen until migration is completed??
 
             var fragment = new MigrationFragment();
             fragment.oldVersion = oldVersion;
-            fragment.completionListener = completionListener;
             return fragment;
         }
 
@@ -123,22 +121,31 @@ namespace Toggl.Joey.UI.Fragments
         public override void OnViewCreated(View view, Bundle savedInstanceState)
         {
             base.OnViewCreated(view, savedInstanceState);
-
-            var platformUtils = ServiceContainer.Resolve<IPlatformUtils>();
-            Task.Run(() =>
+            setProgress(0);
+            MigrateDatabase();
+            tryAgainBtn.Click += (sender, e) =>
             {
-                var success = DatabaseHelper.Migrate(
-                                  platformUtils.SQLiteInfo, DatabaseHelper.GetDatabaseDirectory(),
-                                  oldVersion, SyncSqliteDataStore.DB_VERSION, setProgress);
-
-#if DEBUG // TODO: DELETE TEST CODE --------
-                System.Threading.Thread.Sleep(10000);
-#endif
-
-                platformUtils.DispatchOnUIThread(() => completionListener(success));
-
-            }).ConfigureAwait(false);
-
+                MigrateDatabase();
+                userTriedAgain = true;
+            };
+            discardBtn.Click += (sender, e) =>
+            {
+                // Show confirmation dialog!
+                var dialog = new AlertDialog.Builder(Activity)
+                .SetTitle(Resource.String.MigratingDiscardDialogTitle)
+                .SetMessage(Resource.String.MigratingDiscardDialogMsg)
+                .SetPositiveButton(Resource.String.MigratingDiscardConfirm, delegate
+                {
+                    // Reset DBs and state.
+                    // Set initial dummy data.
+                    DatabaseHelper.ResetToDBVersion(SyncSqliteDataStore.DB_VERSION);
+                    RxChain.Send(new DataMsg.ResetState());
+                    RxChain.Send(new DataMsg.NoUserDataPut());
+                })
+                .SetNegativeButton(Resource.String.MigratingDiscardCancel, delegate { })
+                .Create();
+                dialog.Show();
+            };
         }
 
         private void MigrateDatabase()
@@ -151,6 +158,11 @@ namespace Toggl.Joey.UI.Fragments
                                           oldVersion, newVersion,
                                           setProgress
                                       );
+
+#if DEBUG // TODO: DELETE TEST CODE --------
+                System.Threading.Thread.Sleep(1000);
+#endif
+
                 if (migrationResult)
                 {
                     BaseActivity.CurrentActivity.RunOnUiThread(() => DisplaySuccessState());
@@ -177,6 +189,8 @@ namespace Toggl.Joey.UI.Fragments
             topLabel.Text = Resources.GetString(Resource.String.MigratingUpdateTitle);
             descLabel.Text = Resources.GetString(Resource.String.MigratingUpdateDesc);
             progressBar.Visibility = ViewStates.Visible;
+            toggler1.Visibility = ViewStates.Visible;
+            percente.Visibility = ViewStates.Visible;
 
             toggler2.Visibility = ViewStates.Gone;
             tryAgainBtn.Visibility = ViewStates.Gone;
