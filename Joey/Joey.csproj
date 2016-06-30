@@ -882,6 +882,13 @@
     <Folder Include="Resources\drawable-ldpi\" />
     <Folder Include="Resources\anim\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Chandler\Chandler.csproj">
+      <IsAppExtension>true</IsAppExtension>
+      <Project>{76D0B75F-C05C-4852-A9AA-8151618256EF}</Project>
+      <Name>Chandler</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" />
   <Import Project="..\packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\dotnet\Fody.targets')" />
   <Import Project="..\packages\Xamarin.Insights.1.12.3\build\MonoAndroid10\Xamarin.Insights.targets" Condition="Exists('..\packages\Xamarin.Insights.1.12.3\build\MonoAndroid10\Xamarin.Insights.targets')" />

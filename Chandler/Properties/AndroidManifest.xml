@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.toggl.timer" android:installLocation="auto" android:versionName="8.1.2" android:versionCode="66">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.toggl.timer" android:installLocation="auto" android:versionName="8.1.5" android:versionCode="70">
 	<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="21" />
 	<application android:icon="@drawable/Icon" android:label="@string/EntryName"></application>
 </manifest>
