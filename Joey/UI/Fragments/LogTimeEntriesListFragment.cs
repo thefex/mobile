@@ -42,7 +42,6 @@ namespace Toggl.Joey.UI.Fragments
 
         // Recycler setup
         private DividerItemDecoration dividerDecoration;
-        private ShadowItemDecoration shadowDecoration;
         private ItemTouchListener itemTouchListener;
 
         // binding references
@@ -334,15 +333,12 @@ namespace Toggl.Joey.UI.Fragments
 
             // Decorations.
             dividerDecoration = new DividerItemDecoration(Activity, DividerItemDecoration.VerticalList);
-            shadowDecoration = new ShadowItemDecoration(Activity);
             recyclerView.AddItemDecoration(dividerDecoration);
-            recyclerView.AddItemDecoration(shadowDecoration);
             recyclerView.GetItemAnimator().ChangeDuration = 0;
         }
 
         private void ReleaseRecyclerView()
         {
-            recyclerView.RemoveItemDecoration(shadowDecoration);
             recyclerView.RemoveItemDecoration(dividerDecoration);
             recyclerView.RemoveOnItemTouchListener(itemTouchListener);
 
@@ -351,7 +347,6 @@ namespace Toggl.Joey.UI.Fragments
 
             itemTouchListener.Dispose();
             dividerDecoration.Dispose();
-            shadowDecoration.Dispose();
         }
 
         class ScrollListener : RecyclerView.OnScrollListener
