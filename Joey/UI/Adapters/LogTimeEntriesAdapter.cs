@@ -403,7 +403,12 @@ namespace Toggl.Joey.UI.Adapters
                 UndoLayout.Visibility = ViewStates.Visible;
                 PreUndoLayout.Visibility = ViewStates.Gone;
                 SwipeLayout.Visibility = ViewStates.Gone;
-                SwipeLayout.SetX(ItemView.Width);
+
+                // Set swipeview at the border
+                // of the screen.
+                var size = new Point();
+                BaseActivity.CurrentActivity.WindowManager.DefaultDisplay.GetSize(size);
+                SwipeLayout.SetX(size.X);
             }
             #endregion
 
