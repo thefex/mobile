@@ -39,6 +39,9 @@ app:
   - NUNIT_PATH: packages/NUnit.ConsoleRunner.3.2.0/tools/  
 
 trigger_map:
+- pattern: android**
+  is_pull_request_allowed: true
+  workflow: android
 - pattern: test**
   is_pull_request_allowed: true
   workflow: test
@@ -47,6 +50,27 @@ trigger_map:
   workflow: fallback
 
 workflows:
+  android:
+    description: |-
+      Workflow to run Android release
+    steps:
+    - script:
+        title: Replace secrets
+        inputs:
+        - content: |-
+            #!/bin/bash            
+            node build-android-secrets.js
+    - nuget-restore: {}
+    - xamarin-builder:
+        inputs:
+        - platform_filter: android
+    - sign-apk@0.9.6:
+        inputs:
+        - jarsigner_options: "-keypass $BITRISEIO_ANDROID_KEYSTORE_PRIVATE_KEY_PASSWORD"
+    envs:
+    - opts:
+        is_expand: true
+      BITRISE_XAMARIN_CONFIGURATION: Release   
   test:
     description: |-
       Workflow to run UnitTests
