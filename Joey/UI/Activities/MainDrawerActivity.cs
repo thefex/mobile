@@ -104,7 +104,7 @@ namespace Toggl.Joey.UI.Activities
                             .Observe(x => x.State.User)
                             .StartWith(StoreManager.Singleton.AppState.User)
                             .ObserveOn(SynchronizationContext.Current)
-            .DistinctUntilChanged(x => new {x.ApiToken})
+            .DistinctUntilChanged(x => x.ApiToken)
             .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
@@ -161,22 +161,6 @@ namespace Toggl.Joey.UI.Activities
             // Open Timer fragment.
             OpenPage(DrawerListAdapter.TimerPageId);
         }
-
-        /*
-        #if DEBUG // TODO: DELETE TEST CODE --------
-                bool firstTime = true;
-                private bool tryMigrateDatabase(IUserData userData)
-                {
-                    if (firstTime)
-                    {
-                        firstTime = false;
-                        MigrationFragment.CreateOldDbForTesting();
-                    }
-        #else
-                private bool tryMigrateDatabase(IUserData userData)
-                {
-        #endif
-        */
 
         private bool tryMigrateDatabase(IUserData userData)
         {

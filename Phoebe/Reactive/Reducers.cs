@@ -628,8 +628,12 @@ namespace Toggl.Phoebe.Reactive
             var tags = new Dictionary<Guid, ITagData>();
 
             userData = dataStore.Table<UserData>().FirstOrDefault();
+
+            // If user is not logged yet, just keep the current
+            // user state and show the welcome screen.
             if (userData == null)
-                Console.WriteLine("here!");
+                userData = new UserData();
+
             dataStore.Table<WorkspaceData>().ForEach(x => workspaces.Add(x.Id, x));
             dataStore.Table<WorkspaceUserData>().ForEach(x => workspaceUserData.Add(x.Id, x));
             dataStore.Table<ProjectData>().ForEach(x => projects.Add(x.Id, x));
