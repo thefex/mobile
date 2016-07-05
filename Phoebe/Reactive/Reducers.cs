@@ -627,7 +627,9 @@ namespace Toggl.Phoebe.Reactive
             var tasks = new Dictionary<Guid, ITaskData>();
             var tags = new Dictionary<Guid, ITagData>();
 
-            userData = dataStore.Table<UserData>().First();
+            userData = dataStore.Table<UserData>().FirstOrDefault();
+            if (userData == null)
+                Console.WriteLine("here!");
             dataStore.Table<WorkspaceData>().ForEach(x => workspaces.Add(x.Id, x));
             dataStore.Table<WorkspaceUserData>().ForEach(x => workspaceUserData.Add(x.Id, x));
             dataStore.Table<ProjectData>().ForEach(x => projects.Add(x.Id, x));

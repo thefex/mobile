@@ -15,57 +15,58 @@ namespace Toggl.Joey.UI.Fragments
 {
     public class MigrationFragment : Fragment
     {
-#if DEBUG // TODO: DELETE TEST CODE --------
-        private static void setupV0database(IPlatformUtils xplat)
-        {
-            var path = DatabaseHelper.GetDatabasePath(DatabaseHelper.GetDatabaseDirectory(), 0);
-            if (System.IO.File.Exists(path)) { System.IO.File.Delete(path); }
+        /*
+        #if DEBUG // TODO: DELETE TEST CODE --------
+                private static void setupV0database(IPlatformUtils xplat)
+                {
+                    var path = DatabaseHelper.GetDatabasePath(DatabaseHelper.GetDatabaseDirectory(), 0);
+                    if (System.IO.File.Exists(path)) { System.IO.File.Delete(path); }
 
-            using(var db = new SQLite.Net.SQLiteConnection(xplat.SQLiteInfo, path))
-            {
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.ClientData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.ProjectData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.ProjectUserData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TagData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TaskData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TimeEntryData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TimeEntryTagData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.UserData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.WorkspaceData>();
-                db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.WorkspaceUserData>();
-            }
-        }
+                    using(var db = new SQLite.Net.SQLiteConnection(xplat.SQLiteInfo, path))
+                    {
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.ClientData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.ProjectData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.ProjectUserData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TagData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TaskData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TimeEntryData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.TimeEntryTagData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.UserData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.WorkspaceData>();
+                        db.CreateTable<Phoebe.Data.Models.Old.DB_VERSION_0.WorkspaceUserData>();
+                    }
+                }
 
-        private static void insertIntoV0Database(IPlatformUtils xplat, params object[] objects)
-        {
-            var dbPath = DatabaseHelper.GetDatabasePath(DatabaseHelper.GetDatabaseDirectory(), 0);
-            using(var db = new SQLite.Net.SQLiteConnection(xplat.SQLiteInfo, dbPath))
-            {
-                db.InsertAll(objects);
-            }
-        }
+                private static void insertIntoV0Database(IPlatformUtils xplat, params object[] objects)
+                {
+                    var dbPath = DatabaseHelper.GetDatabasePath(DatabaseHelper.GetDatabaseDirectory(), 0);
+                    using(var db = new SQLite.Net.SQLiteConnection(xplat.SQLiteInfo, dbPath))
+                    {
+                        db.InsertAll(objects);
+                    }
+                }
 
-        public static void CreateOldDbForTesting()
-        {
-            var workspaceData = new Phoebe.Data.Models.Old.DB_VERSION_0.WorkspaceData
-            {
-                Id = Guid.NewGuid(),
-                Name = "the matrix",
-                BillableRatesVisibility = Phoebe.Data.Models.AccessLevel.Admin,
-                DefaultCurrency = "currency",
-                DefaultRate = null,
-                IsPremium = true,
-                LogoUrl = "http://toggl.com",
-                ProjectCreationPrivileges = Phoebe.Data.Models.AccessLevel.Regular,
-                RoundingMode = RoundingMode.Down,
-                RoundingPercision = 1
-            };
+                public static void CreateOldDbForTesting()
+                {
+                    var workspaceData = new Phoebe.Data.Models.Old.DB_VERSION_0.WorkspaceData
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = "the matrix",
+                        BillableRatesVisibility = Phoebe.Data.Models.AccessLevel.Admin,
+                        DefaultCurrency = "currency",
+                        DefaultRate = null,
+                        IsPremium = true,
+                        LogoUrl = "http://toggl.com",
+                        ProjectCreationPrivileges = Phoebe.Data.Models.AccessLevel.Regular,
+                        RoundingMode = RoundingMode.Down,
+                        RoundingPercision = 1
+                    };
 
-            var xplat = ServiceContainer.Resolve<IPlatformUtils>();
-            setupV0database(xplat);
-            insertIntoV0Database(xplat, workspaceData);
-        }
-#endif
+                    var xplat = ServiceContainer.Resolve<IPlatformUtils>();
+                    setupV0database(xplat);
+                    insertIntoV0Database(xplat, workspaceData);
+                }
+        #endif */
 
         private int oldVersion;
         private bool userTriedAgain;
@@ -157,10 +158,10 @@ namespace Toggl.Joey.UI.Fragments
                                           oldVersion, SyncSqliteDataStore.DB_VERSION,
                                           setProgress
                                       );
-
-#if DEBUG // TODO: DELETE TEST CODE --------
-                System.Threading.Thread.Sleep(5000);
-#endif
+                /*
+                #if DEBUG // TODO: DELETE TEST CODE --------
+                                System.Threading.Thread.Sleep(5000);
+                #endif */
 
                 if (migrationResult)
                 {
