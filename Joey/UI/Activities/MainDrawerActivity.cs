@@ -104,7 +104,7 @@ namespace Toggl.Joey.UI.Activities
                             .Observe(x => x.State.User)
                             .StartWith(StoreManager.Singleton.AppState.User)
                             .ObserveOn(SynchronizationContext.Current)
-            .DistinctUntilChanged(x => new {x.ApiToken, x.Id})
+            .DistinctUntilChanged(x => new {x.ApiToken})
             .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
