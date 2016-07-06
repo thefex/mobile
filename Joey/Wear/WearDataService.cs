@@ -129,7 +129,7 @@ namespace Toggl.Joey.Wear
                     if (path == Common.StartStopTimeEntryPath)
                     {
 
-                        await WearDataProvider.StartStopTimeEntry(BaseContext);
+                        WearDataProvider.StartStopTimeEntry(BaseContext);
                         await UpdateSharedTimeEntryList();
                     }
                     else if (path == Common.ContinueTimeEntryPath)
@@ -193,9 +193,9 @@ namespace Toggl.Joey.Wear
 
         public async Task UpdateSharedTimeEntryList()
         {
-            entryData = await WearDataProvider.GetTimeEntryData();
+            entryData = WearDataProvider.GetTimeEntryData();
 
-            mapReq = PutDataMapRequest.Create(Common.TimeEntryListPath);
+            mapReq = PutDataMapRequest.Create(Common.TimeEntryListPath).SetUrgent();
 
             currentDataMap = new List<DataMap> ();
 
@@ -213,7 +213,7 @@ namespace Toggl.Joey.Wear
             {
                 foreach (var node in clientNodes)
                 {
-                    WearableClass.DataApi.PutDataItem(googleApiClient, mapReq.AsPutDataRequest());
+                    WearableClass.DataApi.PutDataItem(googleApiClient, mapReq.AsPutDataRequest().SetUrgent());
                 }
             });
         }

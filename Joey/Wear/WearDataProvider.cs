@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Android.Content;
 using Toggl.Phoebe.Analytics;
+using Toggl.Phoebe.Data;
+using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Reactive;
 using XPlatUtils;
 
 namespace Toggl.Joey.Wear
@@ -11,74 +15,75 @@ namespace Toggl.Joey.Wear
     {
         private const int itemCount = 10;
 
-        public static async Task StartStopTimeEntry(Context ctx)
+        public static void StartStopTimeEntry(Context ctx)
         {
-            await Task.Delay(5);
-            /*
-            var manager = ServiceContainer.Resolve<ActiveTimeEntryManager> ();
-            var active = manager.ActiveTimeEntry;
-            if (manager.ActiveTimeEntry.State == TimeEntryState.Running) {
-                await TimeEntryModel.StopAsync (active);
-                ServiceContainer.Resolve<ITracker> ().SendTimerStopEvent (TimerStopSource.Watch);
-            } else {
-                active.Description = ctx.Resources.GetString (Resource.String.WearEntryDefaultDescription);
-                await TimeEntryModel.StartAsync (active);
-                ServiceContainer.Resolve<ITracker> ().SendTimerStartEvent (TimerStartSource.WatchStart);
+            //await Task.Delay(5);//??
+            var active = StoreManager.Singleton.AppState.ActiveEntry;
+            if (active.Data.State == TimeEntryState.Running)
+            {
+                RxChain.Send(new DataMsg.TimeEntryStop(active.Data));
+                ServiceContainer.Resolve<ITracker> ().SendTimerStopEvent(TimerStopSource.Watch);
             }
-            */
+            else
+            {
+                active.Data.With(t =>
+                {
+                    t.Description = ctx.Resources.GetString(Resource.String.WearEntryDefaultDescription);
+                });
+
+                var tcs = new TaskCompletionSource<ITimeEntryData>();
+
+                RxChain.Send(new DataMsg.TimeEntryStart(), new RxChain.Continuation((state) =>
+                {
+                    ServiceContainer.Resolve<ITracker>().SendTimerStartEvent(TimerStartSource.AppNew);
+                    tcs.SetResult(StoreManager.Singleton.AppState.ActiveEntry.Data);
+                }));
+            }
         }
 
-        public static async Task ContinueTimeEntry(Guid timeEntryId)
+        public static void ContinueTimeEntry(Guid timeEntryId)
         {
-            //var entryModel = new TimeEntryModel (timeEntryId);
-            //await TimeEntryModel.StartAsync (entryModel.Data);
-            ServiceContainer.Resolve<ITracker> ().SendTimerStartEvent(TimerStartSource.WatchContinue);
+            RichTimeEntry richEntry;
+            StoreManager.Singleton.AppState.TimeEntries.TryGetValue(timeEntryId, out richEntry);
+            RxChain.Send(new DataMsg.TimeEntryContinue(richEntry.Data));
+            ServiceContainer.Resolve<ITracker>().SendTimerStartEvent(TimerStartSource.AppContinue);
         }
 
-        public static async Task<List<SimpleTimeEntryData>> GetTimeEntryData()
+        public static List<SimpleTimeEntryData> GetTimeEntryData()
         {
-            /*
-            var store = ServiceContainer.Resolve<IDataStore> ();
-            var userId = Guid.Empty; //ServiceContainer.Resolve<AuthManager> ().GetUserId ();
+            var entries = StoreManager.Singleton.AppState.TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Finished).OrderByDescending(x => x.Data.StartTime);
 
-            var entries = await store.Table<TimeEntryData>()
-                          .Where (r => r.State != TimeEntryState.New
-                                  && r.DeletedAt == null
-                                  && r.UserId == userId)
-                          .OrderByDescending (r => r.StartTime)
-                          .ToListAsync();
 
-            var uniqueEntries = entries.GroupBy (x  => new {x.ProjectId, x.Description })
-            .Select (grp => grp.First())
-            .Take (itemCount)
+            var uniqueEntries = entries.GroupBy(x  => new {x.Data.ProjectId, x.Data.Description })
+            .Select(grp => grp.First())
+            .Take(itemCount)
             .ToList();
 
             var simpleEntries = new List<SimpleTimeEntryData> ();
-            foreach (var entry in uniqueEntries) {
-                var model = new TimeEntryModel (entry);
-                await model.LoadAsync();
+            foreach (var entry in uniqueEntries)
+            {
 
                 int color = 0;
                 String projectName = "";
-                if (model.Project != null) {
-                    color = model.Project.Color;
-                    projectName = model.Project.Name;
+                if (entry.Info.ProjectData != null)
+                {
+                    color = entry.Info.ProjectData.Color;
+                    projectName = entry.Info.ProjectData.Name;
                 }
-                var colorString = ProjectModel.HexColors [color % ProjectModel.HexColors.Length];
-
-                simpleEntries.Add (
-                new SimpleTimeEntryData {
-                    Id = entry.Id,
-                    IsRunning = entry.State == TimeEntryState.Running,
-                    Description = entry.Description,
-                    Project = projectName,
+                var colorString = ProjectData.HexColors [color % ProjectData.HexColors.Length];
+                simpleEntries.Add(
+                    new SimpleTimeEntryData
+                {
+                    Id = entry.Data.Id,
+                    IsRunning = entry.Data.State == TimeEntryState.Running,
+                    Description = entry.Data.Description,
+                    Project = entry.Info.ProjectData.Name,
                     ProjectColor = colorString,
-                    StartTime = entry.StartTime,
-                    StopTime = entry.StopTime ?? DateTime.MinValue
+                    StartTime = entry.Data.StartTime,
+                    StopTime = entry.Data.StopTime ?? DateTime.MinValue
                 });
             }
-            */
-            return new List<SimpleTimeEntryData>();
+            return simpleEntries;
         }
     }
 }

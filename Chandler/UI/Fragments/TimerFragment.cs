@@ -95,7 +95,6 @@ namespace Toggl.Chandler.UI.Fragments
 
             switch (CurrentState)
             {
-
                 case TimerState.New:
                     ButtonColor = Color.ParseColor(greenButtonColor);
                     ActionButton.SetImageDrawable(context.Resources.GetDrawable(Resource.Drawable.IcPlay));
