@@ -167,11 +167,6 @@ namespace Toggl.Phoebe.Reactive
                        color);
         }
 
-        public IEnumerable<IProjectData> GetUserAccessibleProjects(Guid userId) => 
-            Projects.Values.Where(p => p.IsActive &&
-                       (p.IsPrivate || ProjectUsers.Values.Any(x => x.ProjectId == p.Id && x.UserId == userId)))
-                    .OrderBy(p => p.Name);
-
         public ITimeEntryData GetTimeEntryDraft()
         {
             var userId = User.Id;
@@ -281,8 +276,8 @@ namespace Toggl.Phoebe.Reactive
         {
         }
 
-        public override int GetHashCode() => 
-            Data.GetHashCode();
+        public override int GetHashCode() =>
+        Data.GetHashCode();
 
         public override bool Equals(object obj)
         {
@@ -467,9 +462,9 @@ namespace Toggl.Phoebe.Reactive
             return initDefault();
         }
 
-        static SettingsState initLoadSettings() => 
-            Newtonsoft.Json.JsonConvert.DeserializeObject<SettingsState>(
-                Settings.SerializedSettings, Settings.GetNonPublicPropertiesResolverSettings());
+        static SettingsState initLoadSettings() =>
+        Newtonsoft.Json.JsonConvert.DeserializeObject<SettingsState>(
+            Settings.SerializedSettings, Settings.GetNonPublicPropertiesResolverSettings());
 
         static SettingsState initDefault() => new SettingsState();
 

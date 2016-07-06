@@ -61,33 +61,37 @@ namespace Toggl.Phoebe.ViewModels
             uiContext = SynchronizationContext.Current;
             ResetCollection(appState.Settings.GroupedEntries);
 
+            // Detect changes on Settings or
+            // in the current server request.
             subscriptionState = StoreManager
                                 .Singleton
                                 .Observe(x => x.State)
                                 .ObserveOn(uiContext)
                                 .StartWith(appState)
-                .DistinctUntilChanged(state => new { state.RequestInfo, state.Settings})
-                .SubscribeOn(TaskPoolScheduler.Default)
-                .Subscribe(x => UpdateSettingsAndRequestInfo(x.Settings, x.RequestInfo));
+            .DistinctUntilChanged(state => new { state.RequestInfo, state.Settings})
+            .SubscribeOn(TaskPoolScheduler.Default)
+            .Subscribe(x => UpdateSettingsAndRequestInfo(x.Settings, x.RequestInfo));
 
+            // Detect if exist a running
+            // time entry.
             subscriptionTimeEntries = StoreManager
-                .Singleton
-                .Observe(x => x.State)
-                .ObserveOn(uiContext)
-                .StartWith(appState)
-                .Select(state => state.TimeEntries.Values.Where(e => e.Data.State == TimeEntryState.Running))
-                .DistinctUntilChanged(x => x.Count())
-                .SubscribeOn(TaskPoolScheduler.Default)
-                .Subscribe(CheckActiveEntries);
+                                      .Singleton
+                                      .Observe(x => x.State)
+                                      .ObserveOn(uiContext)
+                                      .StartWith(appState)
+                                      .Select(state => state.TimeEntries.Values.Where(e => e.Data.State == TimeEntryState.Running))
+                                      .DistinctUntilChanged(x => x.Count())
+                                      .SubscribeOn(TaskPoolScheduler.Default)
+                                      .Subscribe(UpdateActiveEntry);
 
             // TODO: Rx find a better solution to force
             // an inmediate update using Rx code.
             UpdateSettingsAndRequestInfo(appState.Settings, appState.RequestInfo);
 
             TimerObservable = Observable
-                                .Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond), TimeSpan.FromSeconds(1))
-                                .ObserveOn(uiContext);
-            
+                              .Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond), TimeSpan.FromSeconds(1))
+                              .ObserveOn(uiContext);
+
             durationSubscriber = TimerObservable.Subscribe(x => UpdateDuration());
 
             // The ViewModel is created and start to load
@@ -112,8 +116,8 @@ namespace Toggl.Phoebe.ViewModels
             subscriptionTimeEntries?.Dispose();
         }
 
-        public void TriggerFullSync() => 
-            RxChain.Send(new ServerRequest.GetChanges());
+        public void TriggerFullSync() =>
+        RxChain.Send(new ServerRequest.GetChanges());
 
         public void LoadMore()
         {
@@ -180,11 +184,11 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
-        public bool IsInExperiment() => 
-            OBMExperimentManager.IncludedInExperiment(StoreManager.Singleton.AppState.User);
+        public bool ExperimentShouldBeShown =>
+        OBMExperimentManager.IncludedInExperiment(StoreManager.Singleton.AppState.User);
 
-        public bool WelcomeScreenShouldBeShown => 
-            StoreManager.Singleton.AppState.Settings.ShowWelcome;
+        public bool WelcomeScreenShouldBeShown =>
+        StoreManager.Singleton.AppState.Settings.ShowWelcome;
 
         #endregion
 
@@ -218,29 +222,21 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
-        private void CheckActiveEntries(IEnumerable<RichTimeEntry> activeEntries)
+        private void UpdateActiveEntry(IEnumerable<RichTimeEntry> activeEntries)
         {
-            // this should never happen, however a user reported the case  
+            // this should never happen, however a user reported the case
             // TODO delete once the bug gets fixed
             var ordered = activeEntries.OrderByDescending(x => x.Data.StartTime);
             if (ordered.Count() > 1)
             {
-                var wrongEntries = ordered.Skip(1).ToList();
-                foreach (var entry in wrongEntries)
-                {
-                    RxChain.Send(new DataMsg.TimeEntryStop(entry.Data));
-                }
-
+                // Try to stop extra running time entries.
+                ordered.Skip(1).ForEach(entry => RxChain.Send(new DataMsg.TimeEntryStop(entry.Data)));
                 logger = logger ?? ServiceContainer.Resolve<ILogger>();
                 logger.Error(nameof(LogTimeEntriesVM), "More than one active entry detected");
             }
 
-            ActiveEntry = ordered.FirstOrDefault();
-
-            IsEntryRunning = ActiveEntry != null;
-
-            ActiveEntry = ActiveEntry ?? new RichTimeEntry(new TimeEntryData(), StoreManager.Singleton.AppState);
-
+            ActiveEntry = ordered.FirstOrDefault() ?? new RichTimeEntry(new TimeEntryData(), StoreManager.Singleton.AppState);
+            IsEntryRunning = ActiveEntry.Data.State == TimeEntryState.Running;
             UpdateDuration();
         }
 
@@ -248,7 +244,7 @@ namespace Toggl.Phoebe.ViewModels
         {
             if (IsEntryRunning)
             {
-                Duration = string.Format("{0:D2}:{1:mm}:{1:ss}", 
+                Duration = string.Format("{0:D2}:{1:mm}:{1:ss}",
                                          (int)ActiveEntry.Data.GetDuration().TotalHours, ActiveEntry.Data.GetDuration());
             }
             else

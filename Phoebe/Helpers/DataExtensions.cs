@@ -397,6 +397,6 @@ namespace Toggl.Phoebe.Helpers
         }
 
         public static RichTimeEntry FindActiveEntry(this IReadOnlyDictionary<Guid, RichTimeEntry> list) =>
-            list.Values.FirstOrDefault(x => x.Data.State == TimeEntryState.Running && x.Data.Id != Guid.Empty);
+        list.Values.FirstOrDefault(x => x.Data.State == TimeEntryState.Running && x.Data.Id != Guid.Empty);
     }
 }

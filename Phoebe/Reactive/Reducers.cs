@@ -514,7 +514,7 @@ namespace Toggl.Phoebe.Reactive
             {
                 // Stop ActiveEntry if necessary
                 var activeEntry = state.TimeEntries.FindActiveEntry();
-                if(activeEntry != null)
+                if (activeEntry != null)
                 {
                     ctx.Put(activeEntry.Data.With(x =>
                     {

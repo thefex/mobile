@@ -369,7 +369,7 @@ namespace Toggl.Ross.ViewControllers
             UIView emptyView = defaultEmptyView; // Default empty view.
             var showWelcome = ViewModel.WelcomeScreenShouldBeShown;
             var hasItems = ViewModel.Collection.Count > 0;
-            var isInExperiment = ViewModel.IsInExperiment();
+            var isInExperiment = ViewModel.ExperimentShouldBeShown;
 
             // According to settings, show welcome message or no.
             ((SimpleEmptyView)emptyView).Title = showWelcome ? "LogWelcomeTitle".Tr() : "LogEmptyTitle".Tr();
@@ -382,11 +382,11 @@ namespace Toggl.Ross.ViewControllers
             tableView.TableFooterView = hasItems ? new UIView() : emptyView;
         }
 
-        private void OnCountinueTimeEntry(int index) => 
-            ViewModel.ContinueTimeEntry(index);
+        private void OnCountinueTimeEntry(int index) =>
+        ViewModel.ContinueTimeEntry(index);
 
         private void OnTryAgainBtnPressed() =>
-            ViewModel.LoadMore();
+        ViewModel.LoadMore();
 
         private void OnNavigationBtnPressed(object sender, EventArgs e)
         {
@@ -394,8 +394,8 @@ namespace Toggl.Ross.ViewControllers
             main.ToggleMenu();
         }
 
-        private void OnStatusRetryBtnPressed() => 
-            ViewModel.TriggerFullSync();
+        private void OnStatusRetryBtnPressed() =>
+        ViewModel.TriggerFullSync();
 
         private void ShowConstrainError(Tuple<string, Guid> lastErrorInfo)
         {
