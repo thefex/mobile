@@ -42,10 +42,10 @@ namespace Toggl.Joey.UI.Fragments
 
         // Recycler setup
         private DividerItemDecoration dividerDecoration;
-        private ShadowItemDecoration shadowDecoration;
         private ItemTouchListener itemTouchListener;
 
         // binding references
+        private Binding<string, string> durationBinding;
         private Binding<bool, bool> newMenuBinding, isSyncingBinding;
         private Binding<int, int> hasItemsBinding;
         private Binding<LogTimeEntriesVM.LoadInfoType, LogTimeEntriesVM.LoadInfoType> loadInfoBinding;
@@ -102,6 +102,7 @@ namespace Toggl.Joey.UI.Fragments
             isSyncingBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(SetSyncState);
             hasItemsBinding = this.SetBinding(() => ViewModel.Collection.Count).WhenSourceChanges(SetCollectionState);
             loadInfoBinding = this.SetBinding(() => ViewModel.LoadInfo).WhenSourceChanges(SetFooterState);
+            durationBinding = this.SetBinding(() => ViewModel.Duration).WhenSourceChanges(SetDuration);
             fabBinding = this.SetBinding(() => ViewModel.IsEntryRunning, () => StartStopBtn.ButtonAction)
                          .ConvertSourceToTarget(isRunning => isRunning ? FABButtonState.Stop : FABButtonState.Start);
 
@@ -269,6 +270,25 @@ namespace Toggl.Joey.UI.Fragments
             }
         }
 
+        private void SetDuration()
+        {
+            // Update recycler holders from outside.
+            var layoutManager = (LinearLayoutManager)recyclerView.GetLayoutManager();
+            var start = layoutManager.FindFirstVisibleItemPosition();
+            var end = layoutManager.FindLastVisibleItemPosition();
+
+            for (int i = start; i < end + 1; i++)
+            {
+                var holder = recyclerView.FindViewHolderForLayoutPosition(i);
+                if (holder is IDurationHolder)
+                {
+                    var tHolder = (IDurationHolder)holder;
+                    tHolder.UpdateDuration();
+                }
+            }
+
+        }
+
         private void SetFooterState()
         {
             var info = ViewModel.LoadInfo;
@@ -334,15 +354,12 @@ namespace Toggl.Joey.UI.Fragments
 
             // Decorations.
             dividerDecoration = new DividerItemDecoration(Activity, DividerItemDecoration.VerticalList);
-            shadowDecoration = new ShadowItemDecoration(Activity);
             recyclerView.AddItemDecoration(dividerDecoration);
-            recyclerView.AddItemDecoration(shadowDecoration);
             recyclerView.GetItemAnimator().ChangeDuration = 0;
         }
 
         private void ReleaseRecyclerView()
         {
-            recyclerView.RemoveItemDecoration(shadowDecoration);
             recyclerView.RemoveItemDecoration(dividerDecoration);
             recyclerView.RemoveOnItemTouchListener(itemTouchListener);
 
@@ -351,7 +368,6 @@ namespace Toggl.Joey.UI.Fragments
 
             itemTouchListener.Dispose();
             dividerDecoration.Dispose();
-            shadowDecoration.Dispose();
         }
 
         class ScrollListener : RecyclerView.OnScrollListener

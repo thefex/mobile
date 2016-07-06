@@ -18,6 +18,11 @@ using XPlatUtils;
 
 namespace Toggl.Joey.UI.Adapters
 {
+    public interface IDurationHolder
+    {
+        void UpdateDuration();
+    }
+
     public class LogTimeEntriesAdapter : RecyclerCollectionDataAdapter<IHolder>, IUndoAdapter
     {
         public const int ViewTypeDateHeader = ViewTypeContent + 1;
@@ -53,13 +58,6 @@ namespace Toggl.Joey.UI.Adapters
             viewModel.ContinueTimeEntry(viewHolder.AdapterPosition);
         }
 
-        public bool IsNoUserMode
-        {
-            get
-            {
-                return viewModel.IsNoUserMode;
-            }
-        }
         protected override RecyclerView.ViewHolder GetViewHolder(ViewGroup parent, int viewType)
         {
             View view;
@@ -91,7 +89,7 @@ namespace Toggl.Joey.UI.Adapters
             var timeEntryListItemHolder = holder as TimeEntryListItemHolder;
             if (timeEntryListItemHolder != null)
             {
-                timeEntryListItemHolder.Bind((ITimeEntryHolder) GetItem(position));
+                timeEntryListItemHolder.Bind((ITimeEntryHolder) GetItem(position), viewModel.IsNoUserMode);
                 // Set correct Undo state.
                 if (position == lastUndoIndex)
                 {
@@ -132,14 +130,6 @@ namespace Toggl.Joey.UI.Adapters
             }
             footerState = state;
             NotifyItemChanged(ItemCount - 1);
-        }
-
-        public static bool isNoUserMode
-        {
-            get
-            {
-                return String.IsNullOrEmpty(StoreManager.Singleton.AppState.User.ApiToken);
-            }
         }
 
         #region IUndo interface implementation
@@ -223,13 +213,11 @@ namespace Toggl.Joey.UI.Adapters
             return new FooterHolder(view, viewModel);
         }
 
-        [Shadow(ShadowAttribute.Mode.Top | ShadowAttribute.Mode.Bottom)]
-        public class HeaderListItemHolder : RecyclerView.ViewHolder
+        public class HeaderListItemHolder : RecyclerView.ViewHolder, IDurationHolder
         {
             public TextView DateGroupTitleTextView { get; private set; }
             public TextView DateGroupDurationTextView { get; private set; }
 
-            private Timer timer;
             private bool isRunning;
             private TimeSpan duration;
             private DateTime date;
@@ -252,33 +240,21 @@ namespace Toggl.Joey.UI.Adapters
                 SetContentData();
             }
 
-            private void SetContentData()
+            public void UpdateDuration()
             {
-                if (timer != null)
-                {
-                    timer.Stop();
-                    timer.Elapsed -= OnDurationElapsed;
-                    timer = null;
-                }
-
                 if (isRunning)
                 {
-                    timer = new Timer(60000 - duration.Seconds * 1000 - duration.Milliseconds);
-                    timer.Elapsed += OnDurationElapsed;
-                    timer.Start();
+                    duration = duration.Add(TimeSpan.FromSeconds(1));
+                    SetContentData();
                 }
-
-                DateGroupTitleTextView.Text = GetRelativeDateString(date);
-                DateGroupDurationTextView.Text = FormatDuration(duration);
             }
 
-            private void OnDurationElapsed(object sender, ElapsedEventArgs e)
+            private void SetContentData()
             {
-                // Update duration with new time.
-                duration = duration.Add(TimeSpan.FromMilliseconds(timer.Interval));
                 BaseActivity.CurrentActivity.RunOnUiThread(() =>
                 {
-                    SetContentData();
+                    DateGroupTitleTextView.Text = GetRelativeDateString(date);
+                    DateGroupDurationTextView.Text = FormatDuration(duration);
                 });
             }
 
@@ -319,28 +295,14 @@ namespace Toggl.Joey.UI.Adapters
                 }
                 return string.Empty;
             }
-
-            protected override void Dispose(bool disposing)
-            {
-                if (disposing)
-                {
-                    if (timer != null)
-                    {
-                        timer.Stop();
-                        timer.Elapsed -= OnDurationElapsed;
-                        timer = null;
-                    }
-                }
-                base.Dispose(disposing);
-            }
         }
 
-        private class TimeEntryListItemHolder : RecyclerView.ViewHolder, View.IOnTouchListener
+        private class TimeEntryListItemHolder : RecyclerView.ViewHolder, View.IOnTouchListener, IDurationHolder
         {
             private readonly LogTimeEntriesAdapter owner;
-            private Timer timer;
             private bool isRunning;
             private TimeSpan duration;
+            private DateTime startTime;
 
             public View ColorView { get; private set; }
             public TextView ProjectTextView { get; private set; }
@@ -441,11 +403,16 @@ namespace Toggl.Joey.UI.Adapters
                 UndoLayout.Visibility = ViewStates.Visible;
                 PreUndoLayout.Visibility = ViewStates.Gone;
                 SwipeLayout.Visibility = ViewStates.Gone;
-                SwipeLayout.SetX(ItemView.Width);
+
+                // Set swipeview at the border
+                // of the screen.
+                var size = new Point();
+                BaseActivity.CurrentActivity.WindowManager.DefaultDisplay.GetSize(size);
+                SwipeLayout.SetX(size.X);
             }
             #endregion
 
-            public void Bind(ITimeEntryHolder datasource)
+            public void Bind(ITimeEntryHolder datasource, bool isNoUserMode = false)
             {
                 if (datasource == null || Handle == IntPtr.Zero)
                 {
@@ -456,7 +423,7 @@ namespace Toggl.Joey.UI.Adapters
                 var entryData = datasource.Entry.Data;
                 var ctx = ServiceContainer.Resolve<Context> ();
 
-                if (((LogTimeEntriesAdapter)owner).IsNoUserMode || (entryData.RemoteId.HasValue && entryData.SyncState == SyncState.Synced))
+                if (isNoUserMode || (entryData.RemoteId.HasValue && entryData.SyncState == SyncState.Synced))
                 {
                     NotSyncedView.Visibility = ViewStates.Gone;
                 }
@@ -542,49 +509,24 @@ namespace Toggl.Joey.UI.Adapters
                 TagsView.Visibility = numberOfTags > 0 ? ViewStates.Visible : ViewStates.Gone;
 
                 // Set duration
+                startTime = datasource.GetStartTime();
                 duration = datasource.GetDuration();
                 isRunning = datasource.Entry.Data.State == TimeEntryState.Running;
                 RebindDuration();
             }
 
-            private void RebindDuration()
+            public void UpdateDuration()
             {
-                if (timer != null)
-                {
-                    timer.Stop();
-                    timer.Elapsed -= OnDurationElapsed;
-                    timer = null;
-                }
-
                 if (isRunning)
                 {
-                    timer = new Timer(1000 - duration.Milliseconds);
-                    timer.Elapsed += OnDurationElapsed;
-                    timer.Start();
+                    duration = Time.UtcNow.Truncate(TimeSpan.TicksPerSecond) - startTime.ToUtc();
                 }
-
-                DurationTextView.Text = TimeEntryData.GetFormattedDuration(duration);
+                RebindDuration();
             }
 
-            private void OnDurationElapsed(object sender, ElapsedEventArgs e)
+            private void RebindDuration()
             {
-                // Update duration with new time.
-                duration = duration.Add(TimeSpan.FromMilliseconds(timer.Interval));
-                BaseActivity.CurrentActivity.RunOnUiThread(() => RebindDuration());
-            }
-
-            protected override void Dispose(bool disposing)
-            {
-                if (disposing)
-                {
-                    if (timer != null)
-                    {
-                        timer.Stop();
-                        timer.Elapsed -= OnDurationElapsed;
-                        timer = null;
-                    }
-                }
-                base.Dispose(disposing);
+                DurationTextView.Text = string.Format("{0:D2}:{1:mm}:{1:ss}", (int)duration.TotalHours, duration);
             }
         }
 
