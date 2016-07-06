@@ -40,7 +40,7 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <AndroidLinkMode>Full</AndroidLinkMode>
-    <AndroidLinkSkip>Phoebe;Joey;System.Reactive.Core;System.Reactive.Linq;</AndroidLinkSkip>
+    <AndroidLinkSkip>Phoebe;Joey;System.Reactive.Core;System.Reactive.Linq;AutoMapper;</AndroidLinkSkip>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <DebugType>full</DebugType>
     <RunCodeAnalysis>false</RunCodeAnalysis>
