@@ -149,8 +149,8 @@
     <string name="SettingsGeneralMobileTagDesc">Automatically tag created time entries with \"mobile\" tag.</string>
     <string name="SettingsGeneralGroupedEntriesTitle">Grouped entries</string>
     <string name="SettingsGeneralGroupedEntriesDesc">Group similar time entries as a single item.</string>
-    <string name="SettingsGeneralShowNotificationTitle">Running entry notification</string>
-    <string name="SettingsGeneralShowNotificationDesc">Show the running entry as a notification.</string>
+    <string name="SettingsGeneralRunningNotificationTitle">Running entry notification</string>
+    <string name="SettingsGeneralRunningNotificationDesc">Show the running entry as a notification.</string>
     <string name="SettingsClearNoUserData">Clear data</string>
     <string name="SettingsClearDataTitle">Are you sure?</string>
     <string name="SettingsClearDataText">All current data will be lost.</string>

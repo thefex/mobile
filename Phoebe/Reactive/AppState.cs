@@ -411,7 +411,7 @@ namespace Toggl.Phoebe.Reactive
         private static readonly bool RossReadDurOnlyNoticeDefault;
         // Android only Default values
         private static readonly bool IdleNotificationDefault = true;
-        private static readonly bool ShowNotificationDefault = true;
+        private static readonly bool RunningNotificationDefault = true;
 
 
         // Common values
@@ -431,7 +431,7 @@ namespace Toggl.Phoebe.Reactive
         public bool RossReadDurOnlyNotice { get; private set; }
         // Android only  values
         public bool IdleNotification { get; private set; }
-        public bool ShowNotification { get; private set; }
+        public bool RunningNotification { get; private set; }
 
         private SettingsState()
         {
@@ -450,7 +450,7 @@ namespace Toggl.Phoebe.Reactive
             RossReadDurOnlyNotice = RossReadDurOnlyNoticeDefault;
             // Android only  values
             IdleNotification = IdleNotificationDefault;
-            ShowNotification = ShowNotificationDefault;
+            RunningNotification = RunningNotificationDefault;
         }
 
         public static SettingsState Init()
@@ -485,7 +485,7 @@ namespace Toggl.Phoebe.Reactive
             DateTime? rossIgnoreSyncErrorsUntil = null,
             // Android only  values
             bool? idleNotification = null,
-            bool? showNotification = null,
+            bool? runningNotification = null,
             bool? showWelcome = null)
         {
             // TODO: Maybe it makes more sense for this to call initDefault()?
@@ -507,7 +507,7 @@ namespace Toggl.Phoebe.Reactive
             copy.RossReadDurOnlyNotice = rossReadDurOnlyNotice ?? copy.RossReadDurOnlyNotice;
             // Android only  values
             copy.IdleNotification = idleNotification ?? copy.IdleNotification;
-            copy.ShowNotification = showNotification ?? copy.ShowNotification;
+            copy.RunningNotification = runningNotification ?? copy.RunningNotification;
             copy.ShowWelcome = showWelcome ?? copy.ShowWelcome;
 
             // Save new copy serialized

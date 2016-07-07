@@ -29,7 +29,7 @@ namespace Toggl.Phoebe.ViewModels
 
         #region exposed UI properties
 
-        public bool ShowNotification { get; private set; }
+        public bool RunningNotification { get; private set; }
         public bool IdleNotification { get; private set; }
         public bool ChooseProjectForNew { get; private set; }
         public bool UseDefaultTag { get; private set; }
@@ -39,9 +39,9 @@ namespace Toggl.Phoebe.ViewModels
 
         #region public methods
 
-        public void SetShowNotification(bool value)
+        public void SetRunningNotification(bool value)
         {
-            setSetting(nameof(SettingsState.ShowNotification), value);
+            setSetting(nameof(SettingsState.RunningNotification), value);
         }
         public void SetIdleNotification(bool value)
         {
@@ -64,7 +64,7 @@ namespace Toggl.Phoebe.ViewModels
 
         private void stateUpdated(SettingsState settings)
         {
-            ShowNotification = settings.ShowNotification;
+            RunningNotification = settings.RunningNotification;
             IdleNotification = settings.IdleNotification;
             ChooseProjectForNew = settings.ChooseProjectForNew;
             UseDefaultTag = settings.UseDefaultTag;

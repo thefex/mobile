@@ -55,8 +55,8 @@ namespace Toggl.Phoebe.Analytics
                 case SettingName.GroupedTimeEntries:
                     label = "GroupedTimeEntries";
                     break;
-                case SettingName.ShowNotification:
-                    label = "ShowNotification";
+                case SettingName.RunningNotification:
+                    label = "RunningNotification";
                     break;
                 default:
 #if DEBUG
