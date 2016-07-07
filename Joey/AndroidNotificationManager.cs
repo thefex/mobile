@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
 using Android.App;
@@ -25,13 +25,13 @@ namespace Toggl.Joey
         private readonly string emptyDescription;
         private readonly NotificationCompat.Builder runningBuilder;
         private readonly NotificationCompat.Builder idleBuilder;
-        private IDisposable subscriptionTimeEntries, subscriptionSettings, subsriptionEntry;
+        private IDisposable subscriptionTimeEntries, subscriptionSettings;
         private readonly SynchronizationContext uiContext;
 
         public AndroidNotificationManager()
         {
             uiContext = SynchronizationContext.Current;
-            ctx = ServiceContainer.Resolve<Context> ();
+            ctx = ServiceContainer.Resolve<Context>();
             notificationManager = (NotificationManager)ctx.GetSystemService(Context.NotificationService);
             runningBuilder = CreateRunningNotificationBuilder(ctx);
             idleBuilder = CreateIdleNotificationBuilder(ctx);
@@ -44,8 +44,8 @@ namespace Toggl.Joey
                                       .Observe(x => x.State.TimeEntries)
                                       .ObserveOn(uiContext)
                                       .StartWith(StoreManager.Singleton.AppState.TimeEntries)
-                                      .Select(timeEntries => timeEntries.Values.Where(e => e.Data.State == TimeEntryState.Running))
-                                      .DistinctUntilChanged(x => x.Count())
+                                      .Select(timeEntries => timeEntries.Values.FirstOrDefault(e => e.Data.State == TimeEntryState.Running))
+                                      .DistinctUntilChanged()
                                       .Subscribe(SyncNotifications);
 
             // Detect changes in settings in a super reactive way :)
@@ -53,6 +53,7 @@ namespace Toggl.Joey
                                    .Singleton
                                    .Observe(x => x.State.Settings)
             .DistinctUntilChanged(x => new { x.IdleNotification, x.RunningNotification })
+            .SubscribeOn(TaskPoolScheduler.Default)
             .Subscribe(SyncNotifications);
         }
 
@@ -60,7 +61,6 @@ namespace Toggl.Joey
         {
             subscriptionTimeEntries.Dispose();
             subscriptionSettings.Dispose();
-            subsriptionEntry?.Dispose();
         }
 
         private void SyncNotifications(SettingsState settings)
@@ -71,10 +71,9 @@ namespace Toggl.Joey
             SetRunningNotification(runningEntry, settings.RunningNotification);
         }
 
-        private void SyncNotifications(IEnumerable<RichTimeEntry> timeEntries)
+        private void SyncNotifications(RichTimeEntry runningEntry)
         {
             // Change notification state when running time entry changes.
-            var runningEntry = timeEntries.FirstOrDefault();
             SetIdleNotification(runningEntry, StoreManager.Singleton.AppState.Settings.IdleNotification);
             SetRunningNotification(runningEntry, StoreManager.Singleton.AppState.Settings.RunningNotification);
         }
@@ -83,26 +82,17 @@ namespace Toggl.Joey
         {
             if (runningEntry != null && showNotification)
             {
-                subsriptionEntry = StoreManager
-                                   .Singleton.Observe(x => x.State.TimeEntries)
-                                   .Select(x => x[runningEntry.Data.Id])
-                                   .StartWith(runningEntry)
-                .DistinctUntilChanged(x => new {x.Data.Description, x.Info.ProjectData.Name})
-                .Subscribe(entry =>
-                {
-                    var proj = string.IsNullOrEmpty(entry.Info.ProjectData.Name) ? emptyProjectName : entry.Info.ProjectData.Name;
-                    var desc = string.IsNullOrEmpty(entry.Data.Description) ? emptyDescription : entry.Data.Description;
-                    runningBuilder
-                    .SetContentTitle(proj)
-                    .SetContentText(desc)
-                    .SetWhen((long)entry.Data.StartTime.ToUnix().TotalMilliseconds);
-                    notificationManager.Notify(RunningNotifId, runningBuilder.Build());
-                });
+
+                var proj = string.IsNullOrEmpty(runningEntry.Info.ProjectData.Name) ? emptyProjectName : runningEntry.Info.ProjectData.Name;
+                var desc = string.IsNullOrEmpty(runningEntry.Data.Description) ? emptyDescription : runningEntry.Data.Description;
+                runningBuilder
+                .SetContentTitle(proj)
+                .SetContentText(desc)
+                .SetWhen((long)runningEntry.Data.StartTime.ToUnix().TotalMilliseconds);
+                notificationManager.Notify(RunningNotifId, runningBuilder.Build());
             }
             else
             {
-                subsriptionEntry?.Dispose();
-                subsriptionEntry = null;
                 notificationManager.Cancel(RunningNotifId);
             }
         }
