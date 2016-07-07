@@ -1,7 +1,15 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading;
 using Android.App;
 using Android.Content;
 using Toggl.Joey.UI.Activities;
+using Toggl.Phoebe;
+using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
+using Toggl.Phoebe.Reactive;
 using XPlatUtils;
 using NotificationCompat = Android.Support.V4.App.NotificationCompat;
 
@@ -13,70 +21,100 @@ namespace Toggl.Joey
         private const int RunningNotifId = 42;
         private readonly Context ctx;
         private readonly NotificationManager notificationManager;
+        private readonly string emptyProjectName;
+        private readonly string emptyDescription;
         private readonly NotificationCompat.Builder runningBuilder;
         private readonly NotificationCompat.Builder idleBuilder;
+        private IDisposable subscriptionTimeEntries, subscriptionSettings, subsriptionEntry;
+        private readonly SynchronizationContext uiContext;
 
         public AndroidNotificationManager()
         {
+            uiContext = SynchronizationContext.Current;
             ctx = ServiceContainer.Resolve<Context> ();
             notificationManager = (NotificationManager)ctx.GetSystemService(Context.NotificationService);
             runningBuilder = CreateRunningNotificationBuilder(ctx);
             idleBuilder = CreateIdleNotificationBuilder(ctx);
+            emptyProjectName = ctx.Resources.GetString(Resource.String.RunningNotificationNoProject);
+            emptyDescription = ctx.Resources.GetString(Resource.String.RunningNotificationNoDescription);
+
+            // Detect running time entries in a reactive way.
+            subscriptionTimeEntries = StoreManager
+                                      .Singleton
+                                      .Observe(x => x.State.TimeEntries)
+                                      .ObserveOn(uiContext)
+                                      .StartWith(StoreManager.Singleton.AppState.TimeEntries)
+                                      .Select(timeEntries => timeEntries.Values.Where(e => e.Data.State == TimeEntryState.Running))
+                                      .DistinctUntilChanged(x => x.Count())
+                                      .Subscribe(SyncNotifications);
+
+            // Detect changes in settings in a super reactive way :)
+            subscriptionSettings = StoreManager
+                                   .Singleton
+                                   .Observe(x => x.State.Settings)
+            .DistinctUntilChanged(x => new { x.IdleNotification, x.RunningNotification })
+            .Subscribe(SyncNotifications);
         }
 
         public void Dispose()
         {
+            subscriptionTimeEntries.Dispose();
+            subscriptionSettings.Dispose();
+            subsriptionEntry?.Dispose();
         }
 
-        private void SyncNotification()
+        private void SyncNotifications(SettingsState settings)
         {
-            /*
-            var authManager = ServiceContainer.Resolve<AuthManager> ();
-            if (!authManager.IsAuthenticated) {
-                notificationManager.Cancel (RunningNotifId);
-                notificationManager.Cancel (IdleNotifId);
-            } else if (currentTimeEntry.State != TimeEntryState.Running) {
-                notificationManager.Cancel (RunningNotifId);
-                var settings = ServiceContainer.Resolve<SettingsStore> ();
-                if (settings.IdleNotification) {
-                    notificationManager.Notify (IdleNotifId, idleBuilder.Build ());
-                } else {
-                    notificationManager.Cancel (IdleNotifId);
-                }
-            } else {
-                var settings = ServiceContainer.Resolve<SettingsStore> ();
-                if (!settings.ShowNotification) {
-                    notificationManager.Cancel (RunningNotifId);
-                    notificationManager.Cancel (IdleNotifId);
-                    return;
-                }
-                notificationManager.Cancel (IdleNotifId);
-                var correction = ServiceContainer.Resolve<TimeCorrectionManager> ().Correction;
-                var startTime = currentTimeEntry.StartTime - correction;
-                runningBuilder
-            <<<<<<< 9f9949da47fe06321c5b025b2225218699fe8746
-                .SetContentTitle (GetProjectName (currentTimeEntry))
-                .SetContentText (GetDescription (currentTimeEntry))
-                .SetWhen ((long)startTime.ToUnix ().TotalMilliseconds);
-            =======
-                    .SetContentTitle (GetProjectName ())
-                    .SetContentText (GetDescription ())
-                    .SetWhen ((long)startTime.ToUnix ().TotalMilliseconds);
-            >>>>>>> Removed ActiveTimeEntryManager and deactivated Notification, Widget and Wear.
+            // Change notification state when setting changes.
+            var runningEntry = StoreManager.Singleton.AppState.TimeEntries.FindActiveEntry();
+            SetIdleNotification(runningEntry, settings.IdleNotification);
+            SetRunningNotification(runningEntry, settings.RunningNotification);
+        }
 
-                notificationManager.Notify (RunningNotifId, runningBuilder.Build ());
+        private void SyncNotifications(IEnumerable<RichTimeEntry> timeEntries)
+        {
+            // Change notification state when running time entry changes.
+            var runningEntry = timeEntries.FirstOrDefault();
+            SetIdleNotification(runningEntry, StoreManager.Singleton.AppState.Settings.IdleNotification);
+            SetRunningNotification(runningEntry, StoreManager.Singleton.AppState.Settings.RunningNotification);
+        }
+
+        private void SetRunningNotification(RichTimeEntry runningEntry, bool showNotification)
+        {
+            if (runningEntry != null && showNotification)
+            {
+                subsriptionEntry = StoreManager
+                                   .Singleton.Observe(x => x.State.TimeEntries)
+                                   .Select(x => x[runningEntry.Data.Id])
+                                   .StartWith(runningEntry)
+                .DistinctUntilChanged(x => new {x.Data.Description, x.Info.ProjectData.Name})
+                .Subscribe(entry =>
+                {
+                    var proj = string.IsNullOrEmpty(entry.Info.ProjectData.Name) ? emptyProjectName : entry.Info.ProjectData.Name;
+                    var desc = string.IsNullOrEmpty(entry.Data.Description) ? emptyDescription : entry.Data.Description;
+                    runningBuilder
+                    .SetContentTitle(proj)
+                    .SetContentText(desc)
+                    .SetWhen((long)entry.Data.StartTime.ToUnix().TotalMilliseconds);
+                    notificationManager.Notify(RunningNotifId, runningBuilder.Build());
+                });
             }
-            */
+            else
+            {
+                subsriptionEntry?.Dispose();
+                subsriptionEntry = null;
+                notificationManager.Cancel(RunningNotifId);
+            }
         }
 
-        private string GetProjectName()
+        private void SetIdleNotification(RichTimeEntry runningEntry, bool showNotification)
         {
-            return ctx.Resources.GetString(Resource.String.RunningNotificationNoProject);
-        }
-
-        private string GetDescription()
-        {
-            return ctx.Resources.GetString(Resource.String.RunningNotificationNoDescription);
+            if (runningEntry != null)
+                notificationManager.Cancel(IdleNotifId);
+            else if (showNotification)
+                notificationManager.Notify(IdleNotifId, idleBuilder.Build());
+            else
+                notificationManager.Cancel(IdleNotifId);
         }
 
         private static NotificationCompat.Builder CreateRunningNotificationBuilder(Context ctx)
