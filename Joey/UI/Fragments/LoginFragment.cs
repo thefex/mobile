@@ -239,8 +239,12 @@ namespace Toggl.Joey.UI.Fragments
                 return;
             }
 
-            bool isError = !ViewModel.IsEmailValid(EmailEditText.Text);
+            // Don't make extra checks
+            // if ViewModel (and view) is already disposed.
+            if (ViewModel == null)
+                return;
 
+            bool isError = !ViewModel.IsEmailValid(EmailEditText.Text);
             EmailInputLayout.Error = isError ? GetText(Resource.String.LoginEmailError) : null;
         }
 
@@ -251,6 +255,12 @@ namespace Toggl.Joey.UI.Fragments
                 PasswordInputLayout.Error = null;
                 return;
             }
+
+            // Don't make extra checks
+            // if ViewModel (and view) is already disposed.
+            if (ViewModel == null)
+                return;
+
             bool isError = (ViewModel.CurrentLoginMode == LoginVM.LoginMode.Signup && !ViewModel.IsPassValid(PasswordEditText.Text));
             PasswordInputLayout.Error = isError ? GetText(Resource.String.LoginPasswordError) : null;
         }

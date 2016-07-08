@@ -1,6 +1,0 @@
-[submodule "Contrib/XPlatUtils"]
-	path = Contrib/XPlatUtils
-	url = https://github.com/jonathanpeppers/XPlatUtils.git
-[submodule "Contrib/Cirrious.FluentLayout"]
-	path = Contrib/Cirrious.FluentLayout
-	url = https://github.com/slodge/Cirrious.FluentLayout.git

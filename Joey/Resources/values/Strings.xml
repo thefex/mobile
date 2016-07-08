@@ -263,4 +263,22 @@
 	<string name="WelcomeSignInCoahMark">Already got an account? Log in</string>
     <string name="WelcomeTogglerHello">Hey there!</string>
     <string name="WelcomeStartCoachMark">New to Toggl? \nStart tracking</string>
+    <!-- migration screen -->
+    <string name="MigratingScreenTitle">Data maintenance</string>
+    <string name="MigratingUpdateTitle">Updating...</string>
+    <string name="MigratingUpdateDesc">No need to worry. We\'re updating the app.This might take a few moments.</string>
+    <string name="MigratingSuccessTitle">Welcome back!</string>
+    <string name="MigratingSuccessDesc">All\'s good under the hood.</string>
+    <string name="MigratingTryTitle">We’ve run into an issue...</string>
+    <string name="MigratingTryDesc">Apologies, we\'re having some trouble\nupdating the app...</string>
+    <string name="MigratingTryBtn">Try again</string>
+    <string name="MigratingFeedbackTitle">No luck</string>
+    <string name="MigratingFeedbackDesc">We’re working on it. We\'ll contact you\nwhen we\'ve fixed the issue. We apologize!</string>    
+    <string name="MigratingDiscardTitle">OR</string>
+    <string name="MigratingDiscardDesc">You can open the app now, but you\'ll lose any unsynced time entries</string>
+    <string name="MigratingDiscardBtn">Discard and open the app</string>
+    <string name="MigratingDiscardDialogTitle">Warning</string>
+    <string name="MigratingDiscardDialogMsg">Are you sure? You\'ll lose any unsynced time entries.</string>
+    <string name="MigratingDiscardConfirm">Discard and open the app</string>
+    <string name="MigratingDiscardCancel">Keep my time</string>	
 </resources>

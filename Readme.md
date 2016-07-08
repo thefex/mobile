@@ -8,26 +8,20 @@ code reuse and faster development times.
 
 The repository consists of the following projects:
 
-- Phoebe - shared data models and business logic across platforms
-- Joey - Android application (UI & Android specific code)
-- Ross - iOS application (UI & iOS specific code)
+- Phoebe - shared code project that contains data models and business logic across platforms.
+- Joey - Android application (UI & Android specific code).
+- Ross - iOS application (UI & iOS specific code).
+- Chandler - Simple Android wear app.
+- Emma - iOS widget app.
 - Tests - unit tests for testing code in Phoebe
-
-Phoebe has several project files ([Phoebe.Android.csproj](https://github.com/toggl/mobile/blob/master/Phoebe/Phoebe.Android.csproj), [Phoebe.iOS.csproj](https://github.com/toggl/mobile/blob/master/Phoebe/Phoebe.iOS.csproj) and [Phoebe.Desktop.csproj](https://github.com/toggl/mobile/blob/master/Phoebe/Phoebe.Desktop.csproj)) which compile the same code for different target platforms
-(Android, iOS and desktop).
 
 ## Setting up
 
-You should begin by initializing git hooks and submodules:
-
-	$ make setup
-
-You also need to restore NuGet packages for the solution. In Xamarin Studio 5.0 you can find the
-*Restore Packages* under *Project* menu.
-
-Before compiling any of the projects, there is one last file you need to edit.
-[Phoebe/Build.cs](https://github.com/toggl/mobile/blob/master/Phoebe/Build.cs) contains various
-configuration parameters for different components, which you need to fill in for the app to run.
+Installing [brew](http://brew.sh/), [bitrise CI](https://www.bitrise.io/cli) and setting some initial configuration you can generate the binaries for each platform.
+	
+	$ brew install bitrise
+	$ bitrise run test 
+	$ bitrise run android
 
 ## Contributing
 

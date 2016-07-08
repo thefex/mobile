@@ -40,7 +40,7 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <AndroidLinkMode>Full</AndroidLinkMode>
-    <AndroidLinkSkip>Phoebe;Joey;System.Reactive.Core;System.Reactive.Linq;</AndroidLinkSkip>
+    <AndroidLinkSkip>Phoebe;Joey;System.Reactive.Core;System.Reactive.Linq;AutoMapper;</AndroidLinkSkip>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <DebugType>full</DebugType>
     <RunCodeAnalysis>false</RunCodeAnalysis>
@@ -855,6 +855,14 @@
     <AndroidResource Include="Resources\drawable-xhdpi\IcSpinner.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\IcSpinner.png" />
     <AndroidResource Include="Resources\layout\MigrationFragment.axml" />
+    <AndroidResource Include="Resources\drawable-hdpi\toggler_1.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\toggler_1.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\toggler_1.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\toggler_1.png" />
+    <AndroidResource Include="Resources\drawable-hdpi\toggler_2.png" />
+    <AndroidResource Include="Resources\drawable-mdpi\toggler_2.png" />
+    <AndroidResource Include="Resources\drawable-xhdpi\toggler_2.png" />
+    <AndroidResource Include="Resources\drawable-xxhdpi\toggler_2.png" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>
@@ -873,6 +881,13 @@
   <ItemGroup>
     <Folder Include="Resources\drawable-ldpi\" />
     <Folder Include="Resources\anim\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Chandler\Chandler.csproj">
+      <IsAppExtension>true</IsAppExtension>
+      <Project>{76D0B75F-C05C-4852-A9AA-8151618256EF}</Project>
+      <Name>Chandler</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\Phoebe\Phoebe.Shared.projitems" Label="Shared" />
   <Import Project="..\packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\dotnet\Fody.targets')" />
