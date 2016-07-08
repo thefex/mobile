@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Misc;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
+using System.Collections.ObjectModel;
 
 namespace Toggl.Phoebe.Reactive
 {
@@ -511,10 +513,10 @@ namespace Toggl.Phoebe.Reactive
             var updated = dataStore.Update(ctx =>
             {
                 // Stop ActiveEntry if necessary
-                var prev = state.ActiveEntry.Data;
-                if (prev.Id != Guid.Empty && prev.State == TimeEntryState.Running)
+                var activeEntry = state.TimeEntries.FindActiveEntry();
+                if (activeEntry != null)
                 {
-                    ctx.Put(prev.With(x =>
+                    ctx.Put(activeEntry.Data.With(x =>
                     {
                         x.State = TimeEntryState.Finished;
                         x.StopTime = Time.UtcNow;
@@ -554,10 +556,10 @@ namespace Toggl.Phoebe.Reactive
             var updated = dataStore.Update(ctx =>
             {
                 // Stop ActiveEntry if necessary
-                var prev = state.ActiveEntry.Data;
-                if (prev.Id != Guid.Empty && prev.State == TimeEntryState.Running)
+                var activeEntry = state.TimeEntries.FindActiveEntry();
+                if (activeEntry != null)
                 {
-                    ctx.Put(prev.With(x =>
+                    ctx.Put(activeEntry.Data.With(x =>
                     {
                         x.State = TimeEntryState.Finished;
                         x.StopTime = Time.UtcNow;

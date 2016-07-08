@@ -24,40 +24,6 @@ namespace Toggl.Phoebe.Reactive
         public IReadOnlyDictionary<Guid, ITagData> Tags { get; private set; }
         public IReadOnlyDictionary<Guid, RichTimeEntry> TimeEntries { get; private set; }
 
-        // AppState instances are immutable snapshots, so it's safe to use a cache for ActiveEntry
-        private RichTimeEntry _activeEntryCache = null;
-        public RichTimeEntry ActiveEntry
-        {
-            get
-            {
-                if (_activeEntryCache == null)
-                {
-                    _activeEntryCache = new RichTimeEntry(new TimeEntryData(), this);
-                    if (TimeEntries.Count > 0)
-                    {
-                        var activeEntries = TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Running).ToList();
-                        if (activeEntries.Count == 1)
-                        {
-                            _activeEntryCache = activeEntries[0];
-                        }
-                        else if (activeEntries.Count > 1)
-                        {
-                            Util.Log(Logging.LogLevel.Warning, nameof(AppState), "More than one active entry detected");
-                            _activeEntryCache = activeEntries.OrderByDescending(x => x.Data.StartTime).First();
-                            foreach (var entry in activeEntries)
-                            {
-                                if (entry != _activeEntryCache)
-                                {
-                                    RxChain.Send(new DataMsg.TimeEntryStop(entry.Data));
-                                }
-                            }
-                        }
-                    }
-                }
-                return _activeEntryCache;
-            }
-        }
-
         AppState(
             SettingsState settings,
             RequestInfo requestInfo,
@@ -175,6 +141,7 @@ namespace Toggl.Phoebe.Reactive
                     }
                 }
             }
+
             return dic;
         }
 
@@ -198,14 +165,6 @@ namespace Toggl.Phoebe.Reactive
                        taskData,
                        tagsData,
                        color);
-        }
-
-        public IEnumerable<IProjectData> GetUserAccessibleProjects(Guid userId)
-        {
-            return Projects.Values.Where(
-                       p => p.IsActive &&
-                       (p.IsPrivate || ProjectUsers.Values.Any(x => x.ProjectId == p.Id && x.UserId == userId)))
-                   .OrderBy(p => p.Name);
         }
 
         public ITimeEntryData GetTimeEntryDraft()
@@ -317,10 +276,8 @@ namespace Toggl.Phoebe.Reactive
         {
         }
 
-        public override int GetHashCode()
-        {
-            return Data.GetHashCode();
-        }
+        public override int GetHashCode() =>
+        Data.GetHashCode();
 
         public override bool Equals(object obj)
         {
@@ -328,15 +285,13 @@ namespace Toggl.Phoebe.Reactive
             {
                 return true;
             }
-            else
-            {
-                // Quick way to compare time entries
-                var other = obj as RichTimeEntry;
-                return other != null &&
-                       Data.Id == other.Data.Id &&
-                       Data.ModifiedAt == other.Data.ModifiedAt &&
-                       Data.DeletedAt == other.Data.DeletedAt;
-            }
+
+            // Quick way to compare time entries
+            var other = obj as RichTimeEntry;
+            return other != null &&
+                   Data.Id == other.Data.Id &&
+                   Data.ModifiedAt == other.Data.ModifiedAt &&
+                   Data.DeletedAt == other.Data.DeletedAt;
         }
     }
 
@@ -446,14 +401,14 @@ namespace Toggl.Phoebe.Reactive
         private static readonly bool UseDefaultTagDefault = true;
         private static readonly string LastAppVersionDefault = string.Empty;
         private static readonly int LastReportZoomDefault = (int)ZoomLevel.Week;
-        private static readonly bool GroupedEntriesDefault = false;
-        private static readonly bool ChooseProjectForNewDefault = false;
-        private static readonly int ReportsCurrentItemDefault = 0;
+        private static readonly bool GroupedEntriesDefault;
+        private static readonly bool ChooseProjectForNewDefault;
+        private static readonly int ReportsCurrentItemDefault;
         private static readonly string ProjectSortDefault = "Clients";
         private static readonly bool ShowWelcomeDefault = true;
         private static readonly string PushTokenDefault = string.Empty;
         // iOS only Default values
-        private static readonly bool RossReadDurOnlyNoticeDefault = false;
+        private static readonly bool RossReadDurOnlyNoticeDefault;
         // Android only Default values
         private static readonly bool IdleNotificationDefault = true;
         private static readonly bool ShowNotificationDefault = true;
@@ -507,16 +462,11 @@ namespace Toggl.Phoebe.Reactive
             return initDefault();
         }
 
-        static SettingsState initLoadSettings()
-        {
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<SettingsState>(
-                       Settings.SerializedSettings, Settings.GetNonPublicPropertiesResolverSettings());
-        }
+        static SettingsState initLoadSettings() =>
+        Newtonsoft.Json.JsonConvert.DeserializeObject<SettingsState>(
+            Settings.SerializedSettings, Settings.GetNonPublicPropertiesResolverSettings());
 
-        static SettingsState initDefault()
-        {
-            return new SettingsState();
-        }
+        static SettingsState initDefault() => new SettingsState();
 
         public SettingsState With(
             Guid? userId = null,

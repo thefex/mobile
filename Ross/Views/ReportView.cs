@@ -192,7 +192,7 @@ namespace Toggl.Ross.Views
                     IsClean = IsError; // Declare ReportView as clean if an error occurs..
 
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     IsClean = true;
                 }

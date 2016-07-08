@@ -316,9 +316,9 @@ namespace Toggl.Joey.UI.Fragments
             }
 
             View emptyView = emptyMessageView;
-            var isWelcome = ViewModel.ShowWelcomeScreen();
+            var isWelcome = ViewModel.WelcomeScreenShouldBeShown;
             var hasItems = ViewModel.Collection.Count > 0;
-            var isInExperiment = ViewModel.IsInExperiment();
+            var isInExperiment = ViewModel.ExperimentShouldBeShown;
 
             // TODO RX: OBM Experiments
             if (isWelcome && isInExperiment)

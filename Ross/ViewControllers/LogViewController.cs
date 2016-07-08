@@ -120,7 +120,7 @@ namespace Toggl.Ross.ViewControllers
 
             var headerView = new TableViewRefreshView();
             headerView.AdaptToTableView(tableView);
-            headerView.ValueChanged += (sender, e) => ViewModel.TriggerFullSync();
+            headerView.ValueChanged += (sender, e) => ViewModel.TriggerFullSync(); // TODO potential memory leak (need to unsubscribe)
 
             // Bindings
             syncBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(() =>
@@ -247,17 +247,12 @@ namespace Toggl.Ross.ViewControllers
         {
             if (timerBar.IsManualModeSwitchOn)
             {
-                createManual();
+                openEditViewForManualEntry();
             }
             else
             {
                 startStop();
             }
-        }
-
-        private async void createManual()
-        {
-            openEditViewForManualEntry();
         }
 
         private async void startStop()
@@ -268,9 +263,9 @@ namespace Toggl.Ross.ViewControllers
 
             if (!ViewModel.IsEntryRunning)
             {
-                var te = await ViewModel.StartNewTimeEntryAsync();
+                var timeEntry = await ViewModel.StartNewTimeEntryAsync();
 
-                openEditViewForNewEntry(te);
+                openEditViewForNewEntry(timeEntry);
             }
             else
             {
@@ -278,9 +273,9 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        private void openEditViewForNewEntry(ITimeEntryData te)
+        private void openEditViewForNewEntry(ITimeEntryData timeEntry)
         {
-            var editController = EditTimeEntryViewController.ForExistingEntry(te.Id);
+            var editController = EditTimeEntryViewController.ForExistingEntry(timeEntry.Id);
             var projectViewController = getProjectViewControllerIfChooseProjectForNew(editController);
 
             NavigationController.PushViewControllers(true, editController, projectViewController);
@@ -341,7 +336,6 @@ namespace Toggl.Ross.ViewControllers
 
         private void SetFooterState()
         {
-
             if (ViewModel.LoadInfo.HasMore && !ViewModel.LoadInfo.HadErrors)
             {
                 if (defaultFooterView == null)
@@ -373,9 +367,9 @@ namespace Toggl.Ross.ViewControllers
             }
 
             UIView emptyView = defaultEmptyView; // Default empty view.
-            var showWelcome = ViewModel.ShowWelcomeScreen();
+            var showWelcome = ViewModel.WelcomeScreenShouldBeShown;
             var hasItems = ViewModel.Collection.Count > 0;
-            var isInExperiment = ViewModel.IsInExperiment();
+            var isInExperiment = ViewModel.ExperimentShouldBeShown;
 
             // According to settings, show welcome message or no.
             ((SimpleEmptyView)emptyView).Title = showWelcome ? "LogWelcomeTitle".Tr() : "LogEmptyTitle".Tr();
@@ -388,15 +382,11 @@ namespace Toggl.Ross.ViewControllers
             tableView.TableFooterView = hasItems ? new UIView() : emptyView;
         }
 
-        private void OnCountinueTimeEntry(int index)
-        {
-            ViewModel.ContinueTimeEntry(index);
-        }
+        private void OnCountinueTimeEntry(int index) =>
+        ViewModel.ContinueTimeEntry(index);
 
-        private void OnTryAgainBtnPressed()
-        {
-            ViewModel.LoadMore();
-        }
+        private void OnTryAgainBtnPressed() =>
+        ViewModel.LoadMore();
 
         private void OnNavigationBtnPressed(object sender, EventArgs e)
         {
@@ -404,10 +394,8 @@ namespace Toggl.Ross.ViewControllers
             main.ToggleMenu();
         }
 
-        private void OnStatusRetryBtnPressed()
-        {
-            ViewModel.TriggerFullSync();
-        }
+        private void OnStatusRetryBtnPressed() =>
+        ViewModel.TriggerFullSync();
 
         private void ShowConstrainError(Tuple<string, Guid> lastErrorInfo)
         {

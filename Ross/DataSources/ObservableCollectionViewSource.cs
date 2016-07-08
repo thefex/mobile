@@ -27,22 +27,17 @@ namespace Toggl.Ross.DataSources
             {
                 collection.CollectionChanged -= OnCollectionChange;
             }
+
             base.Dispose(disposing);
         }
 
-        public override nint RowsInSection(UITableView tableview, nint section)
-        {
-            return collection.Count;
-        }
+        public override nint RowsInSection(UITableView tableview, nint section) => collection.Count;
 
-        public override nint NumberOfSections(UITableView tableView)
-        {
-            return 1;
-        }
+        public override nint NumberOfSections(UITableView tableView) => 1;
 
         private void OnCollectionChange(object sender, NotifyCollectionChangedEventArgs e)
         {
-            var collectionData = (ObservableCollection<TData>) sender;
+            // var collectionData = (ObservableCollection<TData>) sender;
 
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
