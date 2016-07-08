@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,7 +9,6 @@ using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Misc;
 using Toggl.Phoebe.Net;
 using XPlatUtils;
-using System.Collections.ObjectModel;
 
 namespace Toggl.Phoebe.Reactive
 {
@@ -671,7 +669,7 @@ namespace Toggl.Phoebe.Reactive
                                // Android only values
                                pushToken : oldSettings.GcmRegistrationId,
                                idleNotification : oldSettings.IdleNotification,
-                               showNotification : oldSettings.ShowNotification);
+                               runningNotification : oldSettings.ShowNotification);
             }
 
             return DataSyncMsg.Create(state.With(
@@ -701,8 +699,8 @@ namespace Toggl.Phoebe.Reactive
                 case nameof(SettingsState.ProjectSort):
                     newSettings = newSettings.With(projectSort: (string)info.Item2);
                     break;
-                case nameof(SettingsState.ShowNotification):
-                    newSettings = newSettings.With(showNotification: (bool)info.Item2);
+                case nameof(SettingsState.RunningNotification):
+                    newSettings = newSettings.With(runningNotification: (bool)info.Item2);
                     break;
                 case nameof(SettingsState.IdleNotification):
                     newSettings = newSettings.With(idleNotification: (bool)info.Item2);

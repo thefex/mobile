@@ -471,7 +471,7 @@ namespace Toggl.Phoebe.Tests.Data.Migration
                     // newSettings.ProjectSort is migrated with the default value cause is a new setting.
                     Assert.That(newSettings.ReportsCurrentItem, Is.EqualTo(oldSettings.ReportsCurrentItem));
                     Assert.That(newSettings.RossReadDurOnlyNotice, Is.EqualTo(oldSettings.RossReadDurOnlyNotice));
-                    Assert.That(newSettings.ShowNotification, Is.EqualTo(oldSettings.ShowNotification));
+                    Assert.That(newSettings.RunningNotification, Is.EqualTo(oldSettings.ShowNotification));
                     Assert.That(newSettings.ShowWelcome, Is.EqualTo(oldSettings.ShowWelcome));
                     Assert.That(newSettings.UseDefaultTag, Is.EqualTo(oldSettings.UseDefaultTag));
                     Assert.That(newSettings.UserId, Is.EqualTo(oldSettings.UserId));

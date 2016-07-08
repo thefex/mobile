@@ -17,10 +17,10 @@ namespace Toggl.Joey.UI.Adapters
         private const int CheckboxViewType = 1;
         private readonly List<IListItem> listItems;
 
-        Binding<bool, bool> showNotificationBinding, idleBinding, chooseProjectBinding, useDefaultBinding, groupedBinding;
+        Binding<bool, bool> runningNotificationBinding, idleBinding, chooseProjectBinding, useDefaultBinding, groupedBinding;
         SettingsVM viewModel { get; set; }
         CheckboxListItem groupedEntries { get; set; }
-        CheckboxListItem showNotification { get; set; }
+        CheckboxListItem runningNotification { get; set; }
         CheckboxListItem idleNotification { get; set; }
         CheckboxListItem chooseProjectForNew { get; set; }
         CheckboxListItem useDefault { get; set; }
@@ -28,11 +28,11 @@ namespace Toggl.Joey.UI.Adapters
         public SettingsAdapter()
         {
             viewModel = new SettingsVM(StoreManager.Singleton.AppState);
-            showNotification = new CheckboxListItem(
-                Resource.String.SettingsGeneralShowNotificationTitle,
-                Resource.String.SettingsGeneralShowNotificationDesc,
-                nameof(SettingsState.ShowNotification),
-                viewModel.SetShowNotification);
+            runningNotification = new CheckboxListItem(
+                Resource.String.SettingsGeneralRunningNotificationTitle,
+                Resource.String.SettingsGeneralRunningNotificationDesc,
+                nameof(SettingsState.RunningNotification),
+                viewModel.SetRunningNotification);
 
             idleNotification = new CheckboxListItem(
                 Resource.String.SettingsGeneralNotifTitle,
@@ -58,7 +58,7 @@ namespace Toggl.Joey.UI.Adapters
                 nameof(SettingsState.GroupedEntries),
                 viewModel.SetGroupedTimeEntries);
 
-            showNotificationBinding = this.SetBinding(() => viewModel.ShowNotification, () => showNotification.IsChecked);
+            runningNotificationBinding = this.SetBinding(() => viewModel.RunningNotification, () => runningNotification.IsChecked);
             idleBinding = this.SetBinding(() => viewModel.IdleNotification, () => idleNotification.IsChecked);
             chooseProjectBinding = this.SetBinding(() => viewModel.ChooseProjectForNew, () => chooseProjectForNew.IsChecked);
             useDefaultBinding = this.SetBinding(() => viewModel.UseDefaultTag, () => useDefault.IsChecked);
@@ -67,7 +67,7 @@ namespace Toggl.Joey.UI.Adapters
             listItems = new List<IListItem>
             {
                 new HeaderListItem(Resource.String.SettingsGeneralHeader),
-                showNotification,
+                runningNotification,
                 idleNotification,
                 chooseProjectForNew,
                 useDefault,
