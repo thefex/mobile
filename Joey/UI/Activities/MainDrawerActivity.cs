@@ -104,8 +104,8 @@ namespace Toggl.Joey.UI.Activities
                             .Observe(x => x.State.User)
                             .StartWith(StoreManager.Singleton.AppState.User)
                             .ObserveOn(SynchronizationContext.Current)
-            .DistinctUntilChanged(x => x.ApiToken)
-            .Subscribe(userData => ResetFragmentNavigation(userData));
+                            .DistinctUntilChanged(x => x.ApiToken)
+                            .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
         protected override void OnDestroy()
@@ -114,14 +114,19 @@ namespace Toggl.Joey.UI.Activities
             base.OnDestroy();
         }
 
-        protected override void OnSaveInstanceState(Bundle outState)
+        // `onPostCreate` called when activity start-up is complete after `onStart()`
+        // NOTE! Make sure to override the method with only a single `Bundle` argument
+        public override void OnPostCreate(Bundle savedInstanceState, PersistableBundle persistentState)
         {
-            base.OnSaveInstanceState(outState);
+            base.OnPostCreate(savedInstanceState, persistentState);
+            // Sync the toggle state after onRestoreInstanceState has occurred.
+            DrawerToggle.SyncState();
         }
 
         public override void OnConfigurationChanged(Android.Content.Res.Configuration newConfig)
         {
             base.OnConfigurationChanged(newConfig);
+            // Pass any configuration change to the drawer toggles
             DrawerToggle.OnConfigurationChanged(newConfig);
         }
 
@@ -237,21 +242,13 @@ namespace Toggl.Joey.UI.Activities
 
         private void OpenFragment(Fragment fragment)
         {
-            var old = FragmentManager.FindFragmentById(Resource.Id.ContentFrameLayout);
-            if (old == null)
+            try
             {
-                FragmentManager.BeginTransaction()
-                .Add(Resource.Id.ContentFrameLayout, fragment)
-                .Commit();
+                FragmentManager.BeginTransaction().Replace(Resource.Id.ContentFrameLayout, fragment);
             }
-            else if (old != fragment)
+            catch (Exception e)
             {
-                // The detach/attach is a workaround for https://code.google.com/p/android/issues/detail?id=42601
-                FragmentManager.BeginTransaction()
-                .Detach(old)
-                .Replace(Resource.Id.ContentFrameLayout, fragment)
-                .Attach(fragment)
-                .Commit();
+                Console.WriteLine(e);
             }
         }
 

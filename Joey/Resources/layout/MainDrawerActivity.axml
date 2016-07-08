@@ -18,17 +18,9 @@
                 android:id="@+id/MainToolbar"
                 layout="@layout/MainToolbar" />
             <FrameLayout
+                android:id="@+id/ContentFrameLayout"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                <FrameLayout
-                    android:id="@+id/ContentFrameLayout"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/ToolbarDropShadowHeight"
-                    android:background="@drawable/DropShadowVertical" />
-            </FrameLayout>
+                android:layout_height="match_parent" />
         </LinearLayout>
     </FrameLayout>
 <!-- The navigation drawer -->
