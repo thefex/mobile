@@ -39,7 +39,7 @@ namespace Toggl.Phoebe.ViewModels
         private TimeEntryCollection timeEntryCollection;
         private readonly IDisposable subscriptionState;
         private readonly SynchronizationContext uiContext;
-        private IDisposable durationSubscriber;
+        private IDisposable durationSubscriber, twoStartedEntriesSubscriber;
         private IDisposable subscriptionTimeEntries;
         private ILogger logger;
 
@@ -56,7 +56,7 @@ namespace Toggl.Phoebe.ViewModels
 
         public LogTimeEntriesVM(AppState appState)
         {
-            ServiceContainer.Resolve<ITracker> ().CurrentScreen = "TimeEntryList Screen";
+            ServiceContainer.Resolve<ITracker>().CurrentScreen = "TimeEntryList Screen";
 
             uiContext = SynchronizationContext.Current;
             ResetCollection(appState.Settings.GroupedEntries);
@@ -67,31 +67,26 @@ namespace Toggl.Phoebe.ViewModels
                                 .Singleton
                                 .Observe(x => x.State)
                                 .ObserveOn(uiContext)
-                                .StartWith(appState)
-            .DistinctUntilChanged(state => new { state.RequestInfo, state.Settings})
+            .DistinctUntilChanged(state => new { state.RequestInfo, state.Settings })
+            .StartWith(appState)
             .SubscribeOn(TaskPoolScheduler.Default)
             .Subscribe(x => UpdateSettingsAndRequestInfo(x.Settings, x.RequestInfo));
 
             // Detect if exist a running
-            // time entry.
+            // time entry or not.
             subscriptionTimeEntries = StoreManager
                                       .Singleton
-                                      .Observe(x => x.State)
+                                      .Observe(x => x.State.TimeEntries)
                                       .ObserveOn(uiContext)
-                                      .StartWith(appState)
-                                      .Select(state => state.TimeEntries.Values.Where(e => e.Data.State == TimeEntryState.Running))
-                                      .DistinctUntilChanged(x => x.Count())
+                                      .StartWith(StoreManager.Singleton.AppState.TimeEntries)
+                                      .Select(timeEntries => timeEntries.Values.FirstOrDefault(e => e.Data.State == TimeEntryState.Running))
                                       .SubscribeOn(TaskPoolScheduler.Default)
+                                      .DistinctUntilChanged()
                                       .Subscribe(UpdateActiveEntry);
-
-            // TODO: Rx find a better solution to force
-            // an inmediate update using Rx code.
-            UpdateSettingsAndRequestInfo(appState.Settings, appState.RequestInfo);
 
             TimerObservable = Observable
                               .Timer(TimeSpan.FromMilliseconds(1000 - Time.Now.Millisecond), TimeSpan.FromSeconds(1))
                               .ObserveOn(uiContext);
-
             durationSubscriber = TimerObservable.Subscribe(x => UpdateDuration());
 
             // The ViewModel is created and start to load
@@ -222,20 +217,9 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
-        private void UpdateActiveEntry(IEnumerable<RichTimeEntry> activeEntries)
+        private void UpdateActiveEntry(RichTimeEntry activeEntry)
         {
-            // this should never happen, however a user reported the case
-            // TODO delete once the bug gets fixed
-            var ordered = activeEntries.OrderByDescending(x => x.Data.StartTime);
-            if (ordered.Count() > 1)
-            {
-                // Try to stop extra running time entries.
-                ordered.Skip(1).ForEach(entry => RxChain.Send(new DataMsg.TimeEntryStop(entry.Data)));
-                logger = logger ?? ServiceContainer.Resolve<ILogger>();
-                logger.Error(nameof(LogTimeEntriesVM), "More than one active entry detected");
-            }
-
-            ActiveEntry = ordered.FirstOrDefault() ?? new RichTimeEntry(new TimeEntryData(), StoreManager.Singleton.AppState);
+            ActiveEntry = activeEntry ?? new RichTimeEntry(new TimeEntryData(), StoreManager.Singleton.AppState);
             IsEntryRunning = ActiveEntry.Data.State == TimeEntryState.Running;
             UpdateDuration();
         }
