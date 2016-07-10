@@ -15,9 +15,9 @@ namespace Toggl.Joey.UI.Fragments
 {
     public class MigrationFragment : Fragment
     {
-        private int oldVersion;
-        private bool userTriedAgain;
+        public const string OLD_VERSION_DB = "old_version";
 
+        private bool userTriedAgain;
         private TextView topLabel;
         private TextView descLabel;
         private TextView discardLabel;
@@ -41,9 +41,12 @@ namespace Toggl.Joey.UI.Fragments
         {
             // TODO Block press back button from
             // this screen until migration is completed??
-
             var fragment = new MigrationFragment();
-            fragment.oldVersion = oldVersion;
+
+            Bundle args = new Bundle();
+            args.PutInt(OLD_VERSION_DB, oldVersion);
+            fragment.Arguments = args;
+
             return fragment;
         }
 
@@ -99,6 +102,7 @@ namespace Toggl.Joey.UI.Fragments
         {
             Task.Run(() =>
             {
+                var oldVersion = Arguments.GetInt(OLD_VERSION_DB);
                 var migrationResult = DatabaseHelper.Migrate(
                                           ServiceContainer.Resolve<IPlatformUtils>().SQLiteInfo,
                                           DatabaseHelper.GetDatabaseDirectory(),

@@ -62,6 +62,19 @@ namespace Toggl.Joey.UI.Fragments
 
         #endregion
 
+        public LogTimeEntriesListFragment()
+        {
+        }
+
+        public LogTimeEntriesListFragment(IntPtr jref, Android.Runtime.JniHandleOwnership xfer) : base(jref, xfer)
+        {
+        }
+
+        public override void OnCreate(Bundle savedInstanceState)
+        {
+            base.OnCreate(savedInstanceState);
+        }
+
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
             var view = inflater.Inflate(Resource.Layout.LogTimeEntriesListFragment, container, false);

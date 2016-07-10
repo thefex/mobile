@@ -14,7 +14,9 @@ using Toggl.Joey.UI.Fragments;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Reactive;
+using XPlatUtils;
 using ActionBarDrawerToggle = Android.Support.V7.App.ActionBarDrawerToggle;
 using Fragment = Android.Support.V4.App.Fragment;
 using Toolbar = Android.Support.V7.Widget.Toolbar;
@@ -34,14 +36,6 @@ namespace Toggl.Joey.UI.Activities
     public class MainDrawerActivity : BaseActivity
     {
         private readonly TimerComponent barTimer = new TimerComponent();
-        private readonly Lazy<LogTimeEntriesListFragment> trackingFragment = new Lazy<LogTimeEntriesListFragment> ();
-        private readonly Lazy<SettingsListFragment> settingsFragment = new Lazy<SettingsListFragment> ();
-        private readonly Lazy<LoginFragment> loginFragment = new Lazy<LoginFragment> ();
-        private readonly Lazy<ReportsPagerFragment> reportFragment = new Lazy<ReportsPagerFragment>();
-        private readonly Lazy<ReportsNoApiFragment> reportNoApiFragment = new Lazy<ReportsNoApiFragment> ();
-        private readonly Lazy<FeedbackFragment> feedbackFragment = new Lazy<FeedbackFragment>();
-        private readonly Lazy<FeedbackNoApiFragment> feedbackNoApiFragment = new Lazy<FeedbackNoApiFragment> ();
-
         private DrawerListAdapter drawerAdapter;
         private IDisposable stateObserver;
 
@@ -188,7 +182,7 @@ namespace Toggl.Joey.UI.Activities
 
             if (id == DrawerListAdapter.SettingsPageId)
             {
-                OpenFragment(settingsFragment.Value);
+                OpenFragment(typeof(SettingsListFragment));
                 SupportActionBar.SetTitle(Resource.String.MainDrawerSettings);
             }
             else if (id == DrawerListAdapter.ReportsPageId)
@@ -196,43 +190,43 @@ namespace Toggl.Joey.UI.Activities
                 if (userWithoutApiToken)
                 {
                     SupportActionBar.SetTitle(Resource.String.MainDrawerReports);
-                    OpenFragment(reportNoApiFragment.Value);
+                    OpenFragment(typeof(ReportsNoApiFragment));
                 }
                 else
                 {
-                    if (reportFragment.Value.ZoomLevel == ZoomLevel.Week)
+                    /*
+                    if (reportFragment.ZoomLevel == ZoomLevel.Week)
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsWeek);
-                    else if (reportFragment.Value.ZoomLevel == ZoomLevel.Month)
+                    else if (reportFragment.ZoomLevel == ZoomLevel.Month)
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsMonth);
                     else
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsYear);
-                    OpenFragment(reportFragment.Value);
+                    */
+                    OpenFragment(typeof(ReportsFragment));
                 }
             }
             else if (id == DrawerListAdapter.FeedbackPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerFeedback);
                 if (userWithoutApiToken)
-                    OpenFragment(feedbackNoApiFragment.Value);
+                    OpenFragment(typeof(FeedbackNoApiFragment));
                 else
-                    OpenFragment(feedbackFragment.Value);
+                    OpenFragment(typeof(FeedbackFragment));
             }
             else if (id == DrawerListAdapter.LoginPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerLogin);
-                loginFragment.Value.ChangeToLogin();
-                OpenFragment(loginFragment.Value);
+                OpenFragment(LoginFragment.NewInstance());
             }
             else if (id == DrawerListAdapter.SignupPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerSignup);
-                loginFragment.Value.ChangeToRegister();
-                OpenFragment(loginFragment.Value);
+                OpenFragment(LoginFragment.NewInstance(isSignupMode: true));
             }
             else
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerTimer);
-                OpenFragment(trackingFragment.Value);
+                OpenFragment(typeof(LogTimeEntriesListFragment));
             }
 
             DrawerListView.ClearChoices();
@@ -240,15 +234,35 @@ namespace Toggl.Joey.UI.Activities
             DrawerListView.SetItemChecked(drawerAdapter.GetItemPosition(id), true);
         }
 
-        private void OpenFragment(Fragment fragment)
+        private void OpenFragment(Type fragmentType)
         {
             try
             {
-                FragmentManager.BeginTransaction().Replace(Resource.Id.ContentFrameLayout, fragment);
+                var fragmentClass = Java.Lang.Class.FromType(fragmentType);
+                var fragment = (Fragment)fragmentClass.NewInstance();
+                FragmentManager.BeginTransaction()
+                .Replace(Resource.Id.ContentFrameLayout, fragment)
+                .Commit();
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Console.WriteLine(e);
+                var logger = ServiceContainer.Resolve<ILogger>();
+                logger.Error(nameof(MainDrawerActivity), ex, "Error opening Drawer fragment.");
+            }
+        }
+
+        private void OpenFragment(Fragment newFragment)
+        {
+            try
+            {
+                FragmentManager.BeginTransaction()
+                .Replace(Resource.Id.ContentFrameLayout, newFragment)
+                .Commit();
+            }
+            catch (Exception ex)
+            {
+                var logger = ServiceContainer.Resolve<ILogger>();
+                logger.Error(nameof(MainDrawerActivity), ex, "Error opening Drawer fragment.");
             }
         }
 
