@@ -11,6 +11,11 @@ namespace Toggl.Joey.UI.Utils
 
         public T DataSource { get; private set; }
 
+        public BindableViewHolder()
+        {
+            // Android requirement.
+        }
+
         public BindableViewHolder(View root)
         {
             this.root = root;

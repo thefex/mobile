@@ -9,7 +9,6 @@ using Android.Support.V4.Widget;
 using Android.Views;
 using Android.Widget;
 using Toggl.Joey.UI.Adapters;
-using Toggl.Joey.UI.Components;
 using Toggl.Joey.UI.Fragments;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Data;
@@ -35,7 +34,6 @@ namespace Toggl.Joey.UI.Activities
          Theme = "@style/Theme.Toggl.Main")]
     public class MainDrawerActivity : BaseActivity
     {
-        private readonly TimerComponent barTimer = new TimerComponent();
         private DrawerListAdapter drawerAdapter;
         private IDisposable stateObserver;
 
@@ -56,56 +54,58 @@ namespace Toggl.Joey.UI.Activities
             }
         }
 
-        protected override void OnCreateActivity(Bundle state)
+        protected override void OnCreate(Bundle savedInstanceState)
         {
-            base.OnCreateActivity(state);
+            base.OnCreate(savedInstanceState);
 
             SetContentView(Resource.Layout.MainDrawerActivity);
 
-            MainToolbar = FindViewById<Toolbar> (Resource.Id.MainToolbar);
-            DrawerListView = FindViewById<ListView> (Resource.Id.DrawerListView);
-            DrawerUserName = FindViewById<TextView> (Resource.Id.TitleTextView);
-            DrawerEmail = FindViewById<TextView> (Resource.Id.EmailTextView);
-            DrawerImage = FindViewById<ProfileImageView> (Resource.Id.IconProfileImageView);
+            MainToolbar = FindViewById<Toolbar>(Resource.Id.MainToolbar);
+            DrawerListView = FindViewById<ListView>(Resource.Id.DrawerListView);
+            DrawerUserName = FindViewById<TextView>(Resource.Id.TitleTextView);
+            DrawerEmail = FindViewById<TextView>(Resource.Id.EmailTextView);
+            DrawerImage = FindViewById<ProfileImageView>(Resource.Id.IconProfileImageView);
             DrawerListView.ItemClick += OnDrawerListViewItemClick;
 
-            DrawerLayout = FindViewById<DrawerLayout> (Resource.Id.DrawerLayout);
+            DrawerLayout = FindViewById<DrawerLayout>(Resource.Id.DrawerLayout);
             DrawerToggle = new ActionBarDrawerToggle(this, DrawerLayout, MainToolbar, Resource.String.EntryName, Resource.String.EntryName);
             DrawerLayout.SetDrawerShadow(Resource.Drawable.drawershadow, (int)GravityFlags.Start);
             DrawerLayout.AddDrawerListener(DrawerToggle);
 
-            var drawerFrameLayout = FindViewById<FrameLayout> (Resource.Id.DrawerFrameLayout);
+            var drawerFrameLayout = FindViewById<FrameLayout>(Resource.Id.DrawerFrameLayout);
             drawerFrameLayout.Touch += (sender, e) =>
             {
                 // Do nothing, just absorb the event
                 // TODO: Improve this dirty solution?
             };
 
-            Timer.OnCreate(this);
-
-            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
-
             MainToolbar.SetNavigationIcon(Resource.Drawable.ic_menu_black_24dp);
             SetSupportActionBar(MainToolbar);
-            SupportActionBar.SetTitle(Resource.String.MainDrawerTimer);
-            SupportActionBar.SetCustomView(Timer.Root, lp);
             SupportActionBar.SetDisplayShowCustomEnabled(true);
+
+            // Set correct fragment based on user info
+            ResetFragmentNavigation(StoreManager.Singleton.AppState.User);
+        }
+
+        protected override void OnResumeActivity()
+        {
+            base.OnResumeActivity();
 
             // ATTENTION Suscription to state (settings) changes inside
             // the view. This will be replaced for "router"
             // modified in the reducers.
             stateObserver = StoreManager.Singleton
                             .Observe(x => x.State.User)
-                            .StartWith(StoreManager.Singleton.AppState.User)
                             .ObserveOn(SynchronizationContext.Current)
                             .DistinctUntilChanged(x => x.ApiToken)
+                            .Skip(1)
                             .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
-        protected override void OnDestroy()
+        protected override void OnPause()
         {
             stateObserver.Dispose();
-            base.OnDestroy();
+            base.OnPause();
         }
 
         // `onPostCreate` called when activity start-up is complete after `onStart()`
@@ -167,7 +167,6 @@ namespace Toggl.Joey.UI.Activities
             if (oldVersion == -1)
                 return false;
 
-            SetToolbarTimerVisible(false);
             SupportActionBar.SetTitle(Resource.String.MigratingScreenTitle);
             var migrationFragment = MigrationFragment.NewInstance(oldVersion);
             OpenFragment(migrationFragment);
@@ -177,9 +176,6 @@ namespace Toggl.Joey.UI.Activities
 
         public void OpenPage(int id)
         {
-            // Configure timer component for selected page:
-            SetToolbarTimerVisible(id == DrawerListAdapter.TimerPageId);
-
             if (id == DrawerListAdapter.SettingsPageId)
             {
                 OpenFragment(typeof(SettingsListFragment));
@@ -307,17 +303,6 @@ namespace Toggl.Joey.UI.Activities
             }
 
             DrawerLayout.CloseDrawers();
-        }
-
-        private void SetToolbarTimerVisible(bool isVisible)
-        {
-            SupportActionBar.SetDisplayShowTitleEnabled(!isVisible);
-            Timer.Hide = !isVisible;
-        }
-
-        public TimerComponent Timer
-        {
-            get { return barTimer; }
         }
     }
 }

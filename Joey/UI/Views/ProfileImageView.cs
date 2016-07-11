@@ -16,6 +16,10 @@ namespace Toggl.Joey.UI.Views
         private static readonly string LogTag = "ProfileImageView";
         private static readonly int RectSize = 56; //In DP!
 
+        public ProfileImageView(IntPtr jref, Android.Runtime.JniHandleOwnership xfer) : base(jref, xfer)
+        {
+        }
+
         public ProfileImageView(Context context) : base(context)
         {
         }

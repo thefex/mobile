@@ -3,7 +3,6 @@ using Android.Content.PM;
 using Android.OS;
 using Toggl.Joey.UI.Fragments;
 using Activity = Android.Support.V7.App.AppCompatActivity;
-using Fragment = Android.Support.V4.App.Fragment;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
 
 namespace Toggl.Joey.UI.Activities
@@ -15,9 +14,9 @@ namespace Toggl.Joey.UI.Activities
     {
         private static readonly string fragmentTag = "projectlist_fragment";
 
-        protected override void OnCreateActivity(Bundle state)
+        protected override void OnCreate(Bundle savedInstanceState)
         {
-            base.OnCreateActivity(state);
+            base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.ProjectListActivityLayout);
 
             // Check if fragment is still in Fragment manager.
@@ -31,7 +30,7 @@ namespace Toggl.Joey.UI.Activities
                     Finish();
                 }
 
-                var workspaceId = extras.GetString(BaseActivity.IntentWorkspaceIdArgument);
+                var workspaceId = extras.GetString(IntentWorkspaceIdArgument);
                 fragment = ProjectListFragment.NewInstance(workspaceId);
                 FragmentManager.BeginTransaction()
                 .Add(Resource.Id.ProjectListActivityLayout, fragment, fragmentTag)

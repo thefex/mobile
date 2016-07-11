@@ -2,8 +2,6 @@
 using System.IO;
 using Android.Content;
 using Android.OS;
-using Toggl.Phoebe.Data;
-using Toggl.Phoebe.Reactive;
 using Activity = Android.Support.V7.App.AppCompatActivity;
 using FragmentManager = Android.Support.V4.App.FragmentManager;
 
@@ -14,29 +12,17 @@ namespace Toggl.Joey.UI.Activities
         public static readonly string IntentProjectIdArgument = "project_id_param";
         public static readonly string IntentTaskIdArgument = "task_id_param";
         public static readonly string IntentWorkspaceIdArgument = "workspace_id_param";
-
         private const int SyncErrorMenuItemId = 0;
-        protected readonly Handler Handler = new Handler();
 
         /// <summary>
         /// The activity that is currently in the foreground.
         /// </summary>
         public static BaseActivity CurrentActivity { get; private set; }
 
-        protected sealed override void OnCreate(Bundle savedInstanceState)
-        {
-            base.OnCreate(savedInstanceState);
-            CurrentActivity = this;
-            OnCreateActivity(savedInstanceState);
-        }
-
-        protected virtual void OnCreateActivity(Bundle state)
-        {
-        }
-
         protected sealed override void OnResume()
         {
             base.OnResume();
+            CurrentActivity = this;
             OnResumeActivity();
         }
 
@@ -44,14 +30,6 @@ namespace Toggl.Joey.UI.Activities
         {
             // Make sure that the components are initialized (and that this initialisation wouldn't cause a lag)
             var app = (AndroidApp)Application;
-
-            if (!app.ComponentsInitialized)
-            {
-                Handler.PostDelayed(delegate
-                {
-                    app.InitializeComponents();
-                }, 5000);
-            }
             app.MarkLaunched();
         }
 

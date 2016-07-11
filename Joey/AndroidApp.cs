@@ -83,6 +83,7 @@ namespace Toggl.Joey
         {
             //ServiceContainer.Resolve<UpgradeManger> ().TryUpgrade ();
             ServiceContainer.Resolve<ILoggerClient> ();
+            ServiceContainer.Resolve<AndroidNotificationManager> ();
         }
 
         public void InitializeComponents()
@@ -93,7 +94,6 @@ namespace Toggl.Joey
             }
 
             componentsInitialized = true;
-            ServiceContainer.Resolve<AndroidNotificationManager> ();
         }
 
         public void MarkLaunched()

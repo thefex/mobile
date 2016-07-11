@@ -54,16 +54,14 @@ namespace Toggl.Joey.UI.Components
             }
         }
 
-        public void OnCreate(Activity activity)
+        public TimerComponent(View root, Activity activity)
         {
             this.activity = activity;
-            Root = LayoutInflater.From(activity).Inflate(Resource.Layout.TimerComponent, null);
-
+            Root = root;
             DurationTextView = Root.FindViewById<TextView> (Resource.Id.DurationTextView).SetFont(Font.RobotoLight);
             TimerTitleTextView = Root.FindViewById<TextView> (Resource.Id.TimerTitleTextView);
             ProjectTextView = Root.FindViewById<TextView> (Resource.Id.ProjectTextView);
             DescriptionTextView = Root.FindViewById<TextView> (Resource.Id.DescriptionTextView).SetFont(Font.RobotoLight);
-
             IsRunning = false;
         }
 

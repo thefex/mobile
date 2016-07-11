@@ -14,9 +14,9 @@ namespace Toggl.Joey.UI.Activities
     {
         public static readonly string WorkspaceIdArgument = "com.toggl.timer.workspace_id";
 
-        protected override void OnCreateActivity(Bundle state)
+        protected override void OnCreate(Bundle savedInstanceState)
         {
-            base.OnCreateActivity(state);
+            base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.NewProjectActivity);
 
             var extras = Intent.Extras;
