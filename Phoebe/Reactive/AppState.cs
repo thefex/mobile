@@ -401,14 +401,14 @@ namespace Toggl.Phoebe.Reactive
         private static readonly bool UseDefaultTagDefault = true;
         private static readonly string LastAppVersionDefault = string.Empty;
         private static readonly int LastReportZoomDefault = (int)ZoomLevel.Week;
-        private static readonly bool GroupedEntriesDefault;
-        private static readonly bool ChooseProjectForNewDefault;
-        private static readonly int ReportsCurrentItemDefault;
+        private static readonly bool GroupedEntriesDefault = false;
+        private static readonly bool ChooseProjectForNewDefault = false;
+        private static readonly int ReportsCurrentItemDefault = 0;
         private static readonly string ProjectSortDefault = "Clients";
         private static readonly bool ShowWelcomeDefault = true;
         private static readonly string PushTokenDefault = string.Empty;
         // iOS only Default values
-        private static readonly bool RossReadDurOnlyNoticeDefault;
+        private static readonly bool RossReadDurOnlyNoticeDefault = false;
         // Android only Default values
         private static readonly bool IdleNotificationDefault = true;
         private static readonly bool RunningNotificationDefault = true;

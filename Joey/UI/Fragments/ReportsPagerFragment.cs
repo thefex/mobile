@@ -43,7 +43,6 @@ namespace Toggl.Joey.UI.Fragments
         private FrameLayout syncErrorBar;
         private ImageButton syncRetry;
         private Animator currentAnimation;
-        private LinearLayout reportsContainer;
 
         public ZoomLevel ZoomLevel
         {
@@ -120,6 +119,10 @@ namespace Toggl.Joey.UI.Fragments
             return view;
         }
 
+        public ReportsPagerFragment(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
+        {
+        }
+
         public ReportsPagerFragment()
         {
             zoomLevel = SummaryReportView.GetLastZoomViewed();
@@ -136,7 +139,6 @@ namespace Toggl.Joey.UI.Fragments
             nextPeriod = view.FindViewById(Resource.Id.NextFrameLayout);
             syncErrorBar = view.FindViewById<FrameLayout> (Resource.Id.ReportsSyncBar);
             syncRetry = view.FindViewById<ImageButton> (Resource.Id.ReportsSyncRetryButton);
-            reportsContainer = view.FindViewById<LinearLayout> (Resource.Id.ReportsContainer);
             previousPeriod.Click += (sender, e) => NavigatePage(-1);
             nextPeriod.Click += (sender, e) => NavigatePage(1);
             syncRetry.Click += async(sender, e) => await ReloadCurrent();
@@ -161,8 +163,6 @@ namespace Toggl.Joey.UI.Fragments
 
         public override void OnPause()
         {
-            // TODO Rx Settings.
-            // find a correct way
             // Set ReportsCurrentItem setting to current item.
             RxChain.Send(new DataMsg.UpdateSetting(nameof(SettingsState.ReportsCurrentItem), viewPager.CurrentItem));
             base.OnPause();
@@ -443,7 +443,7 @@ namespace Toggl.Joey.UI.Fragments
                 // A solution could be don't reset but rehuse the
                 // FragmentPagerAdapter.
                 return currentFragments.Find(frag => frag.Period == period)
-                       ?? new ReportsFragment(period, zoomLevel);
+                       ?? ReportsFragment.NewInstace(period, zoomLevel);
             }
 
             private void ShowSyncError(object sender, ReportsFragment.LoadReadyEventArgs args)

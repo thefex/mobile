@@ -190,15 +190,14 @@ namespace Toggl.Joey.UI.Activities
                 }
                 else
                 {
-                    /*
-                    if (reportFragment.ZoomLevel == ZoomLevel.Week)
+                    var zoomLevel = (ZoomLevel)StoreManager.Singleton.AppState.Settings.LastReportZoom;
+                    if (zoomLevel == ZoomLevel.Week)
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsWeek);
-                    else if (reportFragment.ZoomLevel == ZoomLevel.Month)
+                    else if (zoomLevel == ZoomLevel.Month)
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsMonth);
                     else
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsYear);
-                    */
-                    OpenFragment(typeof(ReportsFragment));
+                    OpenFragment(typeof(ReportsPagerFragment));
                 }
             }
             else if (id == DrawerListAdapter.FeedbackPageId)

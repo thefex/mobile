@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Timers;
 using Android.Content;
 using Android.Graphics;
 using Android.Graphics.Drawables;
@@ -11,7 +10,6 @@ using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Data.Models;
-using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels;
 using Toggl.Phoebe.ViewModels.Timer;
 using XPlatUtils;

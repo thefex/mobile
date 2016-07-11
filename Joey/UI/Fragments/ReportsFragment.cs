@@ -66,12 +66,16 @@ namespace Toggl.Joey.UI.Fragments
         {
         }
 
-        public ReportsFragment(int period, ZoomLevel zoom)
+        public static ReportsFragment NewInstace(int period, ZoomLevel zoom)
         {
+            var fragment = new ReportsFragment();
+
             var args = new Bundle();
             args.PutInt(ReportPeriodArgument, period);
             args.PutInt(ReportZoomArgument, (int)zoom);
-            Arguments = args;
+            fragment.Arguments = args;
+
+            return fragment;
         }
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
@@ -199,6 +203,10 @@ namespace Toggl.Joey.UI.Fragments
             private TextView billableValue;
             private int focusedPosition = -1;
             private SummaryReportView data;
+
+            public Controller(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
+            {
+            }
 
             public Controller(Context ctx, Pool<View> projectListItemPool)
             {
@@ -392,6 +400,10 @@ namespace Toggl.Joey.UI.Fragments
             private int focus = -1;
             private Controller controller;
 
+            public ReportProjectAdapter(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
+            {
+            }
+
             public ReportProjectAdapter(Controller controller, List<ReportProject> dataView)
             {
                 this.controller = controller;
@@ -408,9 +420,9 @@ namespace Toggl.Joey.UI.Fragments
                 return position;
             }
 
-            public override ReportProject this [int index]
+            public override ReportProject this [int position]
             {
-                get { return dataView[index]; }
+                get { return dataView[position]; }
             }
 
             public override View GetView(int position, View convertView, ViewGroup parent)
