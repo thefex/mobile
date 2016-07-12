@@ -17,7 +17,6 @@ namespace Toggl.Joey.Wear
 
         public static void StartStopTimeEntry(Context ctx)
         {
-            //await Task.Delay(5);//??
             var active = StoreManager.Singleton.AppState.ActiveEntry;
             if (active.Data.State == TimeEntryState.Running)
             {
@@ -26,13 +25,7 @@ namespace Toggl.Joey.Wear
             }
             else
             {
-                active.Data.With(t =>
-                {
-                    t.Description = ctx.Resources.GetString(Resource.String.WearEntryDefaultDescription);
-                });
-
                 var tcs = new TaskCompletionSource<ITimeEntryData>();
-
                 RxChain.Send(new DataMsg.TimeEntryStart(), new RxChain.Continuation((state) =>
                 {
                     ServiceContainer.Resolve<ITracker>().SendTimerStartEvent(TimerStartSource.AppNew);
@@ -51,7 +44,7 @@ namespace Toggl.Joey.Wear
 
         public static List<SimpleTimeEntryData> GetTimeEntryData()
         {
-            var entries = StoreManager.Singleton.AppState.TimeEntries.Values.Where(x => x.Data.State == TimeEntryState.Finished).OrderByDescending(x => x.Data.StartTime);
+            var entries = StoreManager.Singleton.AppState.TimeEntries.Values.Where(x => x.Data.State != TimeEntryState.New).OrderByDescending(x => x.Data.StartTime);
 
 
             var uniqueEntries = entries.GroupBy(x  => new {x.Data.ProjectId, x.Data.Description })
