@@ -98,6 +98,9 @@ namespace Toggl.Joey.UI.Activities
                             .Observe(x => x.State.User)
                             .ObserveOn(SynchronizationContext.Current)
                             .DistinctUntilChanged(x => x.ApiToken)
+                            // Skip first value because it was already defined
+                            // when ResetFragmentNavigation was called.
+                            // why not use the StartWith, Android fragments don't like it.
                             .Skip(1)
                             .Subscribe(userData => ResetFragmentNavigation(userData));
         }
