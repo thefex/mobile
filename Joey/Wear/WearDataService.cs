@@ -128,7 +128,6 @@ namespace Toggl.Joey.Wear
                 {
                     if (path == Common.StartStopTimeEntryPath)
                     {
-
                         WearDataProvider.StartStopTimeEntry(BaseContext);
                         await UpdateSharedTimeEntryList();
                     }

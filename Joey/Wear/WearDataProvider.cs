@@ -6,6 +6,7 @@ using Android.Content;
 using Toggl.Phoebe.Analytics;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Reactive;
 using XPlatUtils;
 
@@ -17,20 +18,20 @@ namespace Toggl.Joey.Wear
 
         public static void StartStopTimeEntry(Context ctx)
         {
-            var active = StoreManager.Singleton.AppState.ActiveEntry;
-            if (active.Data.State == TimeEntryState.Running)
+            var active = StoreManager.Singleton.AppState.TimeEntries.FindActiveEntry();
+
+            if (active == null)
             {
-                RxChain.Send(new DataMsg.TimeEntryStop(active.Data));
-                ServiceContainer.Resolve<ITracker> ().SendTimerStopEvent(TimerStopSource.Watch);
-            }
-            else
-            {
-                var tcs = new TaskCompletionSource<ITimeEntryData>();
+
                 RxChain.Send(new DataMsg.TimeEntryStart(), new RxChain.Continuation((state) =>
                 {
                     ServiceContainer.Resolve<ITracker>().SendTimerStartEvent(TimerStartSource.AppNew);
-                    tcs.SetResult(StoreManager.Singleton.AppState.ActiveEntry.Data);
                 }));
+            }
+            else if (active.Data.State == TimeEntryState.Running)
+            {
+                RxChain.Send(new DataMsg.TimeEntryStop(active.Data));
+                ServiceContainer.Resolve<ITracker>().SendTimerStopEvent(TimerStopSource.Watch);
             }
         }
 
