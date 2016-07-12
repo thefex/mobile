@@ -9,12 +9,13 @@ using Android.Support.V4.Widget;
 using Android.Views;
 using Android.Widget;
 using Toggl.Joey.UI.Adapters;
-using Toggl.Joey.UI.Components;
 using Toggl.Joey.UI.Fragments;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Logging;
 using Toggl.Phoebe.Reactive;
+using XPlatUtils;
 using ActionBarDrawerToggle = Android.Support.V7.App.ActionBarDrawerToggle;
 using Fragment = Android.Support.V4.App.Fragment;
 using Toolbar = Android.Support.V7.Widget.Toolbar;
@@ -33,15 +34,6 @@ namespace Toggl.Joey.UI.Activities
          Theme = "@style/Theme.Toggl.Main")]
     public class MainDrawerActivity : BaseActivity
     {
-        private readonly TimerComponent barTimer = new TimerComponent();
-        private readonly Lazy<LogTimeEntriesListFragment> trackingFragment = new Lazy<LogTimeEntriesListFragment> ();
-        private readonly Lazy<SettingsListFragment> settingsFragment = new Lazy<SettingsListFragment> ();
-        private readonly Lazy<LoginFragment> loginFragment = new Lazy<LoginFragment> ();
-        private readonly Lazy<ReportsPagerFragment> reportFragment = new Lazy<ReportsPagerFragment>();
-        private readonly Lazy<ReportsNoApiFragment> reportNoApiFragment = new Lazy<ReportsNoApiFragment> ();
-        private readonly Lazy<FeedbackFragment> feedbackFragment = new Lazy<FeedbackFragment>();
-        private readonly Lazy<FeedbackNoApiFragment> feedbackNoApiFragment = new Lazy<FeedbackNoApiFragment> ();
-
         private DrawerListAdapter drawerAdapter;
         private IDisposable stateObserver;
 
@@ -62,66 +54,76 @@ namespace Toggl.Joey.UI.Activities
             }
         }
 
-        protected override void OnCreateActivity(Bundle state)
+        protected override void OnCreate(Bundle savedInstanceState)
         {
-            base.OnCreateActivity(state);
+            base.OnCreate(savedInstanceState);
 
             SetContentView(Resource.Layout.MainDrawerActivity);
 
-            MainToolbar = FindViewById<Toolbar> (Resource.Id.MainToolbar);
-            DrawerListView = FindViewById<ListView> (Resource.Id.DrawerListView);
-            DrawerUserName = FindViewById<TextView> (Resource.Id.TitleTextView);
-            DrawerEmail = FindViewById<TextView> (Resource.Id.EmailTextView);
-            DrawerImage = FindViewById<ProfileImageView> (Resource.Id.IconProfileImageView);
+            MainToolbar = FindViewById<Toolbar>(Resource.Id.MainToolbar);
+            DrawerListView = FindViewById<ListView>(Resource.Id.DrawerListView);
+            DrawerUserName = FindViewById<TextView>(Resource.Id.TitleTextView);
+            DrawerEmail = FindViewById<TextView>(Resource.Id.EmailTextView);
+            DrawerImage = FindViewById<ProfileImageView>(Resource.Id.IconProfileImageView);
             DrawerListView.ItemClick += OnDrawerListViewItemClick;
 
-            DrawerLayout = FindViewById<DrawerLayout> (Resource.Id.DrawerLayout);
+            DrawerLayout = FindViewById<DrawerLayout>(Resource.Id.DrawerLayout);
             DrawerToggle = new ActionBarDrawerToggle(this, DrawerLayout, MainToolbar, Resource.String.EntryName, Resource.String.EntryName);
             DrawerLayout.SetDrawerShadow(Resource.Drawable.drawershadow, (int)GravityFlags.Start);
             DrawerLayout.AddDrawerListener(DrawerToggle);
 
-            var drawerFrameLayout = FindViewById<FrameLayout> (Resource.Id.DrawerFrameLayout);
+            var drawerFrameLayout = FindViewById<FrameLayout>(Resource.Id.DrawerFrameLayout);
             drawerFrameLayout.Touch += (sender, e) =>
             {
                 // Do nothing, just absorb the event
                 // TODO: Improve this dirty solution?
             };
 
-            Timer.OnCreate(this);
-
-            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
-
             MainToolbar.SetNavigationIcon(Resource.Drawable.ic_menu_black_24dp);
             SetSupportActionBar(MainToolbar);
-            SupportActionBar.SetTitle(Resource.String.MainDrawerTimer);
-            SupportActionBar.SetCustomView(Timer.Root, lp);
             SupportActionBar.SetDisplayShowCustomEnabled(true);
+
+            // Set correct fragment based on user info
+            ResetFragmentNavigation(StoreManager.Singleton.AppState.User);
+        }
+
+        protected override void OnResumeActivity()
+        {
+            base.OnResumeActivity();
 
             // ATTENTION Suscription to state (settings) changes inside
             // the view. This will be replaced for "router"
             // modified in the reducers.
             stateObserver = StoreManager.Singleton
                             .Observe(x => x.State.User)
-                            .StartWith(StoreManager.Singleton.AppState.User)
                             .ObserveOn(SynchronizationContext.Current)
-            .DistinctUntilChanged(x => x.ApiToken)
-            .Subscribe(userData => ResetFragmentNavigation(userData));
+                            .DistinctUntilChanged(x => x.ApiToken)
+                            // Skip first value because it was already defined
+                            // when ResetFragmentNavigation was called.
+                            // why not use the StartWith, Android fragments don't like it.
+                            .Skip(1)
+                            .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
-        protected override void OnDestroy()
+        protected override void OnPause()
         {
             stateObserver.Dispose();
-            base.OnDestroy();
+            base.OnPause();
         }
 
-        protected override void OnSaveInstanceState(Bundle outState)
+        // `onPostCreate` called when activity start-up is complete after `onStart()`
+        // NOTE! Make sure to override the method with only a single `Bundle` argument
+        public override void OnPostCreate(Bundle savedInstanceState, PersistableBundle persistentState)
         {
-            base.OnSaveInstanceState(outState);
+            base.OnPostCreate(savedInstanceState, persistentState);
+            // Sync the toggle state after onRestoreInstanceState has occurred.
+            DrawerToggle.SyncState();
         }
 
         public override void OnConfigurationChanged(Android.Content.Res.Configuration newConfig)
         {
             base.OnConfigurationChanged(newConfig);
+            // Pass any configuration change to the drawer toggles
             DrawerToggle.OnConfigurationChanged(newConfig);
         }
 
@@ -168,7 +170,6 @@ namespace Toggl.Joey.UI.Activities
             if (oldVersion == -1)
                 return false;
 
-            SetToolbarTimerVisible(false);
             SupportActionBar.SetTitle(Resource.String.MigratingScreenTitle);
             var migrationFragment = MigrationFragment.NewInstance(oldVersion);
             OpenFragment(migrationFragment);
@@ -178,12 +179,9 @@ namespace Toggl.Joey.UI.Activities
 
         public void OpenPage(int id)
         {
-            // Configure timer component for selected page:
-            SetToolbarTimerVisible(id == DrawerListAdapter.TimerPageId);
-
             if (id == DrawerListAdapter.SettingsPageId)
             {
-                OpenFragment(settingsFragment.Value);
+                OpenFragment(typeof(SettingsListFragment));
                 SupportActionBar.SetTitle(Resource.String.MainDrawerSettings);
             }
             else if (id == DrawerListAdapter.ReportsPageId)
@@ -191,43 +189,42 @@ namespace Toggl.Joey.UI.Activities
                 if (userWithoutApiToken)
                 {
                     SupportActionBar.SetTitle(Resource.String.MainDrawerReports);
-                    OpenFragment(reportNoApiFragment.Value);
+                    OpenFragment(typeof(ReportsNoApiFragment));
                 }
                 else
                 {
-                    if (reportFragment.Value.ZoomLevel == ZoomLevel.Week)
+                    var zoomLevel = (ZoomLevel)StoreManager.Singleton.AppState.Settings.LastReportZoom;
+                    if (zoomLevel == ZoomLevel.Week)
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsWeek);
-                    else if (reportFragment.Value.ZoomLevel == ZoomLevel.Month)
+                    else if (zoomLevel == ZoomLevel.Month)
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsMonth);
                     else
                         SupportActionBar.SetTitle(Resource.String.MainDrawerReportsYear);
-                    OpenFragment(reportFragment.Value);
+                    OpenFragment(typeof(ReportsPagerFragment));
                 }
             }
             else if (id == DrawerListAdapter.FeedbackPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerFeedback);
                 if (userWithoutApiToken)
-                    OpenFragment(feedbackNoApiFragment.Value);
+                    OpenFragment(typeof(FeedbackNoApiFragment));
                 else
-                    OpenFragment(feedbackFragment.Value);
+                    OpenFragment(typeof(FeedbackFragment));
             }
             else if (id == DrawerListAdapter.LoginPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerLogin);
-                loginFragment.Value.ChangeToLogin();
-                OpenFragment(loginFragment.Value);
+                OpenFragment(LoginFragment.NewInstance());
             }
             else if (id == DrawerListAdapter.SignupPageId)
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerSignup);
-                loginFragment.Value.ChangeToRegister();
-                OpenFragment(loginFragment.Value);
+                OpenFragment(LoginFragment.NewInstance(isSignupMode: true));
             }
             else
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerTimer);
-                OpenFragment(trackingFragment.Value);
+                OpenFragment(typeof(LogTimeEntriesListFragment));
             }
 
             DrawerListView.ClearChoices();
@@ -235,23 +232,35 @@ namespace Toggl.Joey.UI.Activities
             DrawerListView.SetItemChecked(drawerAdapter.GetItemPosition(id), true);
         }
 
-        private void OpenFragment(Fragment fragment)
+        private void OpenFragment(Type fragmentType)
         {
-            var old = FragmentManager.FindFragmentById(Resource.Id.ContentFrameLayout);
-            if (old == null)
+            try
             {
+                var fragmentClass = Java.Lang.Class.FromType(fragmentType);
+                var fragment = (Fragment)fragmentClass.NewInstance();
                 FragmentManager.BeginTransaction()
-                .Add(Resource.Id.ContentFrameLayout, fragment)
+                .Replace(Resource.Id.ContentFrameLayout, fragment)
                 .Commit();
             }
-            else if (old != fragment)
+            catch (Exception ex)
             {
-                // The detach/attach is a workaround for https://code.google.com/p/android/issues/detail?id=42601
+                var logger = ServiceContainer.Resolve<ILogger>();
+                logger.Error(nameof(MainDrawerActivity), ex, "Error opening Drawer fragment.");
+            }
+        }
+
+        private void OpenFragment(Fragment newFragment)
+        {
+            try
+            {
                 FragmentManager.BeginTransaction()
-                .Detach(old)
-                .Replace(Resource.Id.ContentFrameLayout, fragment)
-                .Attach(fragment)
+                .Replace(Resource.Id.ContentFrameLayout, newFragment)
                 .Commit();
+            }
+            catch (Exception ex)
+            {
+                var logger = ServiceContainer.Resolve<ILogger>();
+                logger.Error(nameof(MainDrawerActivity), ex, "Error opening Drawer fragment.");
             }
         }
 
@@ -296,17 +305,6 @@ namespace Toggl.Joey.UI.Activities
             }
 
             DrawerLayout.CloseDrawers();
-        }
-
-        private void SetToolbarTimerVisible(bool isVisible)
-        {
-            SupportActionBar.SetDisplayShowTitleEnabled(!isVisible);
-            Timer.Hide = !isVisible;
-        }
-
-        public TimerComponent Timer
-        {
-            get { return barTimer; }
         }
     }
 }

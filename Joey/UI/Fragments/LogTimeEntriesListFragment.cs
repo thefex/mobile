@@ -62,6 +62,19 @@ namespace Toggl.Joey.UI.Fragments
 
         #endregion
 
+        public LogTimeEntriesListFragment()
+        {
+        }
+
+        public LogTimeEntriesListFragment(IntPtr jref, Android.Runtime.JniHandleOwnership xfer) : base(jref, xfer)
+        {
+        }
+
+        public override void OnCreate(Bundle savedInstanceState)
+        {
+            base.OnCreate(savedInstanceState);
+        }
+
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
             var view = inflater.Inflate(Resource.Layout.LogTimeEntriesListFragment, container, false);
@@ -69,6 +82,7 @@ namespace Toggl.Joey.UI.Fragments
             coordinatorLayout = view.FindViewById<CoordinatorLayout> (Resource.Id.logCoordinatorLayout);
             experimentEmptyView = view.FindViewById<View> (Resource.Id.ExperimentEmptyMessageView);
             emptyMessageView = view.FindViewById<View> (Resource.Id.EmptyMessageView);
+            emptyMessageView.Visibility = ViewStates.Gone;
             welcomeView = view.FindViewById<View> (Resource.Id.WelcomeLayout);
             welcomeView.Visibility = ViewStates.Gone;
 
@@ -81,7 +95,14 @@ namespace Toggl.Joey.UI.Fragments
             swipeLayout = view.FindViewById<SwipeRefreshLayout> (Resource.Id.LogSwipeContainer);
             swipeLayout.SetOnRefreshListener(this);
             StartStopBtn = view.FindViewById<StartStopFab> (Resource.Id.StartStopBtn);
-            timerComponent = ((MainDrawerActivity)Activity).Timer; // TODO: a better way to do this?
+
+            // set top timecounter view.
+            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
+            var timerView = LayoutInflater.From(Activity).Inflate(Resource.Layout.TimerComponent, null);
+            var activity = (Android.Support.V7.App.AppCompatActivity)Activity;
+            activity.SupportActionBar.SetCustomView(timerView, lp);
+
+            timerComponent = new TimerComponent(timerView, Activity);
             HasOptionsMenu = true;
 
             return view;
@@ -121,7 +142,6 @@ namespace Toggl.Joey.UI.Fragments
             SetupRecyclerView(ViewModel);
         }
 
-
         public async void StartStopClick(object sender, EventArgs e)
         {
             ViewModel.ReportExperiment(OBMExperimentManager.StartButtonActionKey,
@@ -158,9 +178,12 @@ namespace Toggl.Joey.UI.Fragments
                 return;
             }
 
-            // TODO: Remove bindings to ViewModel
-            // check if it is needed or not.
+            // TODO: Remove bindings to ViewModel?
             timerComponent.DetachBindind();
+
+            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
+            var activity = (Android.Support.V7.App.AppCompatActivity)Activity;
+            activity.SupportActionBar.SetCustomView(null, lp);
             ReleaseRecyclerView();
             ViewModel.Dispose();
             base.OnDestroyView();

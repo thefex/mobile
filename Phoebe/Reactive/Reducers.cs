@@ -714,6 +714,12 @@ namespace Toggl.Phoebe.Reactive
                 case nameof(SettingsState.GroupedEntries):
                     newSettings = newSettings.With(groupedEntries: (bool)info.Item2);
                     break;
+                case nameof(SettingsState.ReportsCurrentItem):
+                    newSettings = newSettings.With(reportsCurrentItem: (int)info.Item2);
+                    break;
+                case nameof(SettingsState.LastReportZoom):
+                    newSettings = newSettings.With(lastReportZoom: (int)info.Item2);
+                    break;
 
                     // TODO: log invalid/unknowns?
             }

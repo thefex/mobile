@@ -40,6 +40,7 @@ namespace Toggl.Joey.UI.Fragments
         const string KEY_IS_RESOLVING = "is_resolving";
         const string KEY_SHOULD_RESOLVE = "should_resolve";
         const string ExtraShowPassword = "com.toggl.timer.show_password";
+        public const string IS_SIGNUP_MODE = "is_signup_mode";
 
         private GoogleApiClient mGoogleApiClient;
         // State variables for Google Login, not exactly needed.
@@ -48,7 +49,6 @@ namespace Toggl.Joey.UI.Fragments
         private bool mShouldResolve;
         private bool hasGoogleAccounts;
         private bool showPassword;
-        private LoginVM.LoginMode initialLoginMode = LoginVM.LoginMode.Login;
         private ISpannable formattedLegalText;
         protected LoginVM ViewModel { get; private set; }
         protected ScrollView ScrollView { get; private set; }
@@ -69,6 +69,25 @@ namespace Toggl.Joey.UI.Fragments
         private Binding<bool, bool> isAuthencticatedBinding, isAuthenticatingBinding;
         private Binding<LoginVM.LoginMode, LoginVM.LoginMode> modeBinding;
         private Binding<AuthResult, AuthResult> resultBinding;
+
+        public LoginFragment()
+        {
+        }
+
+        public LoginFragment(IntPtr jref, Android.Runtime.JniHandleOwnership xfer) : base(jref, xfer)
+        {
+        }
+
+        public static LoginFragment NewInstance(bool isSignupMode = false)
+        {
+            var fragment = new LoginFragment();
+
+            var args = new Bundle();
+            args.PutBoolean(IS_SIGNUP_MODE, isSignupMode);
+            fragment.Arguments = args;
+
+            return fragment;
+        }
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
@@ -124,7 +143,8 @@ namespace Toggl.Joey.UI.Fragments
             .Build();
 
             ViewModel = new LoginVM();
-            ViewModel.ChangeLoginMode(initialLoginMode);
+            if (Arguments.GetBoolean(IS_SIGNUP_MODE))
+                ViewModel.ChangeLoginMode(LoginVM.LoginMode.Signup);
             return view;
         }
 
@@ -183,24 +203,6 @@ namespace Toggl.Joey.UI.Fragments
         }
 
         #region View state utils
-
-        public void ChangeToRegister()
-        {
-            // A nullcheck is needed because this fragment
-            // is created lazily. The first time this method is called
-            // the ViewModel isn't created yet.
-            ViewModel?.ChangeLoginMode(LoginVM.LoginMode.Signup);
-            initialLoginMode = LoginVM.LoginMode.Signup;
-        }
-
-        public void ChangeToLogin()
-        {
-            // A nullcheck is needed because this fragment
-            // is created lazily. The first time this method is called
-            // the ViewModel isn't created yet.
-            ViewModel?.ChangeLoginMode(LoginVM.LoginMode.Login);
-            initialLoginMode = LoginVM.LoginMode.Login;
-        }
 
         private void SetViewState()
         {

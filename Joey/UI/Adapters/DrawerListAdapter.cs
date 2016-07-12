@@ -162,6 +162,11 @@ namespace Toggl.Joey.UI.Adapters
 
             public TextView TitleTextView { get; private set; }
 
+            public DrawerItemViewHolder()
+            {
+                // Android requirement.
+            }
+
             public DrawerItemViewHolder(View root) : base(root)
             {
                 IconImageView = root.FindViewById<ImageView> (Resource.Id.IconImageView);

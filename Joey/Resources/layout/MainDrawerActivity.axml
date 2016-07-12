@@ -28,7 +28,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/ToolbarDropShadowHeight"
                     android:background="@drawable/DropShadowVertical" />
-            </FrameLayout>
         </LinearLayout>
     </FrameLayout>
 <!-- The navigation drawer -->
