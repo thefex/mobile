@@ -20,9 +20,9 @@ namespace Toggl.Joey.UI.Adapters
         protected const int ViewTypeTask = ViewTypeContent + 2;
         protected const int ViewTypeTopProjects = ViewTypeContent + 3;
 
-        protected ProjectsCollectionVM collectionView;
+        protected ProjectsCollection collectionView;
         protected ProjectListVM viewModel;
-        public Action<CommonData> HandleItemSelection { get; set; }
+        public Action<ICommonData> HandleItemSelection { get; set; }
 
         public ProjectListAdapter(RecyclerView owner, ProjectListVM viewModel) : base(owner, viewModel.ProjectList)
         {
@@ -76,8 +76,8 @@ namespace Toggl.Joey.UI.Adapters
             }
             else if (viewType == ViewTypeProject)
             {
-                var showClientName = collectionView.SortBy == ProjectsCollectionVM.SortProjectsBy.Projects;
-                ((ProjectItemHolder) holder).Bind((ProjectsCollectionVM.SuperProjectData)GetItem(position), showClientName);
+                var showClientName = collectionView.SortBy == ProjectsCollection.SortProjectsBy.Projects;
+                ((ProjectItemHolder) holder).Bind((ProjectsCollection.SuperProjectData)GetItem(position), showClientName);
             }
         }
 
@@ -95,7 +95,7 @@ namespace Toggl.Joey.UI.Adapters
             }
             var dataObject = GetItem(position);
 
-            if (dataObject is ProjectsCollectionVM.SuperProjectData)
+            if (dataObject is ProjectsCollection.SuperProjectData)
             {
                 return ViewTypeProject;
             }
@@ -116,9 +116,10 @@ namespace Toggl.Joey.UI.Adapters
 
         public class TopProjectsHolder : RecyclerView.ViewHolder
         {
+            const int maxNumProjects = 3;
             readonly TextView HeaderTextView;
-            readonly LinearLayout ProjectsContainer;
             private List<ProjectListVM.CommonProjectData> projectList;
+            readonly LinearLayout ProjectsContainer;
             private ProjectListAdapter adapter;
 
             public TopProjectsHolder(ProjectListAdapter adapter, View root) : base(root)
@@ -126,50 +127,79 @@ namespace Toggl.Joey.UI.Adapters
                 this.adapter = adapter;
                 HeaderTextView = root.FindViewById<TextView>(Resource.Id.HeaderTextView).SetFont(Font.RobotoMedium);
                 ProjectsContainer = root.FindViewById<LinearLayout>(Resource.Id.ProjectsContainer);
+                InflateProjectViews();
             }
 
-            public void Bind(List<ProjectListVM.CommonProjectData> projects)
+            public void Bind(List<ProjectListVM.CommonProjectData> projectList)
             {
-                this.projectList = projects;
-
                 HeaderTextView.Visibility = projectList.Count == 0 ? ViewStates.Gone : ViewStates.Visible;
                 ProjectsContainer.Visibility = projectList.Count == 0 ? ViewStates.Gone : ViewStates.Visible;
+                this.projectList = projectList;
 
-                var inflater = LayoutInflater.FromContext(ServiceContainer.Resolve<Context>());
+                View view;
+                TextView projectTextView;
+                TextView clientTextView;
+                TextView taskTextView;
+                View colorView;
+                Color color;
+                ProjectListVM.CommonProjectData project;
 
-                ProjectsContainer.RemoveAllViews();
-
-                foreach (var project in projectList)
+                for (var i = 0; i < ProjectsContainer.ChildCount; i++)
                 {
-                    var view = inflater.Inflate(Resource.Layout.ProjectListUsedProjectItem, null, false);
+                    view = ProjectsContainer.GetChildAt(i);
 
-                    var projectTextView = view.FindViewById<TextView>(Resource.Id.ProjectTextView);
-                    var clientTextView = view.FindViewById<TextView>(Resource.Id.ClientTextView);
-                    var taskTextView = view.FindViewById<TextView>(Resource.Id.TaskTextView);
-                    var colorView = view.FindViewById<View>(Resource.Id.ColorView);
-
-                    projectTextView.Text = project.Name;
-                    clientTextView.Visibility = String.IsNullOrEmpty(project.ClientName) ? ViewStates.Gone : ViewStates.Visible;
-                    clientTextView.Text = project.ClientName;
-
-                    taskTextView.Text = project.Task == null ? String.Empty : project.Task.Name;
-
-                    var color = Color.ParseColor(ProjectData.HexColors[project.Color % ProjectData.HexColors.Length]);
-                    colorView.SetBackgroundColor(color);
-                    projectTextView.SetTextColor(color);
-
-                    view.Click += (sender, e) =>
+                    if (i < projectList.Count)
                     {
-                        if (project.Task == null)
-                        {
-                            adapter.HandleItemSelection.Invoke((ProjectData)project);
-                        }
-                        else
-                        {
-                            adapter.HandleItemSelection.Invoke((TaskData)project.Task);
-                        }
-                    };
+                        view.Visibility = ViewStates.Visible;
+                        project = projectList[i];
+                        projectTextView = view.FindViewById<TextView>(Resource.Id.ProjectTextView);
+                        clientTextView = view.FindViewById<TextView>(Resource.Id.ClientTextView);
+                        taskTextView = view.FindViewById<TextView>(Resource.Id.TaskTextView);
+                        colorView = view.FindViewById<View>(Resource.Id.ColorView);
+
+                        projectTextView.Text = project.Name;
+                        clientTextView.Visibility = string.IsNullOrEmpty(project.ClientName) ? ViewStates.Gone : ViewStates.Visible;
+                        clientTextView.Text = project.ClientName;
+                        taskTextView.Text = project.Task == null ? string.Empty : project.Task.Name;
+
+                        color = Color.ParseColor(ProjectData.HexColors[project.Color % ProjectData.HexColors.Length]);
+                        colorView.SetBackgroundColor(color);
+                        projectTextView.SetTextColor(color);
+                    }
+                    else
+                    {
+                        view.Visibility = ViewStates.Gone;
+                    }
+                }
+            }
+
+            private void InflateProjectViews()
+            {
+                var inflater = LayoutInflater.FromContext(ServiceContainer.Resolve<Context>());
+                View view;
+                // inflate views
+                for (var i = 0; i < maxNumProjects; i++)
+                {
+                    view = inflater.Inflate(Resource.Layout.ProjectListUsedProjectItem, null, false);
+                    view.Click += OnClickProjectView;
                     ProjectsContainer.AddView(view);
+                }
+            }
+
+            private void OnClickProjectView(object sender, EventArgs e)
+            {
+                var index = ProjectsContainer.IndexOfChild((View)sender);
+                if (index < projectList.Count)
+                {
+                    var project = projectList[index];
+                    if (project.Task == null)
+                    {
+                        adapter.HandleItemSelection.Invoke(project);
+                    }
+                    else
+                    {
+                        adapter.HandleItemSelection.Invoke(project.Task);
+                    }
                 }
             }
         }
@@ -183,7 +213,7 @@ namespace Toggl.Joey.UI.Adapters
             protected ImageView TasksImageView { get; private set; }
 
             private ProjectListAdapter adapter;
-            private ProjectsCollectionVM.SuperProjectData projectData;
+            private ProjectsCollection.SuperProjectData projectData;
 
             public ProjectItemHolder(ProjectListAdapter adapter, View root) : base(root)
             {
@@ -209,7 +239,7 @@ namespace Toggl.Joey.UI.Adapters
                 }
             }
 
-            public void Bind(ProjectsCollectionVM.SuperProjectData projectData, bool showClient)
+            public void Bind(ProjectsCollection.SuperProjectData projectData, bool showClient)
             {
                 this.projectData = projectData;
 

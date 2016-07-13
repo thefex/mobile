@@ -7,7 +7,6 @@ using SQLite.Net.Platform.XamarinAndroid;
 using Toggl.Joey.Analytics;
 using Toggl.Joey.Data;
 using Toggl.Joey.Logging;
-using Toggl.Joey.Net;
 using Toggl.Joey.UI.Activities;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Analytics;

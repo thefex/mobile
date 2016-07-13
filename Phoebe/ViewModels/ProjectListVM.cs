@@ -12,7 +12,6 @@ using Toggl.Phoebe.Reactive;
 using XPlatUtils;
 using Toggl.Phoebe.Data;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Toggl.Phoebe.ViewModels
 {
@@ -24,7 +23,9 @@ namespace Toggl.Phoebe.ViewModels
     [ImplementPropertyChanged]
     public class ProjectListVM : ViewModelBase, IDisposable
     {
+        const int maxTopProjects = 3;
         private IDisposable searchObservable;
+        private readonly List<CommonProjectData> allTopProjects;
 
         public ProjectListVM(AppState appState, Guid workspaceId)
         {
@@ -32,15 +33,16 @@ namespace Toggl.Phoebe.ViewModels
             CurrentWorkspaceId = workspaceId;
 
             // Try to read sort from settings.
-            ProjectsCollectionVM.SortProjectsBy savedSort;
+            ProjectsCollection.SortProjectsBy savedSort;
             if (!Enum.TryParse(appState.Settings.ProjectSort, out savedSort))
-                savedSort = ProjectsCollectionVM.SortProjectsBy.Clients;
+                savedSort = ProjectsCollection.SortProjectsBy.Clients;
 
-            ProjectList = new ProjectsCollectionVM(appState, savedSort, workspaceId);
+            ProjectList = new ProjectsCollection(appState, savedSort, workspaceId);
             WorkspaceList = appState.Workspaces.Values.OrderBy(r => r.Name).ToList();
             CurrentWorkspaceIndex = WorkspaceList.IndexOf(p => p.Id == workspaceId);
+            allTopProjects = GetMostUsedProjects(appState);
+            TopProjects = GetTopProjectsByWorkspace(workspaceId);
 
-            PopulateMostUsedProjects();
             // Search stream
             searchObservable = Observable.FromEventPattern<string> (ev => onSearch += ev, ev => onSearch -= ev)
                                .Throttle(TimeSpan.FromMilliseconds(300))
@@ -58,8 +60,7 @@ namespace Toggl.Phoebe.ViewModels
 
         #region Observable properties
         public List<IWorkspaceData> WorkspaceList { get; private set; }
-        public ProjectsCollectionVM ProjectList { get; private set; }
-        public List<CommonProjectData> AllTopProjects { get; private set; }
+        public ProjectsCollection ProjectList { get; private set; }
         public List<CommonProjectData> TopProjects { get; private set; }
         public int CurrentWorkspaceIndex { get; private set; }
         public Guid CurrentWorkspaceId { get; private set; }
@@ -72,9 +73,9 @@ namespace Toggl.Phoebe.ViewModels
             onSearch.Invoke(this, token);
         }
 
-        public void ChangeListSorting(ProjectsCollectionVM.SortProjectsBy sortBy)
+        public void ChangeListSorting(ProjectsCollection.SortProjectsBy sortBy)
         {
-            // TODO RX: TODO TODO TODO: Danger! Mutating a property from a service
+            // TODO: Danger! Mutating a property from a service
             ProjectList.SortBy = sortBy;
             RxChain.Send(new DataMsg.UpdateSetting(nameof(SettingsState.ProjectSort), sortBy.ToString()));
         }
@@ -84,38 +85,38 @@ namespace Toggl.Phoebe.ViewModels
             CurrentWorkspaceId = WorkspaceList [newIndex].Id;
             ProjectList.WorkspaceId = WorkspaceList [newIndex].Id;
             CurrentWorkspaceIndex = newIndex;
-            TopProjects = ProjectList.Count > 7
-                          ? AllTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(3).ToList()
-                          : new List<CommonProjectData>();
+            TopProjects = GetTopProjectsByWorkspace(CurrentWorkspaceId);
         }
 
-        public void PopulateMostUsedProjects() //Load all potential top projects at once.
+        private List<CommonProjectData> GetTopProjectsByWorkspace(Guid workspacedId)
         {
+            return ProjectList.Count > 7
+                   ? allTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(maxTopProjects).ToList()
+                   : new List<CommonProjectData>();
+        }
+
+        private List<CommonProjectData> GetMostUsedProjects(AppState appstate) //Load all potential top projects at once.
+        {
+            IProjectData project;
+            ITaskData task;
+            string client;
+            var topProjects = new List<CommonProjectData>();
             var store = ServiceContainer.Resolve<ISyncDataStore>();
-            //var settingsStore = ServiceContainer.Resolve<SettingsStor>();
-            var appstate = StoreManager.Singleton.AppState;
 
-            var recentEntries = store.Table<TimeEntryData>()
-                                .OrderByDescending(r => r.StartTime)
-                                .Where(r => r.DeletedAt == null
-                                       && r.UserId == appstate.User.Id
-                                       && r.ProjectId != Guid.Empty)
-                                .ToList();
-
-            var uniqueRows = recentEntries
+            store.Table<TimeEntryData>()
+            .OrderByDescending(r => r.StartTime)
+            .Where(r => r.DeletedAt == null && r.ProjectId != Guid.Empty)
             .GroupBy(p => new { p.ProjectId, p.TaskId })
             .Select(g => g.First())
-            .ToList();
-
-            AllTopProjects = new List<CommonProjectData>();
-            foreach (var entry in uniqueRows)
+            .ForEach(entry =>
             {
-                var project = appstate.Projects.Values.Where(p => p.Id == entry.ProjectId).FirstOrDefault();
-                var task = appstate.Tasks.Values.Where(p => p.Id == entry.TaskId).FirstOrDefault();
-                var client = project.ClientId == Guid.Empty ? string.Empty : appstate.Clients.Values.Where(c => c.Id == project.ClientId).First().Name;
-                AllTopProjects.Add(new CommonProjectData(project, client, task ?? null));
-            }
-            TopProjects = AllTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(3).ToList();
+                project = appstate.Projects.Values.FirstOrDefault(p => p.Id == entry.ProjectId);
+                task = appstate.Tasks.Values.FirstOrDefault(p => p.Id == entry.TaskId);
+                client = project.ClientId == Guid.Empty ? string.Empty : appstate.Clients.Values.First(c => c.Id == project.ClientId).Name;
+                topProjects.Add(new CommonProjectData(project, client, task ?? null));
+            });
+
+            return topProjects;
         }
 
         public class CommonProjectData : ProjectData

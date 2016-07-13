@@ -72,7 +72,7 @@ namespace Toggl.Ross.ViewControllers
 
             if (m is ProjectData)
             {
-                if (!((ProjectsCollectionVM.SuperProjectData)m).IsEmpty)
+                if (!((ProjectsCollection.SuperProjectData)m).IsEmpty)
                 {
                     projectId = m.Id;
                 }
@@ -134,7 +134,7 @@ namespace Toggl.Ross.ViewControllers
                 if (data is ProjectData)
                 {
                     var cell = (ProjectCell)tableView.DequeueReusableCell(ProjectCellId);
-                    cell.Bind((ProjectsCollectionVM.SuperProjectData)data, viewModel.ProjectList.AddTasks);
+                    cell.Bind((ProjectsCollection.SuperProjectData)data, viewModel.ProjectList.AddTasks);
                     return cell;
                 }
                 else
@@ -196,7 +196,7 @@ namespace Toggl.Ross.ViewControllers
             private UILabel projectLabel;
             private UILabel clientLabel;
             private UIButton tasksButton;
-            private ProjectsCollectionVM.SuperProjectData projectData;
+            private ProjectsCollection.SuperProjectData projectData;
             private Action<ProjectData> onPressedTagBtn;
 
             public ProjectCell(IntPtr handle) : base(handle)
@@ -290,7 +290,7 @@ namespace Toggl.Ross.ViewControllers
                 }
             }
 
-            public void Bind(ProjectsCollectionVM.SuperProjectData projectData, Action<ProjectData> onPressedTagBtn, bool showClient = false)
+            public void Bind(ProjectsCollection.SuperProjectData projectData, Action<ProjectData> onPressedTagBtn, bool showClient = false)
             {
                 this.projectData = projectData;
                 this.onPressedTagBtn = onPressedTagBtn;
