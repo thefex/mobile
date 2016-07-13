@@ -93,7 +93,7 @@ namespace Toggl.Joey.UI.Fragments
             base.OnViewCreated(view, savedInstanceState);
             viewModel = new ProjectListVM(Phoebe.Reactive.StoreManager.Singleton.AppState, WorkspaceId);
 
-            var adapter = new ProjectListAdapter(recyclerView, viewModel.ProjectList);
+            var adapter = new ProjectListAdapter(recyclerView, viewModel);
             adapter.HandleItemSelection = OnItemSelected;
             recyclerView.SetAdapter(adapter);
 
@@ -149,7 +149,7 @@ namespace Toggl.Joey.UI.Fragments
             StartActivityForResult(intent, ProjectCreatedRequestCode);
         }
 
-        private void OnItemSelected(CommonData m)
+        private void OnItemSelected(ICommonData m)
         {
             // TODO: valorate to work only with IDs.
             Guid projectId = Guid.Empty;
@@ -157,7 +157,7 @@ namespace Toggl.Joey.UI.Fragments
 
             if (m is ProjectData)
             {
-                if (!((ProjectsCollectionVM.SuperProjectData)m).IsEmpty)
+                if (!(m is ProjectsCollection.SuperProjectData && ((ProjectsCollection.SuperProjectData)m).IsEmpty))
                 {
                     projectId = m.Id;
                 }
@@ -168,7 +168,6 @@ namespace Toggl.Joey.UI.Fragments
                 projectId = task.ProjectId;
                 taskId = task.Id;
             }
-
             // Return selected data inside the
             // intent.
             var resultIntent = new Intent();
@@ -238,10 +237,10 @@ namespace Toggl.Joey.UI.Fragments
             switch (item.ItemId)
             {
                 case Resource.Id.SortByClients:
-                    viewModel.ChangeListSorting(ProjectsCollectionVM.SortProjectsBy.Clients);
+                    viewModel.ChangeListSorting(ProjectsCollection.SortProjectsBy.Clients);
                     return true;
                 case Resource.Id.SortByProjects:
-                    viewModel.ChangeListSorting(ProjectsCollectionVM.SortProjectsBy.Projects);
+                    viewModel.ChangeListSorting(ProjectsCollection.SortProjectsBy.Projects);
                     return true;
             }
             return false;

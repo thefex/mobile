@@ -7,7 +7,7 @@ using Toggl.Phoebe.Reactive;
 
 namespace Toggl.Phoebe.ViewModels
 {
-    public class ProjectsCollectionVM : ObservableRangeCollection<ICommonData>
+    public class ProjectsCollection : ObservableRangeCollection<ICommonData>
     {
         private List<IClientData> clients;
         private List<SuperProjectData> projects;
@@ -22,7 +22,7 @@ namespace Toggl.Phoebe.ViewModels
             Clients
         }
 
-        public ProjectsCollectionVM(AppState appState, SortProjectsBy sortBy, Guid workspaceId)
+        public ProjectsCollection(AppState appState, SortProjectsBy sortBy, Guid workspaceId)
         {
             this.sortBy = sortBy;
             this.workspaceId = workspaceId;

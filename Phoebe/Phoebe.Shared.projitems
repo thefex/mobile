@@ -15,7 +15,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\NewProjectVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\NewTagVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\ProjectListVM.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\ProjectsCollectionVM.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\ProjectsCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\TagListVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\TimeEntryCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\Timer\DateHolder.cs" />
