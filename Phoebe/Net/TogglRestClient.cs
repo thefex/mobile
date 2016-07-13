@@ -121,10 +121,6 @@ namespace Toggl.Phoebe.Net
             {
                 return (T)(object)await GetWorkspace(authToken, id);
             }
-            else if (type == typeof(UserJson))
-            {
-                return (T)(object)await GetUser(id);
-            }
             else
             {
                 throw new NotSupportedException(string.Format("Fetching of {0} is not supported.", type));
@@ -350,12 +346,21 @@ namespace Toggl.Phoebe.Net
             return json.ToString(Formatting.None);
         }
 
-        private HttpRequestMessage SetupRequest(string authToken, HttpRequestMessage req)
+
+        private HttpRequestMessage SetupRequest(string username, string password, HttpRequestMessage req)
         {
             req.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                     Convert.ToBase64String(Encoding.ASCII.GetBytes(
-                                               string.Format("{0}:api_token", authToken))));
+                                               string.Format("{0}:{1}", username, password))));
             return req;
+        }
+        private HttpRequestMessage SetupRequest(string authToken, HttpRequestMessage req)
+        {
+            return SetupRequest(authToken, "api_token", req);
+        }
+        private HttpRequestMessage SetupRequestWithGoogleToken(string googleAccessToken, HttpRequestMessage req)
+        {
+            return SetupRequest(googleAccessToken, "google_access_token", req);
         }
 
         private async Task PrepareResponse(HttpResponseMessage resp, TimeSpan requestTime)
@@ -470,6 +475,15 @@ namespace Toggl.Phoebe.Net
         private Task DeleteObjects(string authToken, Uri url)
         {
             return DeleteObject(authToken, url);
+        }
+
+        private HttpRequestMessage createHttpGetMessage(Uri url)
+        {
+            return new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = url,
+            };
         }
 
         #region Client methods
@@ -815,61 +829,87 @@ namespace Toggl.Phoebe.Net
 
         #region User methods
 
-        public Task<UserJson> CreateUser(UserJson jsonObject)
+        public async Task<UserJson> CreateUser(UserJson jsonObject)
         {
             var url = new Uri(v8Url, jsonObject.GoogleAccessToken != null ? "signups?app_name=toggl_mobile" : "signups");
             jsonObject.CreatedWith = String.Format("{0}-obm-{1}", Platform.DefaultCreatedWith, OBMExperimentManager.ExperimentNumber);
-            return CreateObject(string.Empty, url, jsonObject);
-        }
 
-        public Task<UserJson> GetUser(long id)
-        {
-            var url = new Uri(v8Url, "me");
-            return GetObject<UserJson> (string.Empty, url);
+            var user = await CreateObject(string.Empty, url, jsonObject).ConfigureAwait(false);
+
+            user.OBM = await(jsonObject.GoogleAccessToken != null
+                             ? getObmWithGoogleToken(jsonObject.GoogleAccessToken)
+                             : getObm(jsonObject.Email, jsonObject.Password)).ConfigureAwait(false); ;
+
+            return user;
         }
 
         public async Task<UserJson> GetUser(string username, string password)
         {
+            var obmTask = getObm(username, password).ConfigureAwait(false);
+
             var url = new Uri(v8Url, "me");
 
-            var httpReq = new HttpRequestMessage()
-            {
-                Method = HttpMethod.Get,
-                RequestUri = url,
-            };
-            httpReq.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                    Convert.ToBase64String(Encoding.ASCII.GetBytes(
-                                               string.Format("{0}:{1}", username, password))));
+            var httpReq = SetupRequest(username, password, createHttpGetMessage(url));
             var httpResp = await SendAsync(httpReq).ConfigureAwait(false);
             var respData = await httpResp.Content.ReadAsStringAsync().ConfigureAwait(false);
             var wrap = JsonConvert.DeserializeObject<Wrapper<UserJson>> (respData);
+            var user = wrap.Data;
 
-            return wrap.Data;
+            user.OBM = await obmTask;
+
+            return user;
         }
 
         public async Task<UserJson> GetUser(string googleAccessToken)
         {
+            var obmTask = getObmWithGoogleToken(googleAccessToken).ConfigureAwait(false);
+
             var url = new Uri(v8Url, "me?app_name=toggl_mobile");
 
-            var httpReq = new HttpRequestMessage()
-            {
-                Method = HttpMethod.Get,
-                RequestUri = url,
-            };
-            httpReq.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                    Convert.ToBase64String(Encoding.ASCII.GetBytes(
-                                               string.Format("{0}:{1}", googleAccessToken, "google_access_token"))));
+            var httpReq = SetupRequestWithGoogleToken(googleAccessToken, createHttpGetMessage(url));
             var httpResp = await SendAsync(httpReq).ConfigureAwait(false);
             var respData = await httpResp.Content.ReadAsStringAsync().ConfigureAwait(false);
             var wrap = JsonConvert.DeserializeObject<Wrapper<UserJson>> (respData);
+            var user = wrap.Data;
 
-            return wrap.Data;
+            user.OBM = await obmTask;
+
+            return user;
         }
 
-        public Task<UserJson> UpdateUser(string authToken, UserJson jsonObject)
+        public async Task<UserJson> UpdateUser(string authToken, UserJson jsonObject)
         {
+            var obmTask = getObmWithApiToken(authToken).ConfigureAwait(false);
+
             var url = new Uri(v8Url, "me");
-            return UpdateObject(authToken, url, jsonObject);
+            var user = await UpdateObject(authToken, url, jsonObject).ConfigureAwait(false);
+
+            user.OBM = await obmTask;
+
+            return user;
+        }
+
+        private Task<OBMJson> getObm(string username, string password)
+        {
+            return getObm(req => SetupRequest(username, password, req));
+        }
+        private Task<OBMJson> getObmWithGoogleToken(string googleAccessToken)
+        {
+            return getObm(req => SetupRequestWithGoogleToken(googleAccessToken, req));
+        }
+        private Task<OBMJson> getObmWithApiToken(string authToken)
+        {
+            return getObm(req => SetupRequest(authToken, req));
+        }
+        private async Task<OBMJson> getObm(Action<HttpRequestMessage> setupAuthentication)
+        {
+            var url = new Uri(v9Url, "me/experiments/mobile");
+            var httpReq = createHttpGetMessage(url);
+            setupAuthentication(httpReq);
+            var httpResp = await SendAsync(httpReq).ConfigureAwait(false);
+            var respData = await httpResp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var obm = JsonConvert.DeserializeObject<OBMJson>(respData);
+            return obm;
         }
 
         // TODO: For testing purposes only

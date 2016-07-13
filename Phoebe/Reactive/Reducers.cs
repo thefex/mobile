@@ -245,11 +245,6 @@ namespace Toggl.Phoebe.Reactive
                 UserData user = serverMsg.User;
                 user.Id = state.User.Id;
                 user.DefaultWorkspaceId = state.Workspaces.Values.Single(x => x.RemoteId == user.DefaultWorkspaceRemoteId).Id;
-                // TODO: OBM data that comes in user object from this changes
-                // is totally wrong. In that way, we should keep this info before
-                // before process the object.
-                user.ExperimentIncluded = state.User.ExperimentIncluded;
-                user.ExperimentNumber = state.User.ExperimentNumber;
 
                 var userUpdated = (UserData)dataStore.Update(ctx => ctx.Put(user)).Single();
 
