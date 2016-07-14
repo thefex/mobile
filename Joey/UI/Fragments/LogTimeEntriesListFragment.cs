@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using Android.Content;
 using Android.OS;
 using Android.Support.Design.Widget;
@@ -27,7 +26,6 @@ namespace Toggl.Joey.UI.Fragments
 {
     public class LogTimeEntriesListFragment : Fragment,
         SwipeDismissCallback.IDismissListener,
-        ItemTouchListener.IItemTouchListener,
         SwipeRefreshLayout.IOnRefreshListener
     {
 
@@ -42,7 +40,6 @@ namespace Toggl.Joey.UI.Fragments
 
         // Recycler setup
         private DividerItemDecoration dividerDecoration;
-        private ItemTouchListener itemTouchListener;
 
         // binding references
         private Binding<string, string> durationBinding;
@@ -52,7 +49,6 @@ namespace Toggl.Joey.UI.Fragments
         private Binding<ObservableCollection<IHolder>, ObservableCollection<IHolder>> collectionBinding;
         private Binding<bool, FABButtonState> fabBinding;
         private Binding<RichTimeEntry, RichTimeEntry> activeEntryBinding;
-
 
         #region Binding objects and properties.
 
@@ -118,7 +114,9 @@ namespace Toggl.Joey.UI.Fragments
             collectionBinding = this.SetBinding(() => ViewModel.Collection).WhenSourceChanges(() =>
             {
                 logAdapter = new LogTimeEntriesAdapter(recyclerView, ViewModel);
+                logAdapter.OnItemSelected += OnItemSelected;
                 recyclerView.SetAdapter(logAdapter);
+
             });
             isSyncingBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(SetSyncState);
             hasItemsBinding = this.SetBinding(() => ViewModel.Collection.Count).WhenSourceChanges(SetCollectionState);
@@ -178,6 +176,10 @@ namespace Toggl.Joey.UI.Fragments
                 return;
             }
 
+            // Remove Item click handler
+            if (logAdapter != null)
+                logAdapter.OnItemSelected -= OnItemSelected;
+
             // TODO: Remove bindings to ViewModel?
             timerComponent.DetachBindind();
 
@@ -224,35 +226,6 @@ namespace Toggl.Joey.UI.Fragments
         {
             var adapter = recyclerView.GetAdapter();
             return adapter.GetItemViewType(viewHolder.LayoutPosition) == RecyclerCollectionDataAdapter<IHolder>.ViewTypeContent;
-        }
-        #endregion
-
-        #region IRecyclerViewOnItemClickListener implementation
-        public void OnItemClick(RecyclerView parent, View clickedView, int position)
-        {
-            var undoAdapter = (IUndoAdapter)parent.GetAdapter();
-            if (undoAdapter.IsUndo(position))
-            {
-                return;
-            }
-
-            var intent = new Intent(Activity, typeof(EditTimeEntryActivity));
-            IList<string> guids = ((ITimeEntryHolder)ViewModel.Collection.ElementAt(position)).Guids;
-            intent.PutStringArrayListExtra(EditTimeEntryActivity.ExtraGroupedTimeEntriesGuids, guids);
-            intent.PutExtra(EditTimeEntryActivity.IsGrouped, guids.Count > 1);
-
-            StartActivity(intent);
-        }
-
-        public void OnItemLongClick(RecyclerView parent, View clickedView, int position)
-        {
-            OnItemClick(parent, clickedView, position);
-        }
-
-        public bool CanClick(RecyclerView view, int position)
-        {
-            var adapter = recyclerView.GetAdapter();
-            return adapter.GetItemViewType(position) == RecyclerCollectionDataAdapter<IHolder>.ViewTypeContent;
         }
         #endregion
 
@@ -363,10 +336,6 @@ namespace Toggl.Joey.UI.Fragments
 
         private void SetupRecyclerView(LogTimeEntriesVM viewModel)
         {
-            // Touch listeners.
-            itemTouchListener = new ItemTouchListener(recyclerView, this);
-            recyclerView.AddOnItemTouchListener(itemTouchListener);
-
             // Scroll listener
             recyclerView.AddOnScrollListener(
                 new ScrollListener((LinearLayoutManager)recyclerView.GetLayoutManager(), viewModel));
@@ -381,15 +350,21 @@ namespace Toggl.Joey.UI.Fragments
             recyclerView.GetItemAnimator().ChangeDuration = 0;
         }
 
+        private void OnItemSelected(object sender, ITimeEntryHolder holder)
+        {
+            var intent = new Intent(Activity, typeof(EditTimeEntryActivity));
+            IList<string> guids = holder.Guids;
+            intent.PutStringArrayListExtra(EditTimeEntryActivity.ExtraGroupedTimeEntriesGuids, guids);
+            intent.PutExtra(EditTimeEntryActivity.IsGrouped, guids.Count > 1);
+
+            StartActivity(intent);
+        }
+
         private void ReleaseRecyclerView()
         {
             recyclerView.RemoveItemDecoration(dividerDecoration);
-            recyclerView.RemoveOnItemTouchListener(itemTouchListener);
-
             recyclerView.GetAdapter().Dispose();
             recyclerView.Dispose();
-
-            itemTouchListener.Dispose();
             dividerDecoration.Dispose();
         }
 
@@ -430,6 +405,16 @@ namespace Toggl.Joey.UI.Fragments
                     loading = true;
                     // Request more entries.
                     viewModel.LoadMore();
+                }
+            }
+
+            public override void OnScrollStateChanged(RecyclerView recyclerView, int newState)
+            {
+                base.OnScrollStateChanged(recyclerView, newState);
+                if (newState == RecyclerView.ScrollStateDragging)
+                {
+                    var adapter = (LogTimeEntriesAdapter)recyclerView.GetAdapter();
+                    adapter.DeleteSelectedItem();
                 }
             }
         }
