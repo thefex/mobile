@@ -1,4 +1,5 @@
-﻿using Android.Content;
+﻿using System;
+using Android.Content;
 using Android.Util;
 using Android.Views;
 using Android.Views.InputMethods;
@@ -25,6 +26,10 @@ namespace Toggl.Joey.UI.Views
         private TextView titleText;
         private TextView assistView;
         private ImageView arrow;
+
+        public TogglField(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
+        {
+        }
 
         public TogglField(Context context) : base(context)
         {

@@ -741,7 +741,7 @@
     <AndroidResource Include="Resources\drawable\ButtonGreenDisabled.xml" />
     <AndroidResource Include="Resources\drawable\ButtonGreenPressed.xml" />
     <AndroidResource Include="Resources\drawable\DropShadowVertical.xml" />
-    <AndroidResource Include="Resources\drawable\RedCursor.xml" />
+    <AndroidResource Include="Resources\drawable\BlackCursor.xml" />
     <AndroidResource Include="Resources\drawable\DropShadowVerticalReverse.xml" />
     <AndroidResource Include="Resources\drawable-v21\play_button_background.xml" />
     <AndroidResource Include="Resources\drawable\play_button_background.xml" />
