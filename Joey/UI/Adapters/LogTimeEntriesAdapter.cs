@@ -30,6 +30,8 @@ namespace Toggl.Joey.UI.Adapters
         private LogTimeEntriesVM viewModel;
         private RecyclerLoadState footerState = RecyclerLoadState.Loading;
 
+        public EventHandler<ITimeEntryHolder> OnItemSelected;
+
         public LogTimeEntriesAdapter(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
         {
         }
@@ -39,21 +41,6 @@ namespace Toggl.Joey.UI.Adapters
         {
             this.viewModel = viewModel;
             lastTimeEntryContinuedTime = Time.UtcNow;
-        }
-
-        private void OnContinueTimeEntry(RecyclerView.ViewHolder viewHolder)
-        {
-            DeleteSelectedItem();
-
-            // Don't continue a new TimeEntry before
-            // x seconds has passed.
-            if (Time.UtcNow < lastTimeEntryContinuedTime + TimeSpan.FromSeconds(ContinueThreshold))
-            {
-                return;
-            }
-            lastTimeEntryContinuedTime = Time.UtcNow;
-
-            viewModel.ContinueTimeEntry(viewHolder.AdapterPosition);
         }
 
         protected override RecyclerView.ViewHolder GetViewHolder(ViewGroup parent, int viewType)
@@ -128,6 +115,22 @@ namespace Toggl.Joey.UI.Adapters
             }
             footerState = state;
             NotifyItemChanged(ItemCount - 1);
+        }
+
+
+        private void OnContinueTimeEntry(RecyclerView.ViewHolder viewHolder)
+        {
+            DeleteSelectedItem();
+
+            // Don't continue a new TimeEntry before
+            // x seconds has passed.
+            if (Time.UtcNow < lastTimeEntryContinuedTime + TimeSpan.FromSeconds(ContinueThreshold))
+            {
+                return;
+            }
+            lastTimeEntryContinuedTime = Time.UtcNow;
+
+            viewModel.ContinueTimeEntry(viewHolder.AdapterPosition);
         }
 
         #region IUndo interface implementation
@@ -220,7 +223,7 @@ namespace Toggl.Joey.UI.Adapters
             private TimeSpan duration;
             private DateTime date;
 
-            public HeaderListItemHolder(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
+            protected HeaderListItemHolder(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
             {
             }
 
@@ -295,7 +298,7 @@ namespace Toggl.Joey.UI.Adapters
             }
         }
 
-        private class TimeEntryListItemHolder : RecyclerView.ViewHolder, View.IOnTouchListener, IDurationHolder
+        private class TimeEntryListItemHolder : RecyclerView.ViewHolder, View.IOnClickListener, IDurationHolder
         {
             private readonly LogTimeEntriesAdapter owner;
             private bool isRunning;
@@ -342,33 +345,26 @@ namespace Toggl.Joey.UI.Adapters
                 UndoButton = root.FindViewById(Resource.Id.undo_button);
                 UndoLayout = root.FindViewById(Resource.Id.undo_layout);
 
-                ContinueImageButton.SetOnTouchListener(this);
-                UndoButton.SetOnTouchListener(this);
+                ContinueImageButton.SetOnClickListener(this);
+                UndoButton.SetOnClickListener(this);
+                ItemView.SetOnClickListener(this);
             }
 
-            bool View.IOnTouchListener.OnTouch(View v, MotionEvent e)
+            public void OnClick(View v)
             {
-                bool returnValue = true;
-                switch (e.Action)
+                if (v == ContinueImageButton)
                 {
-                    case MotionEventActions.Down:
-                        returnValue = !(v == ContinueImageButton);
-                        break;
-
-                    case MotionEventActions.Up:
-                        if (v == ContinueImageButton)
-                        {
-                            owner.OnContinueTimeEntry(this);
-                            returnValue = false;
-                        }
-                        if (v == UndoButton)
-                        {
-                            owner.SetItemsToNormalPosition();
-                            returnValue = true;
-                        }
-                        break;
+                    owner.OnContinueTimeEntry(this);
                 }
-                return returnValue;
+                else if (v == UndoButton)
+                {
+                    owner.SetItemsToNormalPosition();
+                }
+                else if (v == ItemView)
+                {
+                    if (owner.OnItemSelected != null && IsNormalState)
+                        owner.OnItemSelected.Invoke(this, (ITimeEntryHolder)owner.Collection[AdapterPosition]);
+                }
             }
 
             #region Undo cell methods.
