@@ -1,12 +1,10 @@
 ﻿using System;
-using Android.Animation;
 using Android.Content;
 using Android.Content.Res;
 using Android.Graphics.Drawables;
 using Android.Runtime;
 using Android.Support.Design.Widget;
 using Android.Util;
-using Android.Views.Animations;
 
 namespace Toggl.Joey.UI.Views
 {
@@ -41,7 +39,7 @@ namespace Toggl.Joey.UI.Views
 
 
             var states = new int[][] { new int[]{ } };
-            var createNewColor = new int[] {context.Resources.GetColor(Resource.Color.material_red)};
+            var createNewColor = new int[] {context.Resources.GetColor(Resource.Color.material_green)};
 
             backgroundTintNew = new ColorStateList(states, createNewColor);
 

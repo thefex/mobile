@@ -2,10 +2,12 @@
 using Android.App;
 using Android.Content;
 using Android.OS;
+using Android.Support.V7.Widget;
 using Android.Views;
 using Android.Views.InputMethods;
 using GalaSoft.MvvmLight.Helpers;
 using Toggl.Joey.UI.Activities;
+using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.ViewModels;
@@ -19,13 +21,15 @@ namespace Toggl.Joey.UI.Fragments
 {
     public class NewProjectFragment : Fragment, IOnClientSelectedHandler
     {
-        private static readonly string WorkspaceIdArgument = "workspace_id_param";
         public static readonly int ClientSelectedRequestCode = 1;
+        private static readonly string WorkspaceIdArgument = "workspace_id_param";
+        private static int ColumnsCount = 5;
+        private static int RowsCount = 5;
 
         private ActionBar Toolbar;
         public TogglField ProjectBit { get; private set; }
         public TogglField SelectClientBit { get; private set; }
-        public ColorPickerRecyclerView ColorPicker { get; private set; }
+        private RecyclerView colorPicker;
         public NewProjectVM ViewModel { get; private set; }
 
         // Binding to avoid weak references
@@ -89,7 +93,12 @@ namespace Toggl.Joey.UI.Fragments
             SelectClientBit.TextField.Click += SelectClientBitClickedHandler;
             SelectClientBit.Click += SelectClientBitClickedHandler;
 
-            ColorPicker = view.FindViewById<ColorPickerRecyclerView> (Resource.Id.NewProjectColorPickerRecyclerView);
+            // Setup colour picker
+            colorPicker = view.FindViewById<RecyclerView> (Resource.Id.NewProjectColorPickerRecyclerView);
+            colorPicker.SetLayoutManager(new GridLayoutManager(Context, ColumnsCount));
+            var adapter = new ColorPickerAdapter(ColumnsCount, RowsCount);
+            colorPicker.SetAdapter(adapter);
+
             HasOptionsMenu = true;
             return view;
         }
@@ -147,7 +156,7 @@ namespace Toggl.Joey.UI.Fragments
             }
 
             // Save project and send result.
-            var newProjectData = await ViewModel.SaveProjectAsync(projectName, ColorPicker.Adapter.SelectedColor);
+            var newProjectData = await ViewModel.SaveProjectAsync(projectName, ((ColorPickerAdapter)colorPicker.GetAdapter()).SelectedColor);
             var resultIntent = new Intent();
             resultIntent.PutExtra(BaseActivity.IntentProjectIdArgument, newProjectData.Id.ToString());
             Activity.SetResult(Result.Ok, resultIntent);
@@ -194,5 +203,7 @@ namespace Toggl.Joey.UI.Fragments
             }
             return base.OnOptionsItemSelected(item);
         }
+
+
     }
 }
