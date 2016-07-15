@@ -20,7 +20,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             style="@style/TabNavigationStyle"
-            app:tabIndicatorColor="#f30c16"
+            app:tabIndicatorColor="#4dd965"
             app:tabMode="scrollable" />
     </android.support.design.widget.AppBarLayout>
     <LinearLayout

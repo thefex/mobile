@@ -17,6 +17,10 @@ namespace Toggl.Joey.UI.Views
 
         private List<string> tagNames = new List<string> ();
 
+        public TogglTagsField(IntPtr a, Android.Runtime.JniHandleOwnership b) : base(a, b)
+        {
+        }
+
         public TogglTagsField(Context context) : base(context)
         {
             Initialize();

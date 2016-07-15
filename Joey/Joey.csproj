@@ -230,7 +230,6 @@
     <Compile Include="UI\Views\NotificationImageView.cs" />
     <Compile Include="UI\Activities\NewProjectActivity.cs" />
     <Compile Include="UI\Fragments\NewProjectFragment.cs" />
-    <Compile Include="UI\Views\ColorPickerRecyclerView.cs" />
     <Compile Include="UI\Views\TogglField.cs" />
     <Compile Include="UI\Views\DividerItemDecoration.cs" />
     <Compile Include="UI\Utils\RecycledBindableViewHolder.cs" />
@@ -239,7 +238,6 @@
     <Compile Include="UI\Activities\ProjectListActivity.cs" />
     <Compile Include="UI\Fragments\ProjectListFragment.cs" />
     <Compile Include="UI\Adapters\ProjectListAdapter.cs" />
-    <Compile Include="UI\Utils\ItemTouchListener.cs" />
     <Compile Include="UI\Fragments\EditGroupedTimeEntryFragment.cs" />
     <Compile Include="UI\Views\TogglTagsField.cs" />
     <Compile Include="UI\Views\ShadowItemDecoration.cs" />
@@ -266,6 +264,7 @@
     <Compile Include="UI\Fragments\FeedbackNoApiFragment.cs" />
     <Compile Include="UI\Fragments\MigrationFragment.cs" />
     <Compile Include="UI\Views\NoWorkspaceDialogFragment.cs" />
+    <Compile Include="UI\Adapters\ColorPickerAdapter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -742,7 +741,7 @@
     <AndroidResource Include="Resources\drawable\ButtonGreenDisabled.xml" />
     <AndroidResource Include="Resources\drawable\ButtonGreenPressed.xml" />
     <AndroidResource Include="Resources\drawable\DropShadowVertical.xml" />
-    <AndroidResource Include="Resources\drawable\RedCursor.xml" />
+    <AndroidResource Include="Resources\drawable\BlackCursor.xml" />
     <AndroidResource Include="Resources\drawable\DropShadowVerticalReverse.xml" />
     <AndroidResource Include="Resources\drawable-v21\play_button_background.xml" />
     <AndroidResource Include="Resources\drawable\play_button_background.xml" />
