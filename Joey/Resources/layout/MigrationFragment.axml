@@ -40,6 +40,18 @@
             android:layout_marginTop="52dp"
             android:layout_width="80dp"
             android:layout_height="134dp" />
+        <Button
+            android:visibility="gone"
+            android:text="@string/MigratingStartBtn"
+            android:id="@+id/migrationStartBtn"
+            android:layout_gravity="center"
+            android:background="@android:color/transparent"
+            android:textSize="14sp"
+            android:textColor="@color/green"
+            android:textAllCaps="false"
+            android:layout_marginTop="24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp" />
         <TextView
             android:id="@+id/percente"
             android:text="65%"

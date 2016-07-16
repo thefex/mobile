@@ -282,4 +282,5 @@
     <string name="MigratingDiscardDialogMsg">Are you sure? You\'ll lose any unsynced time entries.</string>
     <string name="MigratingDiscardConfirm">Discard and open the app</string>
     <string name="MigratingDiscardCancel">Keep my time</string>	
+    <string name="MigratingStartBtn">Back to normality!</string> 	
 </resources>

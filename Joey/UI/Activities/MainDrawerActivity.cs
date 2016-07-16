@@ -121,12 +121,7 @@ namespace Toggl.Joey.UI.Activities
             return DrawerToggle.OnOptionsItemSelected(item) || base.OnOptionsItemSelected(item);
         }
 
-        public override void Finish()
-        {
-            base.Finish();
-        }
-
-        private void ResetFragmentNavigation(IUserData userData)
+        public void ResetFragmentNavigation(IUserData userData)
         {
             // TODO : Don't let both name/email empty.
             // maybe an elegant solution is possible.

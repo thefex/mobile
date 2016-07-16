@@ -4,6 +4,7 @@ using Android.OS;
 using Android.Support.V7.App;
 using Android.Views;
 using Android.Widget;
+using Toggl.Joey.UI.Activities;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Reactive;
@@ -25,8 +26,11 @@ namespace Toggl.Joey.UI.Fragments
         private ProgressBar progressBar;
         private Button tryAgainBtn;
         private Button discardBtn;
+        private Button startBtn;
         private ImageView toggler1;
         private ImageView toggler2;
+
+        private Handler handler = new Handler();
 
         public MigrationFragment()
         {
@@ -63,6 +67,7 @@ namespace Toggl.Joey.UI.Fragments
             discardBtn = view.FindViewById<Button>(Resource.Id.discardBtn);
             toggler1 = view.FindViewById<ImageView>(Resource.Id.toggler1);
             toggler2 = view.FindViewById<ImageView>(Resource.Id.toggler2);
+            startBtn = view.FindViewById<Button>(Resource.Id.migrationStartBtn);
 
             return view;
         }
@@ -94,6 +99,14 @@ namespace Toggl.Joey.UI.Fragments
                 .SetNegativeButton(Resource.String.MigratingDiscardCancel, delegate { })
                 .Create();
                 dialog.Show();
+            };
+            startBtn.Click += (sender, e) =>
+            {
+                // Reset fragments using correct info.
+                // Corner case related with not logged users:
+                // ApiToken doesn't change and we have to trigger the
+                // framework navigation manually.
+                ((MainDrawerActivity)Activity).ResetFragmentNavigation(StoreManager.Singleton.AppState.User);
             };
         }
 
@@ -128,6 +141,11 @@ namespace Toggl.Joey.UI.Fragments
             DisplayInitialState();
         }
 
+        public override void OnDestroyView()
+        {
+            handler.RemoveCallbacksAndMessages(null);
+            base.OnDestroyView();
+        }
 
         private void DisplayInitialState()
         {
@@ -153,6 +171,13 @@ namespace Toggl.Joey.UI.Fragments
             progressBar.Visibility = ViewStates.Gone;
             tryAgainBtn.Visibility = ViewStates.Gone;
             percente.Visibility = ViewStates.Gone;
+
+            // Start btn is shown after 3 seconds
+            // if Success state is still visible.
+            handler.PostDelayed(() =>
+            {
+                startBtn.Visibility = ViewStates.Visible;
+            }, 3000);
         }
 
         private void DisplayErrorState()
