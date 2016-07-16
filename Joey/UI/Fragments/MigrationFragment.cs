@@ -4,7 +4,6 @@ using Android.OS;
 using Android.Support.V7.App;
 using Android.Views;
 using Android.Widget;
-using Toggl.Joey.UI.Activities;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Data;
 using Toggl.Phoebe.Reactive;
@@ -111,12 +110,12 @@ namespace Toggl.Joey.UI.Fragments
                                       );
                 if (migrationResult)
                 {
-                    BaseActivity.CurrentActivity.RunOnUiThread(() => DisplaySuccessState());
+                    Activity.RunOnUiThread(() => DisplaySuccessState());
                     RxChain.Send(new DataMsg.InitStateAfterMigration());
                 }
                 else
                 {
-                    BaseActivity.CurrentActivity.RunOnUiThread(() =>
+                    Activity.RunOnUiThread(() =>
                     {
                         if (!userTriedAgain)
                             DisplayErrorState();
@@ -187,7 +186,7 @@ namespace Toggl.Joey.UI.Fragments
 
         private void setProgress(float percentage)
         {
-            BaseActivity.CurrentActivity.RunOnUiThread(() =>
+            Activity.RunOnUiThread(() =>
             {
                 var per = Math.Truncate(percentage * 100);
                 progressBar.Progress = Convert.ToInt16(per);

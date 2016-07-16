@@ -57,7 +57,7 @@
             android:layout_marginTop="24dp"
             android:id="@+id/migrationProgressBar"
             android:progressTint="@color/green"
-            android:progress="20"
+            android:progress="0"
             android:indeterminate="false" />
         <TextView
             android:visibility="gone"
