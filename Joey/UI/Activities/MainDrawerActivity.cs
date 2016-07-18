@@ -83,32 +83,21 @@ namespace Toggl.Joey.UI.Activities
             SetSupportActionBar(MainToolbar);
             SupportActionBar.SetDisplayShowCustomEnabled(true);
 
-            // Set correct fragment based on user info
-            ResetFragmentNavigation(StoreManager.Singleton.AppState.User);
-        }
-
-        protected override void OnResumeActivity()
-        {
-            base.OnResumeActivity();
-
             // ATTENTION Suscription to state (settings) changes inside
             // the view. This will be replaced for "router"
             // modified in the reducers.
             stateObserver = StoreManager.Singleton
                             .Observe(x => x.State.User)
                             .ObserveOn(SynchronizationContext.Current)
+                            .StartWith(StoreManager.Singleton.AppState.User)
                             .DistinctUntilChanged(x => x.ApiToken)
-                            // Skip first value because it was already defined
-                            // when ResetFragmentNavigation was called.
-                            // why not use the StartWith, Android fragments don't like it.
-                            .Skip(1)
                             .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
-        protected override void OnPause()
+        protected override void OnStop()
         {
             stateObserver.Dispose();
-            base.OnPause();
+            base.OnStop();
         }
 
         // `onPostCreate` called when activity start-up is complete after `onStart()`
@@ -132,12 +121,7 @@ namespace Toggl.Joey.UI.Activities
             return DrawerToggle.OnOptionsItemSelected(item) || base.OnOptionsItemSelected(item);
         }
 
-        public override void Finish()
-        {
-            base.Finish();
-        }
-
-        private void ResetFragmentNavigation(IUserData userData)
+        public void ResetFragmentNavigation(IUserData userData)
         {
             // TODO : Don't let both name/email empty.
             // maybe an elegant solution is possible.

@@ -26,8 +26,11 @@ namespace Toggl.Joey.UI.Fragments
         private ProgressBar progressBar;
         private Button tryAgainBtn;
         private Button discardBtn;
+        private Button startBtn;
         private ImageView toggler1;
         private ImageView toggler2;
+
+        private Handler handler = new Handler();
 
         public MigrationFragment()
         {
@@ -64,6 +67,7 @@ namespace Toggl.Joey.UI.Fragments
             discardBtn = view.FindViewById<Button>(Resource.Id.discardBtn);
             toggler1 = view.FindViewById<ImageView>(Resource.Id.toggler1);
             toggler2 = view.FindViewById<ImageView>(Resource.Id.toggler2);
+            startBtn = view.FindViewById<Button>(Resource.Id.migrationStartBtn);
 
             return view;
         }
@@ -96,6 +100,14 @@ namespace Toggl.Joey.UI.Fragments
                 .Create();
                 dialog.Show();
             };
+            startBtn.Click += (sender, e) =>
+            {
+                // Reset fragments using correct info.
+                // Corner case related with not logged users:
+                // ApiToken doesn't change and we have to trigger the
+                // framework navigation manually.
+                ((MainDrawerActivity)Activity).ResetFragmentNavigation(StoreManager.Singleton.AppState.User);
+            };
         }
 
         private void MigrateDatabase()
@@ -111,12 +123,12 @@ namespace Toggl.Joey.UI.Fragments
                                       );
                 if (migrationResult)
                 {
-                    BaseActivity.CurrentActivity.RunOnUiThread(() => DisplaySuccessState());
+                    Activity.RunOnUiThread(() => DisplaySuccessState());
                     RxChain.Send(new DataMsg.InitStateAfterMigration());
                 }
                 else
                 {
-                    BaseActivity.CurrentActivity.RunOnUiThread(() =>
+                    Activity.RunOnUiThread(() =>
                     {
                         if (!userTriedAgain)
                             DisplayErrorState();
@@ -129,6 +141,11 @@ namespace Toggl.Joey.UI.Fragments
             DisplayInitialState();
         }
 
+        public override void OnDestroyView()
+        {
+            handler.RemoveCallbacksAndMessages(null);
+            base.OnDestroyView();
+        }
 
         private void DisplayInitialState()
         {
@@ -154,6 +171,13 @@ namespace Toggl.Joey.UI.Fragments
             progressBar.Visibility = ViewStates.Gone;
             tryAgainBtn.Visibility = ViewStates.Gone;
             percente.Visibility = ViewStates.Gone;
+
+            // Start btn is shown after 3 seconds
+            // if Success state is still visible.
+            handler.PostDelayed(() =>
+            {
+                startBtn.Visibility = ViewStates.Visible;
+            }, 3000);
         }
 
         private void DisplayErrorState()
@@ -187,7 +211,7 @@ namespace Toggl.Joey.UI.Fragments
 
         private void setProgress(float percentage)
         {
-            BaseActivity.CurrentActivity.RunOnUiThread(() =>
+            Activity.RunOnUiThread(() =>
             {
                 var per = Math.Truncate(percentage * 100);
                 progressBar.Progress = Convert.ToInt16(per);
