@@ -274,12 +274,12 @@ namespace Toggl.Phoebe.ViewModels
 
                 if (isStartStopTimeCorrect)
                 {
-                    RxChain.Send(new DataMsg.TimeEntryPut(richData.Data, Tags));
-                    previousData = richData;
                     if (IsManual)
                     {
                         OnSaveManual?.Invoke();
                     }
+                    RxChain.Send(new DataMsg.TimeEntryPut(richData.Data, Tags));
+                    previousData = richData;
                 }
 
                 return isStartStopTimeCorrect;

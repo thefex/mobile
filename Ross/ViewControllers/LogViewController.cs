@@ -259,6 +259,9 @@ namespace Toggl.Ross.ViewControllers
         {
             if (!ViewModel.IsEntryRunning)
             {
+                // Send experiment data.
+                ViewModel.ReportExperiment("startbutton", null);
+
                 var timeEntry = await ViewModel.StartNewTimeEntryAsync();
 
                 openEditViewForNewEntry(timeEntry);
@@ -271,9 +274,6 @@ namespace Toggl.Ross.ViewControllers
 
         private void openEditViewForNewEntry(ITimeEntryData timeEntry)
         {
-            // Send experiment data.
-            ViewModel.ReportExperiment("startbutton", null);
-
             var editController = EditTimeEntryViewController.ForExistingEntry(timeEntry.Id);
             var projectViewController = getProjectViewControllerIfChooseProjectForNew(editController);
 
