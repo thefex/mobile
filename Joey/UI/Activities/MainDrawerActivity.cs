@@ -94,10 +94,10 @@ namespace Toggl.Joey.UI.Activities
                             .Subscribe(userData => ResetFragmentNavigation(userData));
         }
 
-        protected override void OnStop()
+        protected override void OnDestroy()
         {
             stateObserver.Dispose();
-            base.OnStop();
+            base.OnDestroy();
         }
 
         // `onPostCreate` called when activity start-up is complete after `onStart()`
