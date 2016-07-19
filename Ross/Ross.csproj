@@ -309,6 +309,9 @@
     <BundleResource Include="Resources\splashLogo.png" />
     <BundleResource Include="Resources\splashLogo%402x.png" />
     <BundleResource Include="Resources\splashLogo%403x.png" />
+    <BundleResource Include="Resources\iconArrowDown.png" />
+    <BundleResource Include="Resources\iconArrowDown%402x.png" />
+    <BundleResource Include="Resources\iconArrowDown%403x.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Info.plist" />

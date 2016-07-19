@@ -122,7 +122,7 @@ namespace Toggl.Ross.Theme
 
         public static UIImage ArrowEmptyState
         {
-            get { return UIImage.FromBundle("arrowUp"); }
+            get { return UIImage.FromBundle("iconArrowDown"); }
         }
 
         public static UIImage TimerButton
@@ -174,5 +174,7 @@ namespace Toggl.Ross.Theme
         {
             get { return UIImage.FromBundle("icon-logout-green"); }
         }
+
+        public static UIImage Toggler => UIImage.FromBundle("toggler2");
     }
 }

@@ -9,22 +9,26 @@ namespace Toggl.Ross.Theme
         {
             public static void TitleLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue-Light", 35f);
+                v.Font = Font.Main(20);
                 v.TextAlignment = UITextAlignment.Center;
-                v.TextColor = Color.Gray;
+                v.TextColor = Color.OffBlack;
             }
 
             public static void MessageLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue-Light", 17f);
-                v.Lines = 5;
+                v.Font = Font.Main(16);
                 v.TextAlignment = UITextAlignment.Center;
-                v.TextColor = Color.Gray;
+                v.TextColor = Color.OffSteel;
             }
 
             public static void ArrowImageView(UIImageView v)
             {
                 v.Image = Image.ArrowEmptyState;
+            }
+
+            public static void TogglerImageView(UIImageView v)
+            {
+                v.Image = Image.Toggler;
             }
         }
     }

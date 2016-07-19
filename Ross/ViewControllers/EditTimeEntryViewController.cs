@@ -65,9 +65,11 @@ namespace Toggl.Ross.ViewControllers
             ViewModel = vm;
         }
 
-        public static EditTimeEntryViewController ForManualAddition()
+        public static EditTimeEntryViewController ForManualAddition(Action onManualSave)
         {
-            return new EditTimeEntryViewController(EditTimeEntryVM.ForManualAddition(StoreManager.Singleton.AppState));
+            var vm = EditTimeEntryVM.ForManualAddition(StoreManager.Singleton.AppState);
+            vm.OnSaveManual = onManualSave;
+            return new EditTimeEntryViewController(vm);
         }
 
         public static EditTimeEntryViewController ForExistingEntry(Guid id)

@@ -28,6 +28,8 @@ namespace Toggl.Phoebe.ViewModels
         private RichTimeEntry previousData;
         private event EventHandler<string> DescriptionChanged;
 
+        public Action OnSaveManual { get; set; } // for experiments
+
         public static EditTimeEntryVM ForManualAddition(AppState appState)
         {
             return new EditTimeEntryVM(appState);
@@ -274,6 +276,10 @@ namespace Toggl.Phoebe.ViewModels
                 {
                     RxChain.Send(new DataMsg.TimeEntryPut(richData.Data, Tags));
                     previousData = richData;
+                    if (IsManual)
+                    {
+                        OnSaveManual?.Invoke();
+                    }
                 }
 
                 return isStartStopTimeCorrect;

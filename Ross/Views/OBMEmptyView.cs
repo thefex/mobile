@@ -1,4 +1,4 @@
-using System;
+using Cirrious.FluentLayouts.Touch;
 using UIKit;
 using CoreGraphics;
 using Toggl.Ross.Theme;
@@ -7,45 +7,32 @@ namespace Toggl.Ross.Views
 {
     public class OBMEmptyView : UIView
     {
+        private readonly UIImageView togglerImageView;
         private readonly UILabel titleLabel;
         private readonly UILabel messageLabel;
         private readonly UIImageView arrowImageView;
 
         public OBMEmptyView()
         {
+            Add(togglerImageView = new UIImageView().Apply(Style.OBMEmptyView.TogglerImageView));
             Add(arrowImageView = new UIImageView().Apply(Style.OBMEmptyView.ArrowImageView));
             Add(titleLabel = new UILabel().Apply(Style.OBMEmptyView.TitleLabel));
             Add(messageLabel = new UILabel().Apply(Style.OBMEmptyView.MessageLabel));
-        }
 
-        public override void LayoutSubviews()
-        {
-            var titleSize = titleLabel.SizeThatFits(Frame.Size);
-            var messageSize = messageLabel.SizeThatFits(new CGSize(Frame.Width, Frame.Height - titleSize.Height));
-            var spacing = titleSize.Height * 0.25f;
-            var arrowHeight = arrowImageView.Image.Size.Height;
-            var arrowWidth = arrowImageView.Image.Size.Width;
+            this.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
+            this.AddConstraints(
+                togglerImageView.WithSameCenterX(this),
+                titleLabel.WithSameCenterX(this),
+                messageLabel.WithSameCenterX(this),
 
-            titleLabel.Frame = new CGRect(
-                (Frame.Width - titleSize.Width) / 2,
-                arrowHeight - titleSize.Height / 2,
-                titleSize.Width,
-                titleSize.Height
+                togglerImageView.Above(titleLabel, 12),
+                titleLabel.Above(messageLabel, 10),
+                messageLabel.Above(arrowImageView, 21),
+
+                arrowImageView.AtRightOf(this, 65),
+                arrowImageView.AtBottomOf(this, 20)
             );
 
-            messageLabel.Frame = new CGRect(
-                (Frame.Width - messageSize.Width) / 2,
-                titleLabel.Frame.Bottom + spacing,
-                messageSize.Width,
-                messageSize.Height
-            );
-
-            arrowImageView.Frame = new CGRect(
-                y: 15f,
-                height: arrowHeight ,
-                x: Frame.Width - arrowWidth - 29f,
-                width: arrowWidth
-            );
         }
 
         public string Title

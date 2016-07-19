@@ -174,7 +174,7 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewDidLayoutSubviews();
             defaultEmptyView.Frame = new CGRect(0, (View.Frame.Size.Height - 200f) / 2, View.Frame.Size.Width, 200f);
-            obmEmptyView.Frame = new CGRect(0, 15f, View.Frame.Size.Width, 200f);
+            obmEmptyView.Frame = new CGRect(0, 15f, View.Frame.Size.Width, View.Frame.Height - timerBar.Frame.Height - UIApplication.SharedApplication.StatusBarFrame.Height);
             reloadView.Bounds = new CGRect(0f, 0f, View.Frame.Size.Width, 70f);
             reloadView.Center = new CGPoint(View.Center.X, reloadView.Center.Y);
             statusView.Frame = new CGRect(0, View.Frame.Height, View.Frame.Width, StatusBarHeight);
@@ -257,10 +257,6 @@ namespace Toggl.Ross.ViewControllers
 
         private async void startStop()
         {
-            // Send experiment data.
-            ViewModel.ReportExperiment(OBMExperimentManager.StartButtonActionKey,
-                                       OBMExperimentManager.ClickActionValue);
-
             if (!ViewModel.IsEntryRunning)
             {
                 var timeEntry = await ViewModel.StartNewTimeEntryAsync();
@@ -275,6 +271,9 @@ namespace Toggl.Ross.ViewControllers
 
         private void openEditViewForNewEntry(ITimeEntryData timeEntry)
         {
+            // Send experiment data.
+            ViewModel.ReportExperiment("startbutton", null);
+
             var editController = EditTimeEntryViewController.ForExistingEntry(timeEntry.Id);
             var projectViewController = getProjectViewControllerIfChooseProjectForNew(editController);
 
@@ -283,8 +282,9 @@ namespace Toggl.Ross.ViewControllers
 
         private void openEditViewForManualEntry()
         {
-            var editController = EditTimeEntryViewController.ForManualAddition();
-            var now = DateTime.Now;
+            var editController = EditTimeEntryViewController.ForManualAddition(
+                                     () => ViewModel.ReportExperiment("addbutton", null)
+                                 );
             var durationViewController = new DurationChangeViewController(editController);
             var projectViewController = getProjectViewControllerIfChooseProjectForNew(editController);
 
