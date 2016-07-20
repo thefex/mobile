@@ -45,6 +45,7 @@ namespace Toggl.Joey.UI.Activities
         protected ActionBarDrawerToggle DrawerToggle { get; private set; }
         private FrameLayout DrawerSyncView { get; set; }
         public Toolbar MainToolbar { get; set; }
+        public Spinner MainToolbarSpinner { get; set; }
 
         bool userWithoutApiToken
         {
@@ -61,6 +62,7 @@ namespace Toggl.Joey.UI.Activities
             SetContentView(Resource.Layout.MainDrawerActivity);
 
             MainToolbar = FindViewById<Toolbar>(Resource.Id.MainToolbar);
+            MainToolbarSpinner = FindViewById<Spinner>(Resource.Id.ToolbarSpinner);
             DrawerListView = FindViewById<ListView>(Resource.Id.DrawerListView);
             DrawerUserName = FindViewById<TextView>(Resource.Id.TitleTextView);
             DrawerEmail = FindViewById<TextView>(Resource.Id.EmailTextView);
@@ -209,6 +211,16 @@ namespace Toggl.Joey.UI.Activities
             {
                 SupportActionBar.SetTitle(Resource.String.MainDrawerTimer);
                 OpenFragment(typeof(LogTimeEntriesListFragment));
+            }
+
+            if (id != DrawerListAdapter.ReportsPageId)
+            {
+                SupportActionBar.SetDisplayShowTitleEnabled(true);
+                MainToolbarSpinner.Visibility = ViewStates.Gone;
+            }
+            else
+            {
+                SupportActionBar.SetDisplayShowTitleEnabled(false);
             }
 
             DrawerListView.ClearChoices();
