@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
-using Android.Gms.Common;
 using Android.Gms.Common.Apis;
 using Android.Gms.Wearable;
 using Android.OS;
@@ -78,6 +75,7 @@ namespace Toggl.Chandler.UI.Activities
             if (!googleApiClient.IsConnected)
             {
                 var connectionResult = googleApiClient.BlockingConnect(30, TimeUnit.Seconds);
+
                 if (!connectionResult.IsSuccess)
                 {
                     Log.Error(Tag, "DataLayerListenerService failed to connect to GoogleApiClient");

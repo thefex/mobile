@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
@@ -11,6 +13,8 @@ using Android.Util;
 using Java.Interop;
 using Java.Util.Concurrent;
 using Toggl.Joey.UI.Activities;
+using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Reactive;
 
 namespace Toggl.Joey.Wear
 {
@@ -26,6 +30,8 @@ namespace Toggl.Joey.Wear
         private List<SimpleTimeEntryData> entryData;
         private PutDataMapRequest mapReq;
         private List<DataMap> currentDataMap;
+        private SynchronizationContext uiContext;
+        private IDisposable subscriptionTimeEntries;
 
         public WearDataService()
         {
@@ -48,17 +54,20 @@ namespace Toggl.Joey.Wear
         {
             base.OnCreate();
             Init(this);
-            //var manager = ServiceContainer.Resolve<ActiveTimeEntryManager> ();
-            //manager.PropertyChanged += OnActiveTimeEntryManagerPropertyChanged;
+            // Detect running time entries in a reactive way.
+            subscriptionTimeEntries = StoreManager
+                                      .Singleton
+                                      .Observe(x => x.State.TimeEntries)
+                                      .ObserveOn(SynchronizationContext.Current)
+                                      .StartWith(StoreManager.Singleton.AppState.TimeEntries)
+                                      .Select(timeEntries => timeEntries.Values.FirstOrDefault(e => e.Data.State == TimeEntryState.Running))
+                                      .DistinctUntilChanged()
+                                      .Subscribe(SyncState);
         }
 
-        private void OnActiveTimeEntryManagerPropertyChanged(object sender, PropertyChangedEventArgs args)
+        private void SyncState(RichTimeEntry runningEntry)
         {
-            /*
-            if (args.PropertyName == ActiveTimeEntryManager.PropertyActiveTimeEntry) {
-                await UpdateSharedTimeEntryList ();
-            }
-            */
+            Task.Run(() => UpdateSharedTimeEntryList());
         }
 
         public override void OnDataChanged(DataEventBuffer dataEvents)
@@ -113,31 +122,20 @@ namespace Toggl.Joey.Wear
                     Log.Info("WearIntegration", "Connecting");
                 }
 
-                /*
-                var authManager = ServiceContainer.Resolve<AuthManager> ();
-                if (!authManager.IsAuthenticated) {
-                    Log.Info ("WearIntegration", "Is not authenticated");
-                    NotifyNotLoggedIn();
-                    return;
-                }
-                */
-
                 var path = message.Path;
 
                 try
                 {
                     if (path == Common.StartStopTimeEntryPath)
                     {
-
-                        await WearDataProvider.StartStopTimeEntry(BaseContext);
+                        WearDataProvider.StartStopTimeEntry(BaseContext);
                         await UpdateSharedTimeEntryList();
                     }
                     else if (path == Common.ContinueTimeEntryPath)
                     {
 
                         var guid = Guid.Parse(Common.GetString(message.GetData()));
-                        await StartEntry(guid);
-                        await UpdateSharedTimeEntryList();
+                        StartEntry(guid);
                     }
                     else if (path == Common.RequestSyncPath)
                     {
@@ -186,16 +184,16 @@ namespace Toggl.Joey.Wear
 
         private async Task StartEntry(Guid id)
         {
-            //var model = new TimeEntryModel (id);
-            //await model.LoadAsync();
-            //await TimeEntryModel.ContinueAsync (model.Data);
+            WearDataProvider.ContinueTimeEntry(id);
+            await Task.Delay(1000);
+            await UpdateSharedTimeEntryList();
         }
 
         public async Task UpdateSharedTimeEntryList()
         {
-            entryData = await WearDataProvider.GetTimeEntryData();
+            entryData = WearDataProvider.GetTimeEntryData();
 
-            mapReq = PutDataMapRequest.Create(Common.TimeEntryListPath);
+            mapReq = PutDataMapRequest.Create(Common.TimeEntryListPath).SetUrgent();
 
             currentDataMap = new List<DataMap> ();
 
@@ -213,7 +211,7 @@ namespace Toggl.Joey.Wear
             {
                 foreach (var node in clientNodes)
                 {
-                    WearableClass.DataApi.PutDataItem(googleApiClient, mapReq.AsPutDataRequest());
+                    WearableClass.DataApi.PutDataItem(googleApiClient, mapReq.AsPutDataRequest().SetUrgent());
                 }
             });
         }
