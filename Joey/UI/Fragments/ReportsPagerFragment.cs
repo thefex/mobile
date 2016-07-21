@@ -125,11 +125,12 @@ namespace Toggl.Joey.UI.Fragments
 
         public ReportsPagerFragment()
         {
-            zoomLevel = SummaryReportView.GetLastZoomViewed();
         }
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
+            zoomLevel = SummaryReportView.GetLastZoomViewed();
+
             var view = inflater.Inflate(Resource.Layout.ReportsPagerFragment, container, false);
             viewPager = view.FindViewById<ViewPager> (Resource.Id.ReportsViewPager);
             viewPager.PageSelected += OnPageSelected;
@@ -149,7 +150,7 @@ namespace Toggl.Joey.UI.Fragments
             ResetAdapter();
             UpdatePeriod();
 
-            viewPager.CurrentItem = StoreManager.Singleton.AppState.Settings.ReportsCurrentItem;
+            viewPager.CurrentItem = StartPage - StoreManager.Singleton.AppState.Settings.ReportsCurrentItem;
             return view;
         }
 
@@ -164,7 +165,7 @@ namespace Toggl.Joey.UI.Fragments
         public override void OnPause()
         {
             // Set ReportsCurrentItem setting to current item.
-            RxChain.Send(new DataMsg.UpdateSetting(nameof(SettingsState.ReportsCurrentItem), viewPager.CurrentItem));
+            RxChain.Send(new DataMsg.UpdateSetting(nameof(SettingsState.ReportsCurrentItem), StartPage - viewPager.CurrentItem));
             base.OnPause();
         }
 
