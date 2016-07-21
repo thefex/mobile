@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Android.App;
 using Android.Content;
@@ -7,6 +8,7 @@ using Android.Support.Design.Widget;
 using Android.Support.V7.Widget;
 using Android.Views;
 using Android.Widget;
+using GalaSoft.MvvmLight.Helpers;
 using Toggl.Joey.UI.Activities;
 using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Views;
@@ -33,6 +35,9 @@ namespace Toggl.Joey.UI.Fragments
         private FloatingActionButton newProjectFab;
         private LinearLayout emptyStateLayout;
         private ProjectListVM viewModel;
+        private Binding<IEnumerable<ProjectListVM.CommonProjectData>,
+                IEnumerable<ProjectListVM.CommonProjectData>> topProjectBinding;
+
 
         private Guid WorkspaceId
         {
@@ -96,6 +101,9 @@ namespace Toggl.Joey.UI.Fragments
             var adapter = new ProjectListAdapter(recyclerView, viewModel);
             adapter.HandleItemSelection = OnItemSelected;
             recyclerView.SetAdapter(adapter);
+
+            topProjectBinding = this.SetBinding(() => viewModel.TopProjects)
+                                .WhenSourceChanges(() => adapter.NotifyItemChanged(0));
 
             ConfigureUIViews();
             CreateWorkspaceTabs();

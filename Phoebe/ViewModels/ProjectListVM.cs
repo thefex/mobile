@@ -25,7 +25,7 @@ namespace Toggl.Phoebe.ViewModels
     {
         const int maxTopProjects = 3;
         private IDisposable searchObservable;
-        private readonly List<CommonProjectData> allTopProjects;
+        private readonly IEnumerable<CommonProjectData> allTopProjects;
 
         public ProjectListVM(AppState appState, Guid workspaceId)
         {
@@ -61,7 +61,7 @@ namespace Toggl.Phoebe.ViewModels
         #region Observable properties
         public List<IWorkspaceData> WorkspaceList { get; private set; }
         public ProjectsCollection ProjectList { get; private set; }
-        public List<CommonProjectData> TopProjects { get; private set; }
+        public IEnumerable<CommonProjectData> TopProjects { get; private set; }
         public int CurrentWorkspaceIndex { get; private set; }
         public Guid CurrentWorkspaceId { get; private set; }
         #endregion
@@ -86,35 +86,54 @@ namespace Toggl.Phoebe.ViewModels
             ProjectList.WorkspaceId = WorkspaceList [newIndex].Id;
             CurrentWorkspaceIndex = newIndex;
             TopProjects = GetTopProjectsByWorkspace(CurrentWorkspaceId);
+            Console.WriteLine("here!!! " + TopProjects.Count());
         }
 
-        private List<CommonProjectData> GetTopProjectsByWorkspace(Guid workspacedId)
+        private IEnumerable<CommonProjectData> GetTopProjectsByWorkspace(Guid workspacedId)
         {
             return ProjectList.Count > 7
                    ? allTopProjects.Where(r => r.WorkspaceId == CurrentWorkspaceId).Take(maxTopProjects).ToList()
                    : new List<CommonProjectData>();
         }
 
-        private List<CommonProjectData> GetMostUsedProjects(AppState appstate) //Load all potential top projects at once.
+        private IEnumerable<CommonProjectData> GetMostUsedProjects(AppState appstate) //Load all potential top projects at once.
         {
             IProjectData project;
             ITaskData task;
             string client;
             var topProjects = new List<CommonProjectData>();
-            var store = ServiceContainer.Resolve<ISyncDataStore>();
 
-            store.Table<TimeEntryData>()
-            .OrderByDescending(r => r.StartTime)
-            .Where(r => r.DeletedAt == null && r.ProjectId != Guid.Empty)
-            .GroupBy(p => new { p.ProjectId, p.TaskId })
-            .Select(g => g.First())
-            .ForEach(entry =>
+            try
             {
-                project = appstate.Projects.Values.FirstOrDefault(p => p.Id == entry.ProjectId);
-                task = appstate.Tasks.Values.FirstOrDefault(p => p.Id == entry.TaskId);
-                client = project.ClientId == Guid.Empty ? string.Empty : appstate.Clients.Values.First(c => c.Id == project.ClientId).Name;
-                topProjects.Add(new CommonProjectData(project, client, task ?? null));
-            });
+                // TODO: find a better sort method.
+                var pool = new Dictionary<Tuple<Guid, Guid>, int>();
+                var items = appstate.TimeEntries.Values
+                            .Where(x => x.Data.DeletedAt == null && x.Data.ProjectId != Guid.Empty)
+                            .OrderBy(x => x.Data.ProjectId)
+                            .Select(x => new Tuple<Guid, Guid> (x.Data.ProjectId, x.Data.TaskId));
+                items.ForEach(item =>
+                {
+                    if (!pool.ContainsKey(item))
+                        pool.Add(item, 1);
+                    else
+                        pool[item]++;
+                });
+
+                var orderedPool = pool.OrderByDescending(x => x.Value);
+
+                foreach (var item in orderedPool)
+                {
+                    project = appstate.Projects.Values.FirstOrDefault(p => p.Id == item.Key.Item1);
+                    task = appstate.Tasks.Values.FirstOrDefault(p => p.Id == item.Key.Item2);
+                    client = project.ClientId == Guid.Empty ? string.Empty : appstate.Clients.Values.First(c => c.Id == project.ClientId).Name;
+                    topProjects.Add(new CommonProjectData(project, client, task ?? null));
+                }
+            }
+            catch (Exception ex)
+            {
+                var logger = ServiceContainer.Resolve<ILogger>();
+                logger.Error(nameof(ProjectListVM), ex, "Error getting most used projects");
+            }
 
             return topProjects;
         }

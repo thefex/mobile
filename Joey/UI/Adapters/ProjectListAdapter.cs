@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Android.Content;
 using Android.Graphics;
 using Android.Support.V7.Widget;
@@ -118,7 +119,7 @@ namespace Toggl.Joey.UI.Adapters
         {
             const int maxNumProjects = 3;
             readonly TextView HeaderTextView;
-            private List<ProjectListVM.CommonProjectData> projectList;
+            private IEnumerable<ProjectListVM.CommonProjectData> projectList;
             readonly LinearLayout ProjectsContainer;
             private ProjectListAdapter adapter;
 
@@ -130,10 +131,11 @@ namespace Toggl.Joey.UI.Adapters
                 InflateProjectViews();
             }
 
-            public void Bind(List<ProjectListVM.CommonProjectData> projectList)
+            public void Bind(IEnumerable<ProjectListVM.CommonProjectData> projectList)
             {
-                HeaderTextView.Visibility = projectList.Count == 0 ? ViewStates.Gone : ViewStates.Visible;
-                ProjectsContainer.Visibility = projectList.Count == 0 ? ViewStates.Gone : ViewStates.Visible;
+                var count = projectList.Count();
+                HeaderTextView.Visibility = count == 0 ? ViewStates.Gone : ViewStates.Visible;
+                ProjectsContainer.Visibility = count == 0 ? ViewStates.Gone : ViewStates.Visible;
                 this.projectList = projectList;
 
                 View view;
@@ -148,10 +150,10 @@ namespace Toggl.Joey.UI.Adapters
                 {
                     view = ProjectsContainer.GetChildAt(i);
 
-                    if (i < projectList.Count)
+                    if (i < count)
                     {
                         view.Visibility = ViewStates.Visible;
-                        project = projectList[i];
+                        project = projectList.ElementAt(i);
                         projectTextView = view.FindViewById<TextView>(Resource.Id.ProjectTextView);
                         clientTextView = view.FindViewById<TextView>(Resource.Id.ClientTextView);
                         taskTextView = view.FindViewById<TextView>(Resource.Id.TaskTextView);
@@ -189,9 +191,9 @@ namespace Toggl.Joey.UI.Adapters
             private void OnClickProjectView(object sender, EventArgs e)
             {
                 var index = ProjectsContainer.IndexOfChild((View)sender);
-                if (index < projectList.Count)
+                if (index < projectList.Count())
                 {
-                    var project = projectList[index];
+                    var project = projectList.ElementAt(index);
                     if (project.Task == null)
                     {
                         adapter.HandleItemSelection.Invoke(project);
