@@ -78,11 +78,16 @@ namespace Toggl.Joey.UI.Components
 
         private void OnActiveEntryChanged()
         {
-            var entry = ViewModel.ActiveEntry;
-            DescriptionTextView.Text = !string.IsNullOrEmpty(entry.Data.Description)
-                                       ? entry.Data.Description : activity.ApplicationContext.Resources.GetText(Resource.String.TimerComponentNoDescription);
-            ProjectTextView.Text = !string.IsNullOrEmpty(entry.Info.ProjectData.Name)
-                                   ? entry.Info.ProjectData.Name : activity.ApplicationContext.Resources.GetText(Resource.String.TimerComponentNoProject);
+            if (ViewModel.ActiveEntry != null &&
+                    DescriptionTextView != null &&
+                    ProjectTextView != null)
+            {
+                var entry = ViewModel.ActiveEntry;
+                DescriptionTextView.Text = !string.IsNullOrEmpty(entry.Data.Description)
+                                           ? entry.Data.Description : activity.ApplicationContext.Resources.GetText(Resource.String.TimerComponentNoDescription);
+                ProjectTextView.Text = !string.IsNullOrEmpty(entry.Info.ProjectData.Name)
+                                       ? entry.Info.ProjectData.Name : activity.ApplicationContext.Resources.GetText(Resource.String.TimerComponentNoProject);
+            }
         }
 
         public void DetachBindind()
