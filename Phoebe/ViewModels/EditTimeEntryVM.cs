@@ -158,6 +158,7 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
+        public bool IsTimeEntryChanged { get { return HasTimeEntryChanged(previousData.Data, richData.Data); } }
         public bool IsRunning { get { return richData.Data.State == TimeEntryState.Running; } }
         public string Description { get { return richData.Data.Description ?? string.Empty; } }
         public bool IsBillable { get { return richData.Data.IsBillable; } }
@@ -354,6 +355,7 @@ namespace Toggl.Phoebe.ViewModels
             }, nameof(TaskName));
         }
 
+        // TODO: Consider use a ModifiedAt comparison only.
         private bool HasTimeEntryChanged(ITimeEntryData previous, ITimeEntryData current)
         {
             if (previous.StartTime != current.StartTime)

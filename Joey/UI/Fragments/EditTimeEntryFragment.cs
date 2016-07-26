@@ -118,6 +118,7 @@ namespace Toggl.Joey.UI.Fragments
             editTimeEntryContent = view.FindViewById<View> (Resource.Id.EditTimeEntryContent);
 
             HasOptionsMenu = true;
+
             return view;
         }
 
@@ -131,7 +132,8 @@ namespace Toggl.Joey.UI.Fragments
 
             // TODO: in theory, this event could be binded but
             // the event "CheckedChange" isn't found when
-            // the app is compiled for release. Investigate!
+            // the app is compiled for release. Maybe
+            // a linker problem?
             BillableCheckBox.CheckedChange += (sender, e) =>
             {
                 ViewModel.ChangeBillable(BillableCheckBox.Checked);
@@ -197,9 +199,6 @@ namespace Toggl.Joey.UI.Fragments
                 BillableCheckBox.Text = label;
             });
 
-            // Configure option menu.
-            ConfigureOptionMenu();
-
             // Does project list need to be opened?
             if (Activity.Intent.GetBooleanExtra(EditTimeEntryActivity.StartedByFab, false))
             {
@@ -212,12 +211,6 @@ namespace Toggl.Joey.UI.Fragments
             // Finally set content visible.
             editTimeEntryContent.Visibility = ViewStates.Visible;
             editTimeEntryProgressBar.Visibility = ViewStates.Gone;
-        }
-
-        public override void OnDestroyView()
-        {
-            ViewModel?.Dispose();
-            base.OnDestroyView();
         }
 
         public override void OnPause()
@@ -281,34 +274,41 @@ namespace Toggl.Joey.UI.Fragments
             ViewModel.ChangeTimeEntryDuration(newDuration);
         }
 
-        IMenu menu;
-        MenuInflater inflater;
-
-        public override void OnCreateOptionsMenu(IMenu menu, MenuInflater inflater)
+        public bool SaveTimeEntry()
         {
-            this.menu = menu;
-            this.inflater = inflater;
-            ConfigureOptionMenu();
+            // If the time entry is modified but Stop-Start = 0
+            // show a message and don't let user escape.
+            if (ViewModel.IsTimeEntryChanged && ViewModel.StartDate == ViewModel.StopDate)
+            {
+                var dialog = new AlertDialog.Builder(Activity)
+                .SetTitle(EditTimeEntryVM.ErrorTitle)
+                .SetMessage(Resource.String.EditTimeEntryFragmentNoDurationEntry)
+                .SetPositiveButton(Resource.String.DurOnlyNoticeDialogOk, delegate { })
+                .Create();
+                dialog.Show();
+
+                return false;
+            }
+
+            // Save entry.
+            if (ViewModel.Save() == false)
+            {
+                var dialog = new AlertDialog.Builder(Activity)
+                .SetTitle(EditTimeEntryVM.ErrorTitle)
+                .SetMessage(EditTimeEntryVM.StartTimeError)
+                .SetPositiveButton(Resource.String.DurOnlyNoticeDialogOk, delegate { })
+                .Create();
+                dialog.Show();
+
+                return false;
+            }
+
+            return true;
         }
 
         public override bool OnOptionsItemSelected(IMenuItem item)
         {
-            bool dismiss = true;
-            if (item == SaveMenuItem && ViewModel != null)
-            {
-                var savedProperly = ViewModel.Save();
-                if (savedProperly == false)
-                {
-                    dismiss = false;
-                    XPlatUtils.ServiceContainer.Resolve<GalaSoft.MvvmLight.Views.IDialogService>()
-                    .ShowMessage(EditTimeEntryVM.StartTimeError, EditTimeEntryVM.ErrorTitle);
-                }
-            }
-
-            if (dismiss)
-            {
-                Activity.OnBackPressed();
-            }
+            Activity.OnBackPressed();
             return base.OnOptionsItemSelected(item);
         }
 
@@ -317,20 +317,6 @@ namespace Toggl.Joey.UI.Fragments
             Guid result;
             Guid.TryParse(data.GetStringExtra(id), out result);
             return result;
-        }
-
-        // Because the viewModel needs time to be created,
-        // this method is called from two points
-        private void ConfigureOptionMenu()
-        {
-            if (ViewModel != null && menu != null)
-            {
-                if (ViewModel.IsManual)
-                {
-                    inflater.Inflate(Resource.Menu.SaveItemMenu, menu);
-                    SaveMenuItem = menu.FindItem(Resource.Id.saveItem);
-                }
-            }
         }
     }
 }
