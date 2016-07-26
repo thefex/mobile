@@ -90,7 +90,7 @@ namespace Toggl.Joey.UI.Fragments
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
-            var view = inflater.Inflate(Resource.Layout.ConnectLayout, container, false);
+            var view = inflater.Inflate(Resource.Layout.LoginFragment, container, false);
 
             EmailInputLayout = view.FindViewById<TextInputLayout> (Resource.Id.EmailInputLayout);
             EmailEditText = view.FindViewById<AutoCompleteTextView> (Resource.Id.EmailAutoCompleteTextView).SetFont(Font.RobotoLight);
@@ -104,13 +104,20 @@ namespace Toggl.Joey.UI.Fragments
             GoogleLoginText = view.FindViewById<TextView> (Resource.Id.GoogleLoginText).SetFont(Font.Roboto);
             GoogleIntroText = view.FindViewById<TextView> (Resource.Id.GoogleIntroText);
 
+            // ATTENTION Google button hidden temporarily
+            GoogleIntroText.Visibility = ViewStates.Gone;
+            GoogleLoginButton.Visibility = ViewStates.Gone;
+            GoogleLoginText.Visibility = ViewStates.Gone;
+            //GoogleLoginButton.Click += OnGoogleLoginButtonClick;
+            //GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+            //GoogleIntroText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+
             EmailInputLayout.HintEnabled = false;
             EmailInputLayout.ErrorEnabled = true;
             PasswordInputLayout.HintEnabled = false;
             PasswordInputLayout.ErrorEnabled = true;
 
             SubmitButton.Click += OnLoginButtonClick;
-            GoogleLoginButton.Click += OnGoogleLoginButtonClick;
             EmailEditText.Adapter = MakeEmailsAdapter();
             EmailEditText.Threshold = 1;
             EmailEditText.FocusChange += (sender, e) => ValidateEmailField();
@@ -118,8 +125,6 @@ namespace Toggl.Joey.UI.Fragments
             PasswordEditText.FocusChange += (sender, e) => ValidatePasswordField();
             PasswordToggleButton.Click += OnPasswordToggleButtonClick;
             hasGoogleAccounts = GoogleAccounts.Count > 0;
-            GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
-            GoogleIntroText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
             LegalTextView.SetText(FormattedLegalText, TextView.BufferType.Spannable);
             LegalTextView.MovementMethod = Android.Text.Method.LinkMovementMethod.Instance;
             LoginSpinner.Visibility = ViewStates.Invisible;

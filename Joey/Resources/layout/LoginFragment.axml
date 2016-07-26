@@ -81,6 +81,7 @@
         </RelativeLayout>
         <TextView
             android:id="@+id/GoogleIntroText"
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="64dp"
             android:gravity="center"
@@ -88,6 +89,7 @@
             android:textSize="14sp"
             android:layout_gravity="center_horizontal" />
         <FrameLayout
+            android:visibility="gone"
             android:id="@+id/GoogleLoginButton"
             android:layout_width="match_parent"
             android:layout_height="48dp"

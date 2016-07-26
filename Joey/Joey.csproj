@@ -829,7 +829,7 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\IcGoogleWhite.png" />
     <AndroidResource Include="Resources\menu\ReportsToolbarMenu.axml" />
     <AndroidResource Include="Resources\drawable\splash_drawable.xml" />
-    <AndroidResource Include="Resources\layout\ConnectLayout.axml" />
+    <AndroidResource Include="Resources\layout\LoginFragment.axml" />
     <AndroidResource Include="Resources\layout\ReportsNoApiFragment.axml" />
     <AndroidResource Include="Resources\layout\FeedbackNoApiFragment.axml" />
     <AndroidResource Include="Resources\drawable-ldpi\profile.png" />
