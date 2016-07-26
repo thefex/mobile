@@ -21,7 +21,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.toggl.timer</string>
 	<key>CFBundleShortVersionString</key>
-	<string>7.1.61</string>
+	<string>7.2.0</string>
 	<key>UIPrerenderedIcon</key>
 	<true/>
 	<key>XSAppIconAssets</key>
@@ -53,8 +53,6 @@
 	<array>
 		<string>Fonts/icomoon.ttf</string>
 	</array>
-	<key>CFBundleVersion</key>
-	<string>29</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
@@ -65,5 +63,7 @@
 	<string>8.0</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
 </dict>
 </plist>
