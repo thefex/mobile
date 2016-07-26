@@ -6,6 +6,7 @@ using System.Threading;
 using Android.App;
 using Android.Content;
 using Toggl.Joey.UI.Activities;
+using Toggl.Joey.Widget;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
@@ -25,7 +26,7 @@ namespace Toggl.Joey
         private readonly string emptyDescription;
         private readonly NotificationCompat.Builder runningBuilder;
         private readonly NotificationCompat.Builder idleBuilder;
-        private IDisposable subscriptionTimeEntries, subscriptionSettings;
+        private IDisposable subscriptionRunning, subscriptionSettings, subscriptionEntries;
         private readonly SynchronizationContext uiContext;
 
         public AndroidNotificationManager()
@@ -38,15 +39,52 @@ namespace Toggl.Joey
             emptyProjectName = ctx.Resources.GetString(Resource.String.RunningNotificationNoProject);
             emptyDescription = ctx.Resources.GetString(Resource.String.RunningNotificationNoDescription);
 
+            // Detect changes on first 3 entries to update widget
+            subscriptionEntries = StoreManager
+                                  .Singleton
+                                  .Observe(x => x.State.TimeEntries)
+                                  .ObserveOn(uiContext)
+                                  .StartWith(StoreManager.Singleton.AppState.TimeEntries)
+                                  .Select(entries =>
+            {
+                var topEntries = entries.Values
+                                 .Where(d => d.Data.State != TimeEntryState.Running && d.Data.DeletedAt == null)
+                                 .OrderByDescending(d => d.Data.StartTime)
+                                 .Take(3)
+                                 .Select(d => d.Data.ModifiedAt.Ticks);
+
+                // create a string
+                string modifiedHash = string.Empty;
+                foreach (var item in topEntries)
+                    modifiedHash += item.ToString();
+
+                return modifiedHash;
+            })
+            .DistinctUntilChanged()
+            .Subscribe(_ =>
+            {
+                try
+                {
+                    // refresh listed items in widget
+                    WidgetProvider.RefreshWidget(ctx, WidgetProvider.RefreshEntryListAction);
+                }
+                catch (Exception ex)
+                {
+                    var logger = ServiceContainer.Resolve<Phoebe.Logging.ILogger>();
+                    logger.Error(nameof(AndroidNotificationManager), ex, "Error refreshing list App Widget.");
+                }
+
+            });
+
             // Detect running time entries in a reactive way.
-            subscriptionTimeEntries = StoreManager
-                                      .Singleton
-                                      .Observe(x => x.State.TimeEntries)
-                                      .ObserveOn(uiContext)
-                                      .StartWith(StoreManager.Singleton.AppState.TimeEntries)
-                                      .Select(timeEntries => timeEntries.Values.FirstOrDefault(e => e.Data.State == TimeEntryState.Running))
-                                      .DistinctUntilChanged()
-                                      .Subscribe(SyncNotifications);
+            subscriptionRunning = StoreManager
+                                  .Singleton
+                                  .Observe(x => x.State.TimeEntries)
+                                  .ObserveOn(uiContext)
+                                  .StartWith(StoreManager.Singleton.AppState.TimeEntries)
+                                  .Select(timeEntries => timeEntries.Values.FirstOrDefault(e => e.Data.State == TimeEntryState.Running))
+                                  .DistinctUntilChanged()
+                                  .Subscribe(SyncNotifications);
 
             // Detect changes in settings in a super reactive way :)
             subscriptionSettings = StoreManager
@@ -59,8 +97,9 @@ namespace Toggl.Joey
 
         public void Dispose()
         {
-            subscriptionTimeEntries.Dispose();
+            subscriptionRunning.Dispose();
             subscriptionSettings.Dispose();
+            subscriptionEntries.Dispose();
         }
 
         private void SyncNotifications(SettingsState settings)
@@ -73,6 +112,17 @@ namespace Toggl.Joey
 
         private void SyncNotifications(RichTimeEntry runningEntry)
         {
+            try
+            {
+                // refresh App widget if needed.
+                WidgetProvider.RefreshWidget(ctx, WidgetProvider.RefreshStartStopAction);
+            }
+            catch (Exception ex)
+            {
+                var logger = ServiceContainer.Resolve<Phoebe.Logging.ILogger>();
+                logger.Error(nameof(AndroidNotificationManager), ex, "Error refreshing App Widget.");
+            }
+
             // Change notification state when running time entry changes.
             SetIdleNotification(runningEntry, StoreManager.Singleton.AppState.Settings.IdleNotification);
             SetRunningNotification(runningEntry, StoreManager.Singleton.AppState.Settings.RunningNotification);
@@ -82,7 +132,6 @@ namespace Toggl.Joey
         {
             if (runningEntry != null && showNotification)
             {
-
                 var proj = string.IsNullOrEmpty(runningEntry.Info.ProjectData.Name) ? emptyProjectName : runningEntry.Info.ProjectData.Name;
                 var desc = string.IsNullOrEmpty(runningEntry.Data.Description) ? emptyDescription : runningEntry.Data.Description;
                 runningBuilder
@@ -116,8 +165,8 @@ namespace Toggl.Joey
             openIntent.AddCategory(Intent.CategoryLauncher);
             var pendingOpenIntent = PendingIntent.GetActivity(ctx, 0, openIntent, 0);
 
-            var stopIntent = new Intent(ctx, typeof(StopRunningTimeEntryService.Receiver));
-            var pendingStopIntent = PendingIntent.GetBroadcast(ctx, 0, stopIntent, PendingIntentFlags.UpdateCurrent);
+            //var stopIntent = new Intent(ctx, typeof(StopRunningTimeEntryService.Receiver));
+            //var pendingStopIntent = PendingIntent.GetBroadcast(ctx, 0, stopIntent, PendingIntentFlags.UpdateCurrent);
 
             return new NotificationCompat.Builder(ctx)
                    .SetAutoCancel(false)
