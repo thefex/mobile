@@ -8,9 +8,6 @@ using Android.Database;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
-using Java.Lang;
-using Toggl.Joey.UI.Activities;
-using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe;
@@ -28,7 +25,7 @@ using ViewPager = Android.Support.V4.View.ViewPager;
 
 namespace Toggl.Joey.UI.Fragments
 {
-    public class ReportsPagerFragment : Fragment
+    public class ReportsPagerFragment : Fragment, AdapterView.IOnItemSelectedListener
     {
         private const string ExtraCurrentItem = "com.toggl.timer.current_item";
         private const int PagesCount = 500;
@@ -165,13 +162,17 @@ namespace Toggl.Joey.UI.Fragments
             nextPeriod.Click += (sender, e) => NavigatePage(1);
             syncRetry.Click += async(sender, e) => await ReloadCurrent();
             HasOptionsMenu = true;
-            var activity = (MainDrawerActivity)Activity;
-            toolbar = activity.MainToolbar;
-            spinner = activity.MainToolbarSpinner;
-            spinner.Visibility = ViewStates.Visible;
-            spinner.OnItemSelectedListener = new SpinnerSelectedListener(this);
-            activity.SupportActionBar.SetDisplayShowTitleEnabled(false);
+
+            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
+            var spinnerView = LayoutInflater.From(Activity).Inflate(Resource.Layout.ToolbarlSpinner, null);
+            spinner = spinnerView.FindViewById<Spinner>(Resource.Id.ToolbarSpinner);
+            var activity = (Android.Support.V7.App.AppCompatActivity)Activity;
+            activity.SupportActionBar.SetCustomView(spinnerView, lp);
+            toolbar = activity.FindViewById<Toolbar>(Resource.Id.MainToolbar);
+
+            spinner.OnItemSelectedListener = this;
             populateSpinner();
+
             ResetAdapter();
             UpdatePeriod();
 
@@ -196,29 +197,13 @@ namespace Toggl.Joey.UI.Fragments
             spinner.SetSelection(defaultPos);
         }
 
-        class SpinnerSelectedListener : Java.Lang.Object, AdapterView.IOnItemSelectedListener
-        {
-            private ReportsPagerFragment parentFragment;
-
-            public SpinnerSelectedListener(ReportsPagerFragment parent)
-            {
-                this.parentFragment = parent;
-            }
-            public void OnItemSelected(AdapterView parent, View view, int position, long id)
-            {
-                parentFragment.SelectedWorkspaceId = id;
-            }
-
-            public void OnNothingSelected(AdapterView parent)
-            {
-            }
-        }
-
-
         class WorkspaceSpinnerAdapter : Java.Lang.Object, ISpinnerAdapter
         {
-
             public List<WorkspaceItem> workspaceItems;
+
+            public WorkspaceSpinnerAdapter()
+            {
+            }
 
             public WorkspaceSpinnerAdapter(List<WorkspaceItem> workspaceList)
             {
@@ -353,6 +338,11 @@ namespace Toggl.Joey.UI.Fragments
             viewPager.PageSelected -= OnPageSelected;
             var adapter = (MainPagerAdapter)viewPager.Adapter;
             adapter.LoadReady -= OnLoadReady;
+
+            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
+            var activity = (Android.Support.V7.App.AppCompatActivity)Activity;
+            activity.SupportActionBar.SetCustomView(null, lp);
+
             base.OnDestroyView();
         }
 
@@ -439,6 +429,19 @@ namespace Toggl.Joey.UI.Fragments
             backDate = e.Position - StartPage;
             UpdatePeriod();
         }
+
+        #region Spinner selector interface
+
+        public void OnItemSelected(AdapterView parent, View view, int position, long id)
+        {
+            SelectedWorkspaceId = id;
+        }
+
+        public void OnNothingSelected(AdapterView parent)
+        {
+        }
+
+        #endregion
 
         #region Menu setup
 

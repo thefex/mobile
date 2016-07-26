@@ -3,10 +3,4 @@
     android:layout_width="match_parent"
     android:layout_height="?attr/actionBarSize"
     android:minHeight="?attr/actionBarSize"
-    android:background="@drawable/ToolbarBgPattern">
-    <Spinner
-        android:id="@+id/ToolbarSpinner"
-        android:visibility="gone"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-</android.support.v7.widget.Toolbar>
+    android:background="@drawable/ToolbarBgPattern" />
