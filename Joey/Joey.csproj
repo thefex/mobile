@@ -864,6 +864,8 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\toggler_2.png" />
     <AndroidResource Include="Resources\layout\ProjectListUsedProjectItem.axml" />
     <AndroidResource Include="Resources\layout\ProjectListMostUsedList.axml" />
+    <AndroidResource Include="Resources\layout\SpinnerListItem.axml" />
+    <AndroidResource Include="Resources\layout\ToolbarlSpinner.axml" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>

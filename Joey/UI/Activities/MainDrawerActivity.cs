@@ -44,7 +44,7 @@ namespace Toggl.Joey.UI.Activities
         private DrawerLayout DrawerLayout { get; set; }
         protected ActionBarDrawerToggle DrawerToggle { get; private set; }
         private FrameLayout DrawerSyncView { get; set; }
-        public Toolbar MainToolbar { get; set; }
+        private Toolbar MainToolbar { get; set; }
 
         bool userWithoutApiToken
         {
