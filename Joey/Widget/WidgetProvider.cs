@@ -2,12 +2,9 @@
 using Android.App;
 using Android.Appwidget;
 using Android.Content;
-using Android.Graphics;
 using Android.OS;
-using Android.Views;
 using Android.Widget;
-using Toggl.Phoebe;
-using XPlatUtils;
+
 
 namespace Toggl.Joey.Widget
 {
@@ -18,10 +15,11 @@ namespace Toggl.Joey.Widget
     public class WidgetProvider : AppWidgetProvider
     {
         public const string TimeEntryIdParameter = "entryId";
-        public const string StartStopAction = "com.toggl.timer.widget.START_ENTRY";
-        public const string ContiueAction = "com.toggl.timer.widget.CONTINUE_ENTRY";
-        public const string RefreshListAction = "com.toggl.timer.widget.REFRESH_CONTENT";
-        public const string RefreshCompleteAction = "com.toggl.timer.widget.REFRESH_COMPLETE";
+        public const string StartAction = "com.toggl.timer.widget.START_ENTRY";
+        public const string StopAction = "com.toggl.timer.widget.STOP_ENTRY";
+        public const string ContinueAction = "com.toggl.timer.widget.CONTINUE_ENTRY";
+        public const string RefreshEntryListAction = "com.toggl.timer.widget.REFRESH_CONTENT";
+        public const string RefreshStartStopAction = "com.toggl.timer.widget.REFRESH_COMPLETE";
         private const string ThreadWorkerName = "com.toggl.timer.widgetprovider";
 
         private static HandlerThread workerThread;
@@ -37,130 +35,49 @@ namespace Toggl.Joey.Widget
 
         public override void OnUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds)
         {
-            // Request widget update.
-            var serviceIntent = new Intent(context, typeof(InitWidgetService));
+            // Run update service
+            var serviceIntent = new Intent(context, typeof(WidgetUpdateService));
             context.StartService(serviceIntent);
 
-            // Setup widget UI.
-            SetupWidget(context);
+            var wm = AppWidgetManager.GetInstance(context);
+            var cn = new ComponentName(context, Java.Lang.Class.FromType(typeof(WidgetProvider)));
+            var ids = wm.GetAppWidgetIds(cn);
+            var views = new RemoteViews(context.PackageName, Resource.Layout.keyguard_widget);
+
+            // Set correct adapter.
+            var adapterServiceIntent = new Intent(context, typeof(RemotesViewsFactoryService));
+            adapterServiceIntent.PutExtra(AppWidgetManager.ExtraAppwidgetIds, ids);
+            adapterServiceIntent.SetData(Android.Net.Uri.Parse(adapterServiceIntent.ToUri(IntentUriType.Scheme)));
+            views.SetRemoteAdapter(Resource.Id.WidgetRecentEntriesListView, adapterServiceIntent);
+
+            var listItemIntent = new Intent(context, typeof(WidgetStartStopService.Receiver));
+            listItemIntent.SetData(Android.Net.Uri.Parse(listItemIntent.ToUri(IntentUriType.Scheme)));
+
+            var pendingIntent = PendingIntent.GetBroadcast(context, 0, listItemIntent, PendingIntentFlags.UpdateCurrent);
+            views.SetPendingIntentTemplate(Resource.Id.WidgetRecentEntriesListView, pendingIntent);
+
+            // Update widget view.
+            wm.UpdateAppWidget(ids, views);
 
             base.OnUpdate(context, appWidgetManager, appWidgetIds);
         }
 
         public override void OnReceive(Context context, Intent intent)
         {
-            String action = intent.Action;
-            /*
-            if (action == RefreshListAction && UpdateService.IsUserLogged) {
-                ScheduleUpdate (context, action);
+            string action = intent.Action;
+
+            if (action == RefreshEntryListAction)
+            {
+                ScheduleUpdate(context, action);
             }
 
-            if (action == RefreshCompleteAction) {
-                ScheduleUpdate (context, action);
+            if (action == RefreshStartStopAction)
+            {
+                ScheduleUpdate(context, action);
             }
-            */
+
             base.OnReceive(context, intent);
         }
-
-        private void SetupWidget(Context ctx)
-        {
-            RemoteViews views;
-            /*
-            var wm = AppWidgetManager.GetInstance (ctx);
-            var cn = new ComponentName (ctx, Java.Lang.Class.FromType (typeof (WidgetProvider)));
-            var ids = wm.GetAppWidgetIds (cn);
-
-            if (UpdateService.IsUserLogged) {
-
-                views = new RemoteViews (ctx.PackageName, Resource.Layout.keyguard_widget);
-
-                SetupRunningBtn (ctx, views);
-
-                var adapterServiceIntent = new Intent (ctx, typeof (RemotesViewsFactoryService));
-                adapterServiceIntent.PutExtra (AppWidgetManager.ExtraAppwidgetIds, ids);
-                adapterServiceIntent.SetData (Android.Net.Uri.Parse (adapterServiceIntent.ToUri (IntentUriType.Scheme)));
-
-                for (int i = 0; i < ids.Length; i++) {
-                    views.SetRemoteAdapter (ids[i], Resource.Id.WidgetRecentEntriesListView, adapterServiceIntent);
-                }
-
-                var listItemIntent = new Intent (ctx, typeof (WidgetStartStopService.Receiver));
-                listItemIntent.SetData (Android.Net.Uri.Parse (listItemIntent.ToUri (IntentUriType.Scheme)));
-                var pendingIntent = PendingIntent.GetBroadcast (ctx, 0, listItemIntent, PendingIntentFlags.UpdateCurrent);
-                views.SetPendingIntentTemplate (Resource.Id.WidgetRecentEntriesListView, pendingIntent);
-                views.SetOnClickPendingIntent (Resource.Id.WidgetActionButton, StartStopButtonIntent (ctx));
-
-            } else {
-                views = new RemoteViews (ctx.PackageName, Resource.Layout.widget_login);
-                views.SetOnClickPendingIntent (Resource.Id.WidgetLoginButton, LogInButtonIntent (ctx));
-            }
-
-            // Update widget view.
-            wm.UpdateAppWidget (ids, views);
-            */
-        }
-
-        private void SetupRunningBtn(Context ctx, RemoteViews views)
-        {
-            /*
-            var entry = new WidgetSyncManager.WidgetEntryData();
-            var isRunning = false;
-
-            // Check if an entry is running.
-            foreach (var item in UpdateService.LastEntries)
-                if (item.IsRunning) {
-                    entry = item;
-                    isRunning = true;
-                }
-
-            var baseTime = SystemClock.ElapsedRealtime ();
-
-            if (isRunning) {
-                views.SetInt (Resource.Id.WidgetActionButton, "setBackgroundColor", ctx.Resources.GetColor (Resource.Color.bright_red));
-                views.SetInt (Resource.Id.WidgetActionButton, "setText", Resource.String.TimerStopButtonText);
-                views.SetInt (Resource.Id.WidgetColorView, "setColorFilter", Color.ParseColor (entry.Color));
-                views.SetViewVisibility (Resource.Id.WidgetRunningEntry, ViewStates.Visible);
-                views.SetTextViewText (
-                    Resource.Id.WidgetRunningDescriptionTextView,
-                    String.IsNullOrWhiteSpace (entry.Description) ? ctx.Resources.GetString (Resource.String.RunningWidgetNoDescription) : entry.Description);
-
-                var time = (long)entry.Duration.TotalMilliseconds;
-
-                // Format chronometer correctly.
-                string format = "00:%s";
-                if (time >= 3600000 && time < 36000000) {
-                    format = "0%s";
-                } else if (time >= 36000000) {
-                    format = "%s";
-                }
-
-                views.SetChronometer (Resource.Id.Chronometer, baseTime - (long)entry.Duration.TotalMilliseconds, format, true);
-            } else {
-                views.SetInt (Resource.Id.WidgetActionButton, "setBackgroundColor", ctx.Resources.GetColor (Resource.Color.bright_green));
-                views.SetInt (Resource.Id.WidgetActionButton, "setText", Resource.String.TimerStartButtonText);
-                views.SetViewVisibility (Resource.Id.WidgetRunningEntry, ViewStates.Invisible);
-                views.SetChronometer (Resource.Id.Chronometer, baseTime, "00:%s", false);
-                views.SetTextViewText (Resource.Id.Chronometer, "00:00:00");
-            }
-            */
-        }
-
-        private PendingIntent StartStopButtonIntent(Context ctx)
-        {
-            var intent = new Intent(ctx, typeof(WidgetStartStopService.Receiver));
-            intent.SetAction(WidgetProvider.StartStopAction);
-            return PendingIntent.GetBroadcast(ctx, 0, intent, PendingIntentFlags.UpdateCurrent);
-        }
-
-        private PendingIntent LogInButtonIntent(Context ctx)
-        {
-            var loginIntent = new Intent(Intent.ActionMain)
-            .AddCategory(Intent.CategoryLauncher)
-            .AddFlags(ActivityFlags.NewTask)
-            .SetComponent(new ComponentName(ctx.PackageName, "toggl.joey.ui.activities.MainDrawerActivity"));
-            return PendingIntent.GetActivity(ctx, 0, loginIntent, PendingIntentFlags.UpdateCurrent);
-        }
-
 
         private void ScheduleUpdate(Context ctx, string action)
         {
@@ -173,20 +90,21 @@ namespace Toggl.Joey.Widget
                 var cn = new ComponentName(ctx, Java.Lang.Class.FromType(typeof(WidgetProvider)));
                 var ids = wm.GetAppWidgetIds(cn);
 
-                if (action == RefreshCompleteAction)
+                if (action == RefreshStartStopAction)
                 {
-                    OnUpdate(ctx, wm, ids);
+                    var serviceIntent = new Intent(ctx, typeof(WidgetUpdateService));
+                    ctx.StartService(serviceIntent);
                 }
                 else
                 {
                     var views = new RemoteViews(ctx.PackageName, Resource.Layout.keyguard_widget);
-                    SetupRunningBtn(ctx, views);
                     wm.PartiallyUpdateAppWidget(ids, views);
                     wm.NotifyAppWidgetViewDataChanged(ids, Resource.Id.WidgetRecentEntriesListView);
                 }
             });
         }
 
+        // Static methods to refresh widget from outside!
         public static void RefreshWidget(Context ctx, string action)
         {
             // Sends a request to the rich push message to refresh.

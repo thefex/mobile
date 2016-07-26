@@ -224,7 +224,7 @@
     <Compile Include="UI\Views\SnappyLayout.cs" />
     <Compile Include="UI\Utils\Pool.cs" />
     <Compile Include="Widget\WidgetProvider.cs" />
-    <Compile Include="Widget\InitWidgetService.cs" />
+    <Compile Include="Widget\WidgetUpdateService.cs" />
     <Compile Include="Widget\RemotesViewsFactory.cs" />
     <Compile Include="Widget\WidgetStartStopService.cs" />
     <Compile Include="UI\Views\NotificationImageView.cs" />
