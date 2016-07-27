@@ -265,6 +265,10 @@ namespace Toggl.Joey.UI.Activities
             else if (e.Id == DrawerListAdapter.LogoutPageId)
             {
                 OpenPage(DrawerListAdapter.TimerPageId);
+                // Attention. At this remote point
+                // send a Reset message and unregister from
+                // GCM system.
+                RxChain.Send(new DataMsg.UnregisterPush());
                 RxChain.Send(new DataMsg.ResetState());
             }
             else if (e.Id == DrawerListAdapter.ReportsPageId)

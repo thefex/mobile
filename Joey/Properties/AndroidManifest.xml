@@ -25,5 +25,15 @@
 				<action android:name="com.android.vending.INSTALL_REFERRER" />
 			</intent-filter>
 		</receiver>
+        <!-- Used for Google Cloud Message notification -->
+        <receiver android:name="com.google.android.gms.gcm.GcmReceiver" 
+                  android:exported="true" 
+                  android:permission="com.google.android.c2dm.permission.SEND">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+                <category android:name="com.toggl.timer" />
+            </intent-filter>
+        </receiver>		
 	</application>
 </manifest>

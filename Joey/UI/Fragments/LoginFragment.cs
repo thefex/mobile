@@ -16,6 +16,7 @@ using Android.Text.Style;
 using Android.Views;
 using Android.Widget;
 using GalaSoft.MvvmLight.Helpers;
+using Toggl.Joey.Net;
 using Toggl.Joey.UI.Utils;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Helpers;
@@ -176,6 +177,16 @@ namespace Toggl.Joey.UI.Fragments
 
                     case AuthResult.Success:
                         EmailEditText.Text = PasswordEditText.Text = string.Empty;
+
+                        // After succees login or register
+                        // check GooglePlayServices availability 
+                        var resultCode = GoogleApiAvailability.Instance.IsGooglePlayServicesAvailable(Activity);
+                        if (resultCode == ConnectionResult.Success)
+                        {
+                            // Start the registration intent service; try to get a token:
+                            var intent = new Intent(Activity, typeof(GcmRegistrationIntentService));
+                            Activity.StartService(intent);                                                
+                        }
                         break;
 
                     // Error cases
