@@ -18,11 +18,16 @@ namespace Toggl.Ross.ViewControllers
         private static string DefaultImage = "profile.png";
         private static string DefaultRemoteImage = "https://assets.toggl.com/images/profile.png";
 
-        public static readonly int TimerPageId = 0;
-        public static readonly int ReportsPageId = 1;
-        public static readonly int SettingsPageId = 2;
-        public static readonly int FeedbackPageId = 3;
-        public static readonly int LogoutPageId = 4;
+        public enum MenuOption
+        {
+            Timer = 0,
+            Reports = 1,
+            Settings = 2,
+            Feedback = 3,
+            Logout = 4,
+            Login = 5,
+            SignUp = 6
+        }
 
         private UIButton logButton;
         private UIButton reportsButton;
@@ -39,13 +44,12 @@ namespace Toggl.Ross.ViewControllers
         private UIImageView separatorLineImage;
         private const int horizMargin = 15;
         private const int menuOffset = 60;
-        private Action<int> buttonSelector;
-
+        private Action<MenuOption> buttonSelector;
 
         public bool IsLoggedIn
             => StoreManager.Singleton.AppState.User.Id != Guid.Empty;
 
-        public LeftViewController(Action<int> buttonSelector)
+        public LeftViewController(Action<MenuOption> buttonSelector)
         {
             this.buttonSelector = buttonSelector;
         }
@@ -66,7 +70,7 @@ namespace Toggl.Ross.ViewControllers
                 signUpButton = CreateDrawerButton("LeftPanelMenuSignUp", Image.SignUpButton, Image.SignUpButtonPressed, false),
             };
 
-			logButton.SetImage(Image.TimerButtonPressed, UIControlState.Normal);
+            logButton.SetImage(Image.TimerButtonPressed, UIControlState.Normal);
             logButton.SetTitleColor(Color.LightishGreen, UIControlState.Normal);
 
             UpdateLayoutIfNeeded();
@@ -136,15 +140,16 @@ namespace Toggl.Ross.ViewControllers
                 View.AddSubview(separatorLineImage);
             }
 
-
             if (IsLoggedIn)
             {
+                userAvatarImage.Hidden = false;
+                separatorLineImage.Hidden = false;
                 // Set default values
                 ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
             }
             else
             {
-				userAvatarImage.Hidden = true;
+                userAvatarImage.Hidden = true;
                 separatorLineImage.Hidden = true;
             }
         }
@@ -183,23 +188,31 @@ namespace Toggl.Ross.ViewControllers
 
             if (sender == logButton)
             {
-                buttonSelector.Invoke(TimerPageId);
+                buttonSelector.Invoke(MenuOption.Timer);
             }
             else if (sender == reportsButton)
             {
-                buttonSelector.Invoke(ReportsPageId);
+                buttonSelector.Invoke(MenuOption.Reports);
             }
             else if (sender == settingsButton)
             {
-                buttonSelector.Invoke(SettingsPageId);
+                buttonSelector.Invoke(MenuOption.Settings);
             }
             else if (sender == feedbackButton)
             {
-                buttonSelector.Invoke(FeedbackPageId);
+                buttonSelector.Invoke(MenuOption.Feedback);
+            }
+            else if (sender == loginButton)
+            {
+                buttonSelector.Invoke(MenuOption.Login);
+            }
+            else if (sender == signUpButton)
+            {
+                buttonSelector.Invoke(MenuOption.SignUp);
             }
             else
             {
-                buttonSelector.Invoke(LogoutPageId);
+                buttonSelector.Invoke(MenuOption.Logout);
             }
         }
 

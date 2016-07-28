@@ -168,30 +168,47 @@ namespace Toggl.Ross.ViewControllers
                 menu.ConfigureUserData(userData.Name, userData.Email, userData.ImageUrl);
         }
 
-        private void OnMenuButtonSelected(int btnId)
+        private void OnMenuButtonSelected(LeftViewController.MenuOption option)
         {
-            if (btnId == LeftViewController.TimerPageId)
+            switch (option)
             {
-                if (ViewControllers.Length > 1 && ViewControllers[0] is LogViewController)
-                {
+                case LeftViewController.MenuOption.Timer:
+                    if (ViewControllers.Length <= 1 || !(ViewControllers[0] is LogViewController)) break;
                     PopViewController(true);
-                }
-            }
-            else if (btnId == LeftViewController.ReportsPageId)
-            {
-                PushViewController(new ReportsViewController(), true);
-            }
-            else if (btnId == LeftViewController.SettingsPageId)
-            {
-                PushViewController(new SettingsViewController(), true);
-            }
-            else if (btnId == LeftViewController.FeedbackPageId)
-            {
-                PushViewController(new FeedbackViewController(), true);
-            }
-            else
-            {
-                RxChain.Send(new DataMsg.ResetState());
+                    break;
+                
+                case LeftViewController.MenuOption.Reports:
+                    PushViewController(new ReportsViewController(), true);
+                    break;
+                    
+                case LeftViewController.MenuOption.Settings:
+                    PushViewController(new SettingsViewController(), true);
+                    break;
+                
+                case LeftViewController.MenuOption.Feedback:
+                    PushViewController(new FeedbackViewController(), true);
+                    break;
+                    
+                case LeftViewController.MenuOption.Login:
+
+                    var ok = "MainViewLoginConfirmationOk".Tr();
+                    var title = "MainViewLoginConfirmationTitle".Tr();
+                    var cancel = "MainViewLoginConfirmationCancel".Tr();
+                    var message = "MainViewLoginConfirmationMessage".Tr();
+
+                    var alert = UIAlertController.Create(title, message, UIAlertControllerStyle.Alert);
+                    alert.AddAction(UIAlertAction.Create(ok, UIAlertActionStyle.Default, action => PushViewController(new LoginViewController(), true)));
+                    alert.AddAction(UIAlertAction.Create(cancel, UIAlertActionStyle.Default, null));
+                    PresentViewController(alert, true, null);
+                    break;
+					
+                case LeftViewController.MenuOption.SignUp:
+                    PushViewController(new SignupViewController(), true);
+                    break;
+                    
+	            default:
+					RxChain.Send(new DataMsg.ResetState());
+                    break;
             }
 
             CloseMenu();
