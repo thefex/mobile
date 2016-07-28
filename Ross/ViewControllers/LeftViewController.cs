@@ -38,7 +38,6 @@ namespace Toggl.Ross.ViewControllers
         private const int menuOffset = 60;
         private Action<int> buttonSelector;
 
-
         public LeftViewController(Action<int> buttonSelector)
         {
             this.buttonSelector = buttonSelector;
@@ -57,23 +56,29 @@ namespace Toggl.Ross.ViewControllers
                 (feedbackButton = new UIButton()),
                 (signOutButton = new UIButton()),
             };
+
             logButton.SetTitle("LeftPanelMenuLog".Tr(), UIControlState.Normal);
+            logButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
             logButton.SetImage(Image.TimerButton, UIControlState.Normal);
             logButton.SetImage(Image.TimerButtonPressed, UIControlState.Highlighted);
 
             reportsButton.SetTitle("LeftPanelMenuReports".Tr(), UIControlState.Normal);
+            reportsButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
             reportsButton.SetImage(Image.ReportsButton, UIControlState.Normal);
             reportsButton.SetImage(Image.ReportsButtonPressed, UIControlState.Highlighted);
 
             settingsButton.SetTitle("LeftPanelMenuSettings".Tr(), UIControlState.Normal);
+            settingsButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
             settingsButton.SetImage(Image.SettingsButton, UIControlState.Normal);
             settingsButton.SetImage(Image.SettingsButtonPressed, UIControlState.Highlighted);
 
             feedbackButton.SetTitle("LeftPanelMenuFeedback".Tr(), UIControlState.Normal);
+            feedbackButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
             feedbackButton.SetImage(Image.FeedbackButton, UIControlState.Normal);
             feedbackButton.SetImage(Image.FeedbackButtonPressed, UIControlState.Highlighted);
 
             signOutButton.SetTitle("LeftPanelMenuSignOut".Tr(), UIControlState.Normal);
+            signOutButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
             signOutButton.SetImage(Image.SignoutButton, UIControlState.Normal);
             signOutButton.SetImage(Image.SignoutButtonPressed, UIControlState.Highlighted);
 
@@ -110,6 +115,7 @@ namespace Toggl.Ross.ViewControllers
                     60f,
                     60f
                 ));
+            
             userAvatarImage.Layer.CornerRadius = 30f;
             userAvatarImage.Layer.MasksToBounds = true;
             View.AddSubview(userAvatarImage);
