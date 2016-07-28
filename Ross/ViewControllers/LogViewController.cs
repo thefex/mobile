@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using CoreAnimation;
 using CoreGraphics;
+using Cirrious.FluentLayouts.Touch;
 using Foundation;
 using GalaSoft.MvvmLight.Helpers;
 using Toggl.Phoebe;
@@ -32,7 +32,7 @@ namespace Toggl.Ross.ViewControllers
         readonly static NSString SectionCellId = new NSString("SectionCellId");
 
         private SimpleEmptyView defaultEmptyView;
-        private UIView obmEmptyView;
+        private UIView noUserEmptyView;
         private UIView reloadView;
         private UIActivityIndicatorView defaultFooterView;
         private StatusView statusView;
@@ -73,11 +73,11 @@ namespace Toggl.Ross.ViewControllers
 
             Add(floatingHeader = new FloatingSectionCell { Hidden = true});
 
-            timerBar = new TimerBar
+            Add(timerBar = new TimerBar
             {
                 Frame = new CGRect(0, this.View.Frame.Height - 72 - heightOfTopBars, this.View.Bounds.Width, 72)
-            };
-            Add(timerBar);
+            });
+
             timerBar.StartButtonHit += onTimerStartButtonHit;
 
             statusView = new StatusView
@@ -95,11 +95,49 @@ namespace Toggl.Ross.ViewControllers
                 Message = "LogEmptyMessage".Tr(),
             };
 
-            obmEmptyView = new OBMEmptyView
-            {
-                Title = "LogOBMEmptyTitle".Tr(),
-                Message = "LogOBMEmptyMessage".Tr(),
-            };
+            noUserEmptyView = new UIView();
+
+			var iconHelloArrowUpView = new UIImageView(Image.IconHelloArrowUp);
+            var alreadyGotAnAccountView = new UIImageView(Image.AlreadyGotAnAccount);
+            var iconHelloTogglerView = new UIImageView(Image.IconHelloToggler);
+            var heyThereView = new UIImageView(Image.HeyThere);
+            var iconHelloArrowDownView = new UIImageView(Image.IconHelloArrowDown);
+            var newToTogglView = new UIImageView(Image.NewToToggl);
+
+			noUserEmptyView.Add(iconHelloArrowUpView);
+            noUserEmptyView.Add(alreadyGotAnAccountView);
+            noUserEmptyView.Add(iconHelloTogglerView);
+            noUserEmptyView.Add(heyThereView);
+            noUserEmptyView.Add(iconHelloArrowDownView);
+            noUserEmptyView.Add(newToTogglView);
+
+			noUserEmptyView.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
+            noUserEmptyView.AddConstraints(
+
+                //Up arrow
+                iconHelloArrowUpView.AtLeftOf(noUserEmptyView, 15),
+
+                //Login label
+                alreadyGotAnAccountView.ToRightOf(iconHelloArrowUpView, 20),
+                alreadyGotAnAccountView.AtBottomOf(iconHelloArrowUpView),
+
+                //Toggler dude
+                iconHelloTogglerView.WithSameCenterX(noUserEmptyView),
+                iconHelloTogglerView.WithSameCenterY(noUserEmptyView),
+
+                //Hey there label
+                heyThereView.Below(iconHelloTogglerView, 10),
+                heyThereView.WithSameCenterX(noUserEmptyView),
+
+                //Down arrow
+                iconHelloArrowDownView.AtBottomOf(noUserEmptyView),
+                iconHelloArrowDownView.AtRightOf(noUserEmptyView, 86),
+
+                //Start tracking label
+                newToTogglView.Above(iconHelloArrowDownView),
+                newToTogglView.AtRightOf(noUserEmptyView, 58)
+            );
+
 
             reloadView = new ReloadTableViewFooter
             {
@@ -174,7 +212,7 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewDidLayoutSubviews();
             defaultEmptyView.Frame = new CGRect(0, (View.Frame.Size.Height - 200f) / 2, View.Frame.Size.Width, 200f);
-            obmEmptyView.Frame = new CGRect(0, 15f, View.Frame.Size.Width, View.Frame.Height - timerBar.Frame.Height - UIApplication.SharedApplication.StatusBarFrame.Height);
+            noUserEmptyView.Frame = new CGRect(0, 0, View.Frame.Size.Width, View.Frame.Height - timerBar.Frame.Height - UIApplication.SharedApplication.StatusBarFrame.Height);
             reloadView.Bounds = new CGRect(0f, 0f, View.Frame.Size.Width, 70f);
             reloadView.Center = new CGPoint(View.Center.X, reloadView.Center.Y);
             statusView.Frame = new CGRect(0, View.Frame.Height, View.Frame.Width, StatusBarHeight);
@@ -367,16 +405,15 @@ namespace Toggl.Ross.ViewControllers
             }
 
             UIView emptyView = defaultEmptyView; // Default empty view.
-            var showWelcome = ViewModel.WelcomeScreenShouldBeShown;
+            var showWelcome = StoreManager.Singleton.AppState.User.Id == Guid.Empty;
             var hasItems = ViewModel.Collection.Count > 0;
-            var isInExperiment = ViewModel.ExperimentShouldBeShown;
 
             // According to settings, show welcome message or no.
             ((SimpleEmptyView)emptyView).Title = showWelcome ? "LogWelcomeTitle".Tr() : "LogEmptyTitle".Tr();
 
-            if (showWelcome && isInExperiment)
+            if (showWelcome)
             {
-                emptyView = obmEmptyView;
+                emptyView = noUserEmptyView;
             }
 
             tableView.TableFooterView = hasItems ? new UIView() : emptyView;
