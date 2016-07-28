@@ -175,6 +175,24 @@ namespace Toggl.Ross.Theme
             get { return UIImage.FromBundle("icon-logout-green"); }
         }
 
+        public static UIImage AlreadyGotAnAccount
+            => UIImage.FromBundle("alreadyGotAnAccou");
+
+        public static UIImage HeyThere
+            => UIImage.FromBundle("heyThere");
+
+        public static UIImage IconHelloArrowDown
+            => UIImage.FromBundle("iconHelloArrowDown");
+
+        public static UIImage IconHelloArrowUp
+            => UIImage.FromBundle("iconHelloArrowUp");
+
+        public static UIImage IconHelloToggler
+            => UIImage.FromBundle("iconHelloToggler");
+
+        public static UIImage NewToToggl
+            => UIImage.FromBundle("newToToggl");
+
         public static UIImage Toggler => UIImage.FromBundle("toggler2");
     }
 }

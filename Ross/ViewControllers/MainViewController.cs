@@ -10,8 +10,6 @@ using System.Reactive.Linq;
 using System.Threading;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Data;
-using Toggl.Phoebe.Logging;
-using XPlatUtils;
 
 namespace Toggl.Ross.ViewControllers
 {
@@ -35,7 +33,7 @@ namespace Toggl.Ross.ViewControllers
         private nfloat CurrentX { get { return View.Frame.X; } }
         private nfloat MaxDraggingX { get { return Width - menuOffset; } }
         private nfloat MinDraggingX { get { return 0; } }
-        private bool MenuOpen {  get { return 0 != CurrentX; }}
+        private bool MenuOpen { get { return 0 != CurrentX; } }
         private IDisposable stateObserver;
 
         public override void ViewDidLoad()
@@ -110,7 +108,7 @@ namespace Toggl.Ross.ViewControllers
             if (tryMigrateDatabase(userData))
                 return;
 
-            proceedToWelcomeOrLogViewController(userData);
+            proceedToLogViewController(userData);
         }
 
         private bool tryMigrateDatabase(IUserData userData)
@@ -127,55 +125,44 @@ namespace Toggl.Ross.ViewControllers
             return true;
         }
 
-        private void proceedToWelcomeOrLogViewController(IUserData userData)
+        private void proceedToLogViewController(IUserData userData)
         {
-            bool isUserLogged = userData.Id != Guid.Empty;
             bool emptyStack = ViewControllers.Length < 1;
 
-            if (isUserLogged)
+            MenuEnabled = true;
+
+            // TODO Rx @alfonso Keep this call here explicitly or init
+            // the state with the request if user is logged.
+            if (emptyStack)
+                RxChain.Send(new ServerRequest.GetChanges());
+
+            var logViewcontroller = new LogViewController();
+            SetViewControllers(new[] { logViewcontroller }, !emptyStack);
+
+            // move the logo to the same position of the title view
+            // and resize it to match sizes
+            var titleViewWidth = 72; // actual file image width
+            var titleViewHeight = 22; // actual file image height
+            var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
+            var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
+
+            UIView.Animate(0.35, 0.6, UIViewAnimationOptions.CurveEaseInOut, () =>
             {
-                MenuEnabled = true;
+                splashLogo.Frame = new CGRect(centerX, titleViewY, titleViewWidth, titleViewHeight);
+                splashBackground.Alpha = 0;
 
-                // TODO Rx @alfonso Keep this call here explicitly or init
-                // the state with the request if user is logged.
-                if (emptyStack)
-                    RxChain.Send(new ServerRequest.GetChanges());
-
-                var logViewcontroller = new LogViewController();
-                SetViewControllers(new[] { logViewcontroller }, !emptyStack);
-
-                // move the logo to the same position of the title view
-                // and resize it to match sizes
-                var titleViewWidth = 72; // actual file image width
-                var titleViewHeight = 22; // actual file image height
-                var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
-                var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
-
-                UIView.Animate(0.35, 0.6, UIViewAnimationOptions.CurveEaseInOut, () =>
-                {
-                    splashLogo.Frame = new CGRect(centerX, titleViewY, titleViewWidth, titleViewHeight);
-                    splashBackground.Alpha = 0;
-
-                }, () =>
-                {
-                    splashBackground.RemoveFromSuperview();
+            }, () =>
+            {
+                splashBackground.RemoveFromSuperview();
 
                     // set Toggl logo as header.
                     logViewcontroller.NavigationItem.TitleView = new UIImageView(Image.TogglLogo);
 
                     // give some time before hidding the splash logo because the LogViewController takes some time to load
                     UIView.Animate(0.28, 0, UIViewAnimationOptions.CurveLinear,
-                    () => { splashLogo.Alpha = 0; },
-                    () => { splashLogo.RemoveFromSuperview(); });
-                });
-            }
-            else
-            {
-                MenuEnabled = false;
-                splashLogo.RemoveFromSuperview();
-                splashBackground.RemoveFromSuperview();
-                SetViewControllers(new[] { new WelcomeViewController() }, !emptyStack);
-            }
+                () => { splashLogo.Alpha = 0; },
+                () => { splashLogo.RemoveFromSuperview(); });
+            });
 
             if (menu != null)
                 menu.ConfigureUserData(userData.Name, userData.Email, userData.ImageUrl);
