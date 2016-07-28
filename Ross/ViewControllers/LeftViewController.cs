@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cirrious.FluentLayouts.Touch;
 using CoreGraphics;
 using Foundation;
+using Toggl.Phoebe.Reactive;
 using Toggl.Ross.Theme;
 using UIKit;
 
@@ -28,6 +29,8 @@ namespace Toggl.Ross.ViewControllers
         private UIButton settingsButton;
         private UIButton feedbackButton;
         private UIButton signOutButton;
+        private UIButton loginButton;
+        private UIButton signUpButton;
         private UIButton[] menuButtons;
         private UILabel usernameLabel;
         private UILabel emailLabel;
@@ -50,50 +53,49 @@ namespace Toggl.Ross.ViewControllers
 
             menuButtons = new[]
             {
-                (logButton = new UIButton()),
-                (reportsButton = new UIButton()),
-                (settingsButton = new UIButton()),
-                (feedbackButton = new UIButton()),
-                (signOutButton = new UIButton()),
+                logButton = CreateDrawerButton("LeftPanelMenuLog", Image.TimerButton, Image.TimerButtonPressed),
+                reportsButton = CreateDrawerButton("LeftPanelMenuReports", Image.ReportsButton, Image.ReportsButtonPressed),
+                settingsButton = CreateDrawerButton("LeftPanelMenuSettings", Image.SettingsButton, Image.SettingsButtonPressed),
+                feedbackButton = CreateDrawerButton("LeftPanelMenuFeedback", Image.FeedbackButton, Image.FeedbackButtonPressed),
+                signOutButton = CreateDrawerButton("LeftPanelMenuSignOut", Image.SignoutButton, Image.SignoutButtonPressed, false),
+                loginButton = CreateDrawerButton("LeftPanelMenuLogin", Image.LoginButton, Image.LoginButtonPressed, false),
+                signUpButton = CreateDrawerButton("LeftPanelMenuSignUp", Image.SignUpButton, Image.SignUpButtonPressed, false),
             };
 
-            logButton.SetTitle("LeftPanelMenuLog".Tr(), UIControlState.Normal);
-            logButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
-            logButton.SetImage(Image.TimerButton, UIControlState.Normal);
-            logButton.SetImage(Image.TimerButtonPressed, UIControlState.Highlighted);
+            UpdateLayoutIfNeeded();
+        }
 
-            reportsButton.SetTitle("LeftPanelMenuReports".Tr(), UIControlState.Normal);
-            reportsButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
-            reportsButton.SetImage(Image.ReportsButton, UIControlState.Normal);
-            reportsButton.SetImage(Image.ReportsButtonPressed, UIControlState.Highlighted);
-
-            settingsButton.SetTitle("LeftPanelMenuSettings".Tr(), UIControlState.Normal);
-            settingsButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
-            settingsButton.SetImage(Image.SettingsButton, UIControlState.Normal);
-            settingsButton.SetImage(Image.SettingsButtonPressed, UIControlState.Highlighted);
-
-            feedbackButton.SetTitle("LeftPanelMenuFeedback".Tr(), UIControlState.Normal);
-            feedbackButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
-            feedbackButton.SetImage(Image.FeedbackButton, UIControlState.Normal);
-            feedbackButton.SetImage(Image.FeedbackButtonPressed, UIControlState.Highlighted);
-
-            signOutButton.SetTitle("LeftPanelMenuSignOut".Tr(), UIControlState.Normal);
-            signOutButton.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
-            signOutButton.SetImage(Image.SignoutButton, UIControlState.Normal);
-            signOutButton.SetImage(Image.SignoutButtonPressed, UIControlState.Highlighted);
-
-            logButton.HorizontalAlignment = reportsButton.HorizontalAlignment = settingsButton.HorizontalAlignment =
-                                                feedbackButton.HorizontalAlignment = signOutButton.HorizontalAlignment = UIControlContentHorizontalAlignment.Left;
-
-            foreach (var button in menuButtons)
+        private void UpdateLayoutIfNeeded()
+        {
+            if (IsLoggedIn)
             {
-                button.Apply(Style.LeftView.Button);
-                button.TouchUpInside += OnMenuButtonTouchUpInside;
-                View.AddSubview(button);
+                View.AddSubview(signOutButton);
+            }
+            else
+            {
+                View.AddSubview(loginButton);
+                View.AddSubview(signUpButton);
             }
 
             View.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
             View.AddConstraints(MakeConstraints(View));
+        }
+
+        private UIButton CreateDrawerButton(string text, UIImage normalImage, UIImage pressedImage, bool addToView = true)
+        {
+            var button = new UIButton();
+            button.SetTitle(text.Tr(), UIControlState.Normal);
+            button.SetImage(normalImage, UIControlState.Normal);
+            button.SetImage(pressedImage, UIControlState.Highlighted);
+            button.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
+            button.HorizontalAlignment = UIControlContentHorizontalAlignment.Left;
+            button.Apply(Style.LeftView.Button);
+            button.TouchUpInside += OnMenuButtonTouchUpInside;
+
+            if (!addToView) return button;
+
+            View.AddSubview(button);
+            return button;
         }
 
         public override void ViewDidLoad()
@@ -115,7 +117,7 @@ namespace Toggl.Ross.ViewControllers
                     60f,
                     60f
                 ));
-            
+
             userAvatarImage.Layer.CornerRadius = 30f;
             userAvatarImage.Layer.MasksToBounds = true;
             View.AddSubview(userAvatarImage);
@@ -130,6 +132,9 @@ namespace Toggl.Ross.ViewControllers
             // Set default values
             ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
         }
+
+        public bool IsLoggedIn
+            => StoreManager.Singleton.AppState.User.Id != Guid.Empty;
 
         public async void ConfigureUserData(string name, string email, string imageUrl)
         {
@@ -185,21 +190,9 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        public nfloat MaxDraggingX
-        {
-            get
-            {
-                return View.Frame.Width - menuOffset;
-            }
-        }
+        public nfloat MinDraggingX => 0;
 
-        public nfloat MinDraggingX
-        {
-            get
-            {
-                return 0;
-            }
-        }
+        public nfloat MaxDraggingX => View.Frame.Width - menuOffset;
 
         private static IEnumerable<FluentLayout> MakeConstraints(UIView container)
         {
