@@ -9,6 +9,7 @@ using XPlatUtils;
 using Toggl.Ross.Theme;
 using Toggl.Phoebe.ViewModels;
 using Toggl.Phoebe.Reactive;
+using Toggl.Ross.Views;
 
 namespace Toggl.Ross.ViewControllers
 {
@@ -38,6 +39,9 @@ namespace Toggl.Ross.ViewControllers
             Title = "FeedbackTitle".Tr();
         }
 
+        public bool IsLoggedIn
+            => StoreManager.Singleton.AppState.User.Id != Guid.Empty;
+
         public override void ViewDidAppear(bool animated)
         {
             base.ViewDidAppear(animated);
@@ -47,6 +51,12 @@ namespace Toggl.Ross.ViewControllers
 
         public override void LoadView()
         {
+            if (!IsLoggedIn)
+            {
+                View = new NoUserEmptyView(NoUserEmptyView.Screen.Feedback, GoToLogin);
+                return;
+            }
+
             View = new UIView().Apply(Style.Screen);
 
             Add(moodLabel = new UILabel()
@@ -100,6 +110,9 @@ namespace Toggl.Ross.ViewControllers
             RebindSendButton();
             ResetConstraints();
         }
+
+        private void GoToLogin()
+            => NavigationController.PushViewController(new LoginViewController(), true);
 
         private void ResetConstraints()
         {
@@ -167,6 +180,8 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewWillAppear(animated);
 
+            if (!IsLoggedIn) return;
+
             // Create viewModel
             viewModel = new FeedbackVM(StoreManager.Singleton.AppState);
 
@@ -206,6 +221,8 @@ namespace Toggl.Ross.ViewControllers
         public override void ViewWillDisappear(bool animated)
         {
             base.ViewWillDisappear(animated);
+
+            if (!IsLoggedIn) return;
 
             NSNotificationCenter.DefaultCenter.RemoveObservers(notificationObjects);
             notificationObjects.Clear();

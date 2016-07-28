@@ -41,6 +41,10 @@ namespace Toggl.Ross.ViewControllers
         private const int menuOffset = 60;
         private Action<int> buttonSelector;
 
+
+        public bool IsLoggedIn
+            => StoreManager.Singleton.AppState.User.Id != Guid.Empty;
+
         public LeftViewController(Action<int> buttonSelector)
         {
             this.buttonSelector = buttonSelector;
@@ -61,6 +65,9 @@ namespace Toggl.Ross.ViewControllers
                 loginButton = CreateDrawerButton("LeftPanelMenuLogin", Image.LoginButton, Image.LoginButtonPressed, false),
                 signUpButton = CreateDrawerButton("LeftPanelMenuSignUp", Image.SignUpButton, Image.SignUpButtonPressed, false),
             };
+
+			logButton.SetImage(Image.TimerButtonPressed, UIControlState.Normal);
+            logButton.SetTitleColor(Color.LightishGreen, UIControlState.Normal);
 
             UpdateLayoutIfNeeded();
         }
@@ -129,12 +136,18 @@ namespace Toggl.Ross.ViewControllers
                 View.AddSubview(separatorLineImage);
             }
 
-            // Set default values
-            ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
-        }
 
-        public bool IsLoggedIn
-            => StoreManager.Singleton.AppState.User.Id != Guid.Empty;
+            if (IsLoggedIn)
+            {
+                // Set default values
+                ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
+            }
+            else
+            {
+				userAvatarImage.Hidden = true;
+                separatorLineImage.Hidden = true;
+            }
+        }
 
         public async void ConfigureUserData(string name, string email, string imageUrl)
         {

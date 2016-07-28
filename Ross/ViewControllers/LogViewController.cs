@@ -110,7 +110,7 @@ namespace Toggl.Ross.ViewControllers
             noUserEmptyView.Add(heyThereView);
             noUserEmptyView.Add(iconHelloArrowDownView);
             noUserEmptyView.Add(newToTogglView);
-
+             
 			noUserEmptyView.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
             noUserEmptyView.AddConstraints(
 
