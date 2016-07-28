@@ -66,10 +66,9 @@ namespace Toggl.Joey.UI.Fragments
         {
         }
 
-        public static ReportsFragment NewInstace(int period, ZoomLevel zoom)
+        public static ReportsFragment NewInstance(int period, ZoomLevel zoom)
         {
             var fragment = new ReportsFragment();
-
             var args = new Bundle();
             args.PutInt(ReportPeriodArgument, period);
             args.PutInt(ReportZoomArgument, (int)zoom);
@@ -170,7 +169,7 @@ namespace Toggl.Joey.UI.Fragments
             {
                 var data = new SummaryReportView
                 {
-                    Period = ZoomLevel,
+                    Period = ZoomLevel
                 };
                 await data.Load(StoreManager.Singleton.AppState.User, Period);
                 IsError = data.IsError;

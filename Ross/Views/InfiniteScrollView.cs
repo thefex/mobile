@@ -114,6 +114,7 @@ namespace Toggl.Ross.Views
             // condition to avoid new creations of views
             if (prevPageIndex >= rightIndexLimit)
             {
+                var shouldTriggerUpdate = PageIndex < rightIndexLimit && prevPageIndex != PageIndex;
 
                 prevPageIndex = PageIndex;
                 if (PageIndex > rightIndexLimit)
@@ -130,6 +131,12 @@ namespace Toggl.Ross.Views
                     await Task.Delay(350);
                     UserInteractionEnabled = true;
                 }
+
+                if (shouldTriggerUpdate)
+                {
+                    OnChangePage?.Invoke(this, EventArgs.Empty);
+                }
+
                 return;
             }
 
@@ -146,10 +153,7 @@ namespace Toggl.Ross.Views
             if (prevPageIndex != PageIndex)
             {
                 prevPageIndex = PageIndex;
-                if (OnChangePage != null)
-                {
-                    OnChangePage.Invoke(this, new EventArgs());
-                }
+                OnChangePage?.Invoke(this, EventArgs.Empty);
             }
         }
 

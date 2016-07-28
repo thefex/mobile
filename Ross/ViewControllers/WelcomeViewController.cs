@@ -22,7 +22,7 @@ namespace Toggl.Ross.ViewControllers
         private UILabel sloganLabel;
         private UIButton createButton;
         private UIButton passwordButton;
-        private UIButton googleButton;
+        //private UIButton googleButton;
 
         private Binding<bool, bool> isAuthenticatingBinding;
         private Binding<AuthResult, AuthResult> resultBinding;
@@ -42,15 +42,15 @@ namespace Toggl.Ross.ViewControllers
             } .Apply(Style.Welcome.Slogan));
             View.Add(createButton = new UIButton().Apply(Style.Welcome.CreateAccount));
             View.Add(passwordButton = new UIButton().Apply(Style.Welcome.PasswordLogin));
-            View.Add(googleButton = new UIButton().Apply(Style.Welcome.GoogleLogin));
+            //View.Add(googleButton = new UIButton().Apply(Style.Welcome.GoogleLogin));
 
             createButton.SetTitle("WelcomeCreate".Tr(), UIControlState.Normal);
             passwordButton.SetTitle("WelcomePassword".Tr(), UIControlState.Normal);
-            googleButton.SetTitle("WelcomeGoogle".Tr(), UIControlState.Normal);
+            //googleButton.SetTitle("WelcomeGoogle".Tr(), UIControlState.Normal);
 
             createButton.TouchUpInside += OnCreateButtonTouchUpInside;
             passwordButton.TouchUpInside += OnPasswordButtonTouchUpInside;
-            googleButton.TouchUpInside += OnGoogleButtonTouchUpInside;
+            //googleButton.TouchUpInside += OnGoogleButtonTouchUpInside;
 
             View.AddConstraints(
                 logoImageView.AtTopOf(View, 70f),
@@ -60,12 +60,12 @@ namespace Toggl.Ross.ViewControllers
                 sloganLabel.AtLeftOf(View, 25f),
                 sloganLabel.AtRightOf(View, 25f),
 
-                googleButton.AtBottomOf(View, 20f),
-                googleButton.AtLeftOf(View),
-                googleButton.AtRightOf(View),
-                googleButton.Height().EqualTo(60f),
+                //googleButton.AtBottomOf(View, 20f),
+                //googleButton.AtLeftOf(View),
+                //googleButton.AtRightOf(View),
+                //googleButton.Height().EqualTo(60f),
 
-                passwordButton.Above(googleButton, 25f),
+                passwordButton.AtBottomOf(View, 25f + 20 + 60),
                 passwordButton.AtLeftOf(View),
                 passwordButton.AtRightOf(View),
                 passwordButton.Height().EqualTo(60f),
@@ -183,7 +183,7 @@ namespace Toggl.Ross.ViewControllers
                                () =>
                 {
                     createButton.Alpha = value ? 0 : 1;
-                    googleButton.Alpha = value ? 0 : 1;
+                    //googleButton.Alpha = value ? 0 : 1;
                 }, () => {});
                 passwordButton.SetTitle(value ? "WelcomeLoggingIn".Tr() : "WelcomePassword".Tr(), UIControlState.Normal);
             }

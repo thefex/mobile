@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Android.Animation;
 using Android.Content;
+using Android.Database;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
-using Toggl.Joey.UI.Activities;
-using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Utils;
+using Toggl.Joey.UI.Views;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Analytics;
 using Toggl.Phoebe.Data;
@@ -24,7 +25,7 @@ using ViewPager = Android.Support.V4.View.ViewPager;
 
 namespace Toggl.Joey.UI.Fragments
 {
-    public class ReportsPagerFragment : Fragment
+    public class ReportsPagerFragment : Fragment, AdapterView.IOnItemSelectedListener
     {
         private const string ExtraCurrentItem = "com.toggl.timer.current_item";
         private const int PagesCount = 500;
@@ -35,7 +36,9 @@ namespace Toggl.Joey.UI.Fragments
         private View nextPeriod;
         private TextView timePeriod;
         private Toolbar toolbar;
+        private Spinner spinner;
         private ZoomLevel zoomLevel = ZoomLevel.Week;
+        private long selectedWorkspace;
         private int backDate;
         private Context ctx;
         private Pool<View> projectListItemPool;
@@ -67,6 +70,22 @@ namespace Toggl.Joey.UI.Fragments
             }
         }
 
+        public long SelectedWorkspaceId
+        {
+            get
+            {
+                return selectedWorkspace;
+            }
+            set
+            {
+                if (value == selectedWorkspace)
+                    return;
+                selectedWorkspace = value;
+                SummaryReportView.Workspace = selectedWorkspace;
+                ResetAdapter();
+            }
+        }
+
         public Pool<View> ProjectListItems
         {
             get { return projectListItemPool; }
@@ -82,11 +101,11 @@ namespace Toggl.Joey.UI.Fragments
             base.OnCreate(savedInstanceState);
 
             ctx = Activity;
-            projectListItemPool = new Pool<View> (CreateProjectListItem)
+            projectListItemPool = new Pool<View>(CreateProjectListItem)
             {
                 Count = 3 /*controller count*/ * 7 /*list items per controller*/,
             };
-            reportsControllerPool = new Pool<ReportsFragment.Controller> (CreateController, ResetController)
+            reportsControllerPool = new Pool<ReportsFragment.Controller>(CreateController, ResetController)
             {
                 Count = 3,
             };
@@ -132,20 +151,28 @@ namespace Toggl.Joey.UI.Fragments
             zoomLevel = SummaryReportView.GetLastZoomViewed();
 
             var view = inflater.Inflate(Resource.Layout.ReportsPagerFragment, container, false);
-            viewPager = view.FindViewById<ViewPager> (Resource.Id.ReportsViewPager);
+            viewPager = view.FindViewById<ViewPager>(Resource.Id.ReportsViewPager);
             viewPager.PageSelected += OnPageSelected;
 
-            timePeriod = view.FindViewById<TextView> (Resource.Id.TimePeriodLabel);
+            timePeriod = view.FindViewById<TextView>(Resource.Id.TimePeriodLabel);
             previousPeriod = view.FindViewById(Resource.Id.PreviousFrameLayout);
             nextPeriod = view.FindViewById(Resource.Id.NextFrameLayout);
-            syncErrorBar = view.FindViewById<FrameLayout> (Resource.Id.ReportsSyncBar);
-            syncRetry = view.FindViewById<ImageButton> (Resource.Id.ReportsSyncRetryButton);
+            syncErrorBar = view.FindViewById<FrameLayout>(Resource.Id.ReportsSyncBar);
+            syncRetry = view.FindViewById<ImageButton>(Resource.Id.ReportsSyncRetryButton);
             previousPeriod.Click += (sender, e) => NavigatePage(-1);
             nextPeriod.Click += (sender, e) => NavigatePage(1);
             syncRetry.Click += async(sender, e) => await ReloadCurrent();
             HasOptionsMenu = true;
-            var activity = (MainDrawerActivity)Activity;
-            toolbar = activity.MainToolbar;
+
+            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
+            var spinnerView = LayoutInflater.From(Activity).Inflate(Resource.Layout.ToolbarlSpinner, null);
+            spinner = spinnerView.FindViewById<Spinner>(Resource.Id.ToolbarSpinner);
+            var activity = (Android.Support.V7.App.AppCompatActivity)Activity;
+            activity.SupportActionBar.SetCustomView(spinnerView, lp);
+            toolbar = activity.FindViewById<Toolbar>(Resource.Id.MainToolbar);
+
+            spinner.OnItemSelectedListener = this;
+            populateSpinner();
 
             ResetAdapter();
             UpdatePeriod();
@@ -154,11 +181,169 @@ namespace Toggl.Joey.UI.Fragments
             return view;
         }
 
+        private void populateSpinner()
+        {
+            var workspaces = StoreManager.Singleton.AppState.Workspaces.Values.OrderBy(x => x.Name);
+            var wsItemList = new List<WorkspaceItem>();
+            foreach (var workspace in workspaces)
+            {
+                wsItemList.Add(new WorkspaceItem
+                {
+                    Id = (long)workspace.RemoteId,
+                    Name = workspace.Name
+                });
+            }
+            spinner.Adapter = new WorkspaceSpinnerAdapter(wsItemList);
+            var defaultPos = ((WorkspaceSpinnerAdapter)spinner.Adapter).GetPositionById(SummaryReportView.Workspace);
+            spinner.SetSelection(defaultPos);
+        }
+
+        class WorkspaceSpinnerAdapter : Java.Lang.Object, ISpinnerAdapter
+        {
+            public List<WorkspaceItem> workspaceItems;
+
+            public WorkspaceSpinnerAdapter()
+            {
+            }
+
+            public WorkspaceSpinnerAdapter(List<WorkspaceItem> workspaceList)
+            {
+                workspaceItems = workspaceList;
+            }
+
+            public int Count
+            {
+                get
+                {
+                    return workspaceItems.Count;
+                }
+            }
+
+            public bool HasStableIds
+            {
+                get
+                {
+                    return true;
+                }
+            }
+
+            public bool IsEmpty
+            {
+                get
+                {
+                    return false;
+                }
+            }
+
+            public int ViewTypeCount
+            {
+                get
+                {
+                    return 1;
+                }
+            }
+
+            public View GetDropDownView(int position, View convertView, ViewGroup parent)
+            {
+                return GetView(position, convertView, parent);
+            }
+
+            public Java.Lang.Object GetItem(int position)
+            {
+                return null;
+            }
+
+            public long GetItemId(int position)
+            {
+                return workspaceItems[position].Id;
+            }
+
+            public int GetItemViewType(int position)
+            {
+                return 0;
+            }
+
+            public View GetView(int position, View convertView, ViewGroup parent)
+            {
+                View view = convertView;
+
+                if (view == null)
+                {
+                    view = LayoutInflater.FromContext(parent.Context).Inflate(
+                               Resource.Layout.SpinnerListItem, parent, false);
+                    view.FindViewById<TextView>(Resource.Id.NameTextView).SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
+                    view.Tag = new WorkspaceItemViewHolder(view);
+                }
+
+                var holder = (WorkspaceItemViewHolder)view.Tag;
+                holder.Bind(GetWorkspaceItem(position));
+                return view;
+            }
+
+            public int GetPositionById(long id)
+            {
+                for (int i = 0; i <= workspaceItems.Count; i++)
+                {
+                    if (workspaceItems[i].Id == id) return i;
+                }
+                return 0;
+            }
+
+            private WorkspaceItem GetWorkspaceItem(int position)
+            {
+                return workspaceItems[position];
+            }
+
+            public void RegisterDataSetObserver(DataSetObserver observer)
+            {
+            }
+
+            public void UnregisterDataSetObserver(DataSetObserver observer)
+            {
+            }
+        }
+
+        private class WorkspaceItemViewHolder : BindableViewHolder<WorkspaceItem>
+        {
+            public TextView NameTextView { get; private set; }
+
+            public WorkspaceItemViewHolder()
+            {
+                // Android requirement.
+            }
+
+            public WorkspaceItemViewHolder(View root) : base(root)
+            {
+                NameTextView = root.FindViewById<TextView>(Resource.Id.NameTextView).SetFont(Font.RobotoLight);
+            }
+
+            protected override void Rebind()
+            {
+                if (DataSource == null)
+                {
+                    return;
+                }
+
+                NameTextView.Text = DataSource.Name;
+            }
+        }
+
+        class WorkspaceItem
+        {
+            public long Id;
+            public string Name;
+        }
+
         public override void OnDestroyView()
         {
             viewPager.PageSelected -= OnPageSelected;
             var adapter = (MainPagerAdapter)viewPager.Adapter;
             adapter.LoadReady -= OnLoadReady;
+
+            var lp = new Android.Support.V7.App.ActionBar.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent, (int)GravityFlags.Right);
+            var activity = (Android.Support.V7.App.AppCompatActivity)Activity;
+            activity.SupportActionBar.SetCustomView(null, lp);
+
             base.OnDestroyView();
         }
 
@@ -191,13 +376,13 @@ namespace Toggl.Joey.UI.Fragments
                     break;
             }
 
-            ServiceContainer.Resolve<ITracker> ().CurrentScreen = screen;
+            ServiceContainer.Resolve<ITracker>().CurrentScreen = screen;
         }
 
         public void NavigatePage(int direction)
         {
             var newItem = viewPager.CurrentItem + direction;
-            newItem = Math.Max(0, Math.Min(newItem, PagesCount - 1));
+            newItem = System.Math.Max(0, System.Math.Min(newItem, PagesCount - 1));
 
             if (newItem != viewPager.CurrentItem)
             {
@@ -225,7 +410,6 @@ namespace Toggl.Joey.UI.Fragments
 
         private void UpdatePeriod()
         {
-
             timePeriod.Text = FormattedDateSelector();
         }
 
@@ -246,6 +430,19 @@ namespace Toggl.Joey.UI.Fragments
             backDate = e.Position - StartPage;
             UpdatePeriod();
         }
+
+        #region Spinner selector interface
+
+        public void OnItemSelected(AdapterView parent, View view, int position, long id)
+        {
+            SelectedWorkspaceId = id;
+        }
+
+        public void OnNothingSelected(AdapterView parent)
+        {
+        }
+
+        #endregion
 
         #region Menu setup
 
@@ -437,14 +634,13 @@ namespace Toggl.Joey.UI.Fragments
             public override Fragment GetItem(int position)
             {
                 var period = position - StartPage;
-
                 // TODO: when the adapter is define the first time
                 // the position used is 0 and 1. This position generate
                 // a wrong date calculation.
                 // A solution could be don't reset but rehuse the
                 // FragmentPagerAdapter.
                 return currentFragments.Find(frag => frag.Period == period)
-                       ?? ReportsFragment.NewInstace(period, zoomLevel);
+                       ?? ReportsFragment.NewInstance(period, zoomLevel);
             }
 
             private void ShowSyncError(object sender, ReportsFragment.LoadReadyEventArgs args)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using CoreAnimation;
 using CoreGraphics;
 using Foundation;
@@ -15,6 +16,8 @@ namespace Toggl.Ross.ViewControllers
 {
     public class ProjectSelectionViewController : UITableViewController
     {
+        private const string TopProjectsKey = "ProjectTopProjects";
+
         private readonly static NSString ClientHeaderId = new NSString("ClientHeaderId");
         private readonly static NSString ProjectCellId = new NSString("ProjectCellId");
         private readonly static NSString TaskCellId = new NSString("TaskCellId");
@@ -56,13 +59,73 @@ namespace Toggl.Ross.ViewControllers
             if (viewModel.WorkspaceList.Count > 1)
             {
                 var filterBtn = new UIBarButtonItem(UIImage.FromFile("filter_icon.png"), UIBarButtonItemStyle.Plain, OnShowWorkspaceFilter);
-                NavigationItem.RightBarButtonItems = new [] { filterBtn, addBtn};
+                NavigationItem.RightBarButtonItems = new[] { filterBtn, addBtn };
             }
             else
             {
                 NavigationItem.RightBarButtonItem = addBtn;
             }
+
             TableView.TableFooterView = null;
+
+            UpdateTopProjectsHeader();
+        }
+
+        internal void UpdateTopProjectsHeader()
+        {
+            //Enumerates only once
+            var topProjects = viewModel.TopProjects?.ToList();
+
+            var numberOfProjects = topProjects?.Count ?? 0;
+            if (numberOfProjects == 0)
+            {
+                TableView.TableHeaderView = null;
+                return;
+            }
+
+            const int labelXMargin = 20;
+            const int labelYMargin = 5;
+            const int labelFrameHeight = 85;
+
+            const int labelHeight = labelFrameHeight - labelYMargin;
+            var labelWidth = View.Frame.Width - labelXMargin * 2;
+
+            var headerRect = new CGRect(0, 0, labelWidth, labelFrameHeight * (numberOfProjects + 1));
+            var headerView = new UIView(headerRect);
+
+            const int headerLabelHeight = 50;
+
+            var headerLabelRect = new CGRect(labelXMargin, labelYMargin, labelWidth, headerLabelHeight);
+            var headerLabel = new UILabel(headerLabelRect) { Text = TopProjectsKey.Tr() };
+
+            headerView.AddSubview(headerLabel);
+
+            for (int i = 0; i < numberOfProjects; i++)
+            {
+                var project = topProjects[i];
+
+                var buttonRect = new CGRect(labelXMargin, labelFrameHeight * i + headerLabelHeight + labelYMargin, labelWidth, labelHeight);
+                var button = new UIButton(buttonRect);
+
+                button.BackgroundColor = UIColor.Clear.FromHex(ProjectData.HexColors[project.Color % ProjectData.HexColors.Length]);
+                button.TouchUpInside += (s, e) => OnItemSelected(project);
+                button.TitleEdgeInsets = new UIEdgeInsets(10, labelXMargin, 0, labelXMargin);
+    
+                var projectLabelText = project.Task != null ? $"{project.Name} - {project.Task.Name}" : project.Name;
+                var projectLabel = new UILabel(new CGRect(labelXMargin, 15, labelWidth, 20));
+                projectLabel.Text = projectLabelText;
+                projectLabel.TextColor = UIColor.White;
+                button.AddSubview(projectLabel);
+				
+				var clientLabel = new UILabel(new CGRect(labelXMargin, 45, labelWidth, 20));
+				clientLabel.Text = string.IsNullOrEmpty(project.ClientName) ? "ProjectNoClient".Tr() : project.ClientName;
+				clientLabel.TextColor = UIColor.White;
+				button.AddSubview(clientLabel);
+				
+                headerView.AddSubview(button);
+            }
+
+            TableView.TableHeaderView = headerView;
         }
 
         protected void OnItemSelected(ICommonData m)
@@ -72,9 +135,18 @@ namespace Toggl.Ross.ViewControllers
 
             if (m is ProjectData)
             {
-                if (!((ProjectsCollection.SuperProjectData)m).IsEmpty)
+                if (!(m is ProjectsCollection.SuperProjectData) || !((ProjectsCollection.SuperProjectData)m).IsEmpty)
                 {
                     projectId = m.Id;
+                }
+
+                if (m is ProjectListVM.CommonProjectData)
+                {
+                    var commonProjectData = (ProjectListVM.CommonProjectData)m;
+                    if (commonProjectData.Task != null)
+                    {
+                        taskId = commonProjectData.Task.Id;
+                    }
                 }
             }
             else if (m is TaskData)
@@ -101,7 +173,7 @@ namespace Toggl.Ross.ViewControllers
             bool hasPopover = ObjCRuntime.Class.GetHandle("UIPopoverPresentationController") != IntPtr.Zero;
             if (hasPopover)
             {
-                var popoverController = new WorkspaceSelectorPopover(viewModel, sourceRect);
+                var popoverController = new WorkspaceSelectorPopover(viewModel, UpdateTopProjectsHeader, sourceRect);
                 PresentViewController(popoverController, true, null);
             }
             else
@@ -115,12 +187,12 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        class Source : ObservableCollectionViewSource<ICommonData, IClientData, IProjectData>
+        public class Source : ObservableCollectionViewSource<ICommonData, IClientData, IProjectData>
         {
             private readonly ProjectSelectionViewController owner;
             private readonly ProjectListVM viewModel;
 
-            public Source(ProjectSelectionViewController owner, ProjectListVM viewModel)  : base(owner.TableView, viewModel.ProjectList)
+            public Source(ProjectSelectionViewController owner, ProjectListVM viewModel) : base(owner.TableView, viewModel.ProjectList)
             {
                 this.owner = owner;
                 this.viewModel = viewModel;
@@ -129,7 +201,7 @@ namespace Toggl.Ross.ViewControllers
             public override UITableViewCell GetCell(UITableView tableView, NSIndexPath indexPath)
             {
                 var index = GetPlainIndexFromRow(collection, indexPath);
-                var data = collection [index];
+                var data = collection[index];
 
                 if (data is ProjectData)
                 {
@@ -148,7 +220,7 @@ namespace Toggl.Ross.ViewControllers
             public override UIView GetViewForHeader(UITableView tableView, nint section)
             {
                 var index = GetPlainIndexFromSection(collection, section);
-                var data = (ClientData)collection [index];
+                var data = (ClientData)collection[index];
 
                 var view = (SectionHeaderView)tableView.DequeueReusableHeaderFooterView(ClientHeaderId);
                 view.Bind(data);
@@ -183,7 +255,7 @@ namespace Toggl.Ross.ViewControllers
             public override void RowSelected(UITableView tableView, NSIndexPath indexPath)
             {
                 var index = GetPlainIndexFromRow(collection, indexPath);
-                var data = collection [index];
+                var data = collection[index];
                 owner.OnItemSelected(data);
 
                 tableView.DeselectRow(indexPath, true);
@@ -209,18 +281,18 @@ namespace Toggl.Ross.ViewControllers
                 textContentView.Add(projectLabel = new UILabel().Apply(Style.ProjectList.ProjectLabel));
                 textContentView.Add(clientLabel = new UILabel().Apply(Style.ProjectList.ClientLabel));
 
-                var maskLayer = new CAGradientLayer()
+                var maskLayer = new CAGradientLayer
                 {
                     AnchorPoint = CGPoint.Empty,
                     StartPoint = new CGPoint(0.0f, 0.0f),
                     EndPoint = new CGPoint(1.0f, 0.0f),
-                    Colors = new []
+                    Colors = new[]
                     {
                         UIColor.FromWhiteAlpha(1, 1).CGColor,
                         UIColor.FromWhiteAlpha(1, 1).CGColor,
                         UIColor.FromWhiteAlpha(1, 0).CGColor,
                     },
-                    Locations = new []
+                    Locations = new[]
                     {
                         NSNumber.FromFloat(0f),
                         NSNumber.FromFloat(0.9f),
@@ -305,7 +377,7 @@ namespace Toggl.Ross.ViewControllers
                     return;
                 }
 
-                var color = UIColor.Clear.FromHex(ProjectData.HexColors [projectData.Color % ProjectData.HexColors.Length]);
+                var color = UIColor.Clear.FromHex(ProjectData.HexColors[projectData.Color % ProjectData.HexColors.Length]);
                 BackgroundView.BackgroundColor = color;
 
                 projectLabel.Text = projectData.Name;
@@ -419,11 +491,13 @@ namespace Toggl.Ross.ViewControllers
         class WorkspaceSelectorPopover : ObservableTableViewController<IWorkspaceData>, IUIPopoverPresentationControllerDelegate
         {
             private readonly ProjectListVM viewModel;
+            private readonly Action updateTopProjectsHeader;
             private const int cellHeight = 45;
 
-            public WorkspaceSelectorPopover(ProjectListVM viewModel, CGRect sourceRect)
+            public WorkspaceSelectorPopover(ProjectListVM viewModel, Action updateTopProjectsHeader, CGRect sourceRect)
             {
                 this.viewModel = viewModel;
+                this.updateTopProjectsHeader = updateTopProjectsHeader;
                 ModalPresentationStyle = UIModalPresentationStyle.Popover;
 
                 PopoverPresentationController.PermittedArrowDirections = UIPopoverArrowDirection.Up;
@@ -448,7 +522,7 @@ namespace Toggl.Ross.ViewControllers
                 TableView.RowHeight = cellHeight;
                 CreateCellDelegate = CreateWorkspaceCell;
                 BindCellDelegate = BindCell;
-                DataSource = new ObservableCollection<IWorkspaceData> (viewModel.WorkspaceList);
+                DataSource = new ObservableCollection<IWorkspaceData>(viewModel.WorkspaceList);
                 PopoverPresentationController.SourceView = TableView;
             }
 
@@ -461,7 +535,7 @@ namespace Toggl.Ross.ViewControllers
             {
                 // Set selected tags.
                 cell.Accessory = (path.Row == viewModel.CurrentWorkspaceIndex) ? UITableViewCellAccessory.Checkmark : UITableViewCellAccessory.None;
-                cell.TextLabel.Text  = workspaceData.Name;
+                cell.TextLabel.Text = workspaceData.Name;
                 cell.TextLabel.Apply(Style.ProjectList.WorkspaceLabel);
             }
 
@@ -480,6 +554,8 @@ namespace Toggl.Ross.ViewControllers
                 {
                     cell.Accessory = UITableViewCellAccessory.None;
                 }
+
+                updateTopProjectsHeader();
                 TableView.CellAt(indexPath).Accessory = UITableViewCellAccessory.Checkmark;
                 DismissViewController(true, null);
             }

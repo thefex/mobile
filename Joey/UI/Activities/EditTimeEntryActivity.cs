@@ -1,8 +1,10 @@
-﻿using Android.App;
+﻿using System;
+using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
 using Toggl.Joey.UI.Fragments;
+using Toggl.Phoebe.ViewModels;
 
 namespace Toggl.Joey.UI.Activities
 {
@@ -69,6 +71,29 @@ namespace Toggl.Joey.UI.Activities
                     .Attach(fragment)
                     .Commit();
                 }
+            }
+        }
+
+        public override void OnBackPressed()
+        {
+            var fragment = (EditTimeEntryFragment)FragmentManager.FindFragmentByTag(fragmentTag);
+            if (fragment != null)
+            {
+                bool dismiss = true;
+
+                if (fragment.ViewModel != null)
+                {
+                    dismiss = fragment.SaveTimeEntry();
+                }
+
+                if (dismiss)
+                {
+                    base.OnBackPressed();
+                }
+            }
+            else
+            {
+                base.OnBackPressed();
             }
         }
     }

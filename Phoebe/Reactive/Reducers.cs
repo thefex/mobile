@@ -559,7 +559,29 @@ namespace Toggl.Phoebe.Reactive
                     }));
                 }
 
+                // Create draft time entry.
                 ITimeEntryData draft = state.GetTimeEntryDraft();
+
+                // Before save the draft time entry, if default tags
+                // aren't created in this workspace, just create them.
+                if (state.Settings.UseDefaultTag)
+                {
+                    var existingTags = state.Tags.Values.Where(x => x.WorkspaceId == draft.WorkspaceId);
+                    foreach (var item in TimeEntryData.DefaultTags)
+                    {
+                        if (!existingTags.Any(x => x.Name == item))
+                        {
+                            var newTag = TagData.Create(x =>
+                            {
+                                x.Name = item;
+                                x.WorkspaceId = draft.WorkspaceId;
+                                x.WorkspaceRemoteId = draft.WorkspaceRemoteId;
+                            });
+                            ctx.Put(newTag);
+                        }
+                    }
+                }
+
                 ctx.Put(TimeEntryData.Create(draft: draft, transform: x =>
                 {
                     x.RemoteId = null;
@@ -570,8 +592,10 @@ namespace Toggl.Phoebe.Reactive
                 }));
             });
 
-            return DataSyncMsg.Create(updated, state.With(timeEntries: state.UpdateTimeEntries(updated),
-                                      settings: state.Settings.With(showWelcome: false)));
+            return DataSyncMsg.Create(updated, state.With(
+                                          timeEntries: state.UpdateTimeEntries(updated),
+                                          tags: state.Update(state.Tags, updated),
+                                          settings: state.Settings.With(showWelcome: false)));
         }
 
         static DataSyncMsg<AppState> TimeEntryStop(AppState state, DataMsg msg)

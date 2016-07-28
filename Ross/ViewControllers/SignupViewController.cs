@@ -25,7 +25,7 @@ namespace Toggl.Ross.ViewControllers
         private UITextField emailTextField;
         private UITextField passwordTextField;
         private UIButton passwordActionButton;
-        private UIButton googleActionButton;
+        //private UIButton googleActionButton;
         private TTTAttributedLabel legalLabel;
         private Binding<bool, bool> isAuthenticatingBinding;
         private Binding<AuthResult, AuthResult> resultBinding;
@@ -77,10 +77,10 @@ namespace Toggl.Ross.ViewControllers
             passwordActionButton.SetTitle("SignupSignupButtonText".Tr(), UIControlState.Normal);
             passwordActionButton.TouchUpInside += OnPasswordActionButtonTouchUpInside;
 
-            View.Add(googleActionButton = new UIButton()
-            .Apply(Style.Signup.GoogleButton));
-            googleActionButton.SetTitle("SignupGoogleButtonText".Tr(), UIControlState.Normal);
-            googleActionButton.TouchUpInside += OnGoogleActionButtonTouchUpInside;
+            //View.Add(googleActionButton = new UIButton()
+            //.Apply(Style.Signup.GoogleButton));
+            //googleActionButton.SetTitle("SignupGoogleButtonText".Tr(), UIControlState.Normal);
+            //googleActionButton.TouchUpInside += OnGoogleActionButtonTouchUpInside;
 
             View.Add(legalLabel = new TTTAttributedLabel()
             {
@@ -128,10 +128,10 @@ namespace Toggl.Ross.ViewControllers
                 passwordActionButton.AtRightOf(View),
                 passwordActionButton.Height().EqualTo(60f),
 
-                googleActionButton.Below(passwordActionButton, 5f),
-                googleActionButton.AtLeftOf(View),
-                googleActionButton.AtRightOf(View),
-                googleActionButton.Height().EqualTo(60f),
+                //googleActionButton.Below(passwordActionButton, 5f),
+                //googleActionButton.AtLeftOf(View),
+                //googleActionButton.AtRightOf(View),
+                //googleActionButton.Height().EqualTo(60f),
 
                 legalLabel.AtBottomOf(View, 30f),
                 legalLabel.AtLeftOf(View, 40f),
@@ -292,7 +292,7 @@ namespace Toggl.Ross.ViewControllers
                 emailTextField.Enabled = !isAuthenticating;
                 passwordTextField.Enabled = !isAuthenticating;
                 passwordActionButton.Enabled = !isAuthenticating;
-                googleActionButton.Enabled = !isAuthenticating;
+                //googleActionButton.Enabled = !isAuthenticating;
 
                 passwordActionButton.SetTitle("SignupSignupProgressText".Tr(), UIControlState.Disabled);
             }
