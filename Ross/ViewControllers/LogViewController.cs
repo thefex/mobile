@@ -114,26 +114,31 @@ namespace Toggl.Ross.ViewControllers
             // Create view model
             ViewModel = new LogTimeEntriesVM(StoreManager.Singleton.AppState);
 
-            var headerView = new TableViewRefreshView();
-            headerView.AdaptToTableView(tableView);
-            headerView.ValueChanged += (sender, e) => ViewModel.TriggerFullSync(); // TODO potential memory leak (need to unsubscribe)
+            if (NoUserHelper.IsLoggedIn)
+            {
+                var headerView = new TableViewRefreshView();
+                headerView.AdaptToTableView(tableView);
+
+                // TODO potential memory leak (need to unsubscribe)
+                headerView.ValueChanged += (sender, e)
+                    => ViewModel.TriggerFullSync();
+				
+                syncBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(() =>
+				{
+					if (ViewModel.IsFullSyncing) return;
+					headerView.EndRefreshing();
+				});
+            }
 
             // Bindings
-            syncBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(() =>
-            {
-                if (!ViewModel.IsFullSyncing)
-                {
-                    headerView.EndRefreshing();
-                }
-            });
+
             syncErrorBinding = this.SetBinding(() => ViewModel.HasSyncErrors).WhenSourceChanges(() =>
             {
                 StatusBarShown = ViewModel.HasSyncErrors;
-                if (ViewModel.HasSyncErrors)
-                {
-                    statusView.StatusFailText = StoreManager.Singleton.AppState.RequestInfo.ErrorInfo.Item1;
-                }
+                if (!ViewModel.HasSyncErrors) return;
+                statusView.StatusFailText = StoreManager.Singleton.AppState.RequestInfo.ErrorInfo.Item1;
             });
+           
             hasItemsBinding = this.SetBinding(() => ViewModel.Collection.Count).WhenSourceChanges(SetCollectionState);
             loadMoreBinding = this.SetBinding(() => ViewModel.LoadInfo).WhenSourceChanges(LoadMoreIfNeeded);
             loadInfoBinding = this.SetBinding(() => ViewModel.LoadInfo).WhenSourceChanges(SetFooterState);
@@ -141,6 +146,7 @@ namespace Toggl.Ross.ViewControllers
             {
                 ShowConstrainError(StoreManager.Singleton.AppState.RequestInfo.ErrorInfo);
             });
+
             collectionBinding = this.SetBinding(() => ViewModel.Collection).WhenSourceChanges(() =>
             {
                 var source = new TimeEntriesSource(this, ViewModel, floatingHeader);
@@ -153,7 +159,9 @@ namespace Toggl.Ross.ViewControllers
                 updateFloatingHeader();
                 ViewModel.Collection.CollectionChanged += (s, e) => updateFloatingHeader();
             });
+
             isRunningBinding = this.SetBinding(() => ViewModel.IsEntryRunning).WhenSourceChanges(SetStartStopButtonState);
+
             durationBinding = this.SetBinding(() => ViewModel.Duration).WhenSourceChanges(setDuration);
         }
 
@@ -761,12 +769,10 @@ namespace Toggl.Ross.ViewControllers
                     SetNeedsLayout();
                 }
 
-
                 // Set duration
                 duration = dataSource.GetDuration();
                 startTime = dataSource.GetStartTime();
                 isRunning = dataSource.Entry.Data.State == TimeEntryState.Running;
-
 
                 if (isRunning)
                 {
