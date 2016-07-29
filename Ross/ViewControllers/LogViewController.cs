@@ -367,9 +367,10 @@ namespace Toggl.Ross.ViewControllers
             // is used and we need the TableView visible.
             if (ViewModel.LoadInfo.IsSyncing && ViewModel.Collection.Count == 0) return;
 
+            var emptyView = NoUserHelper.IsLoggedIn ? defaultEmptyView : noUserEmptyView;
             var hasItems = ViewModel.Collection.Count > 0;
 
-            tableView.TableFooterView = hasItems ? new UIView() : noUserEmptyView;
+            tableView.TableFooterView = hasItems ? new UIView() : emptyView;
         }
 
         private void OnCountinueTimeEntry(int index) =>
