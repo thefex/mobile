@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cirrious.FluentLayouts.Touch;
 using CoreGraphics;
 using Foundation;
+using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Helpers;
+using Toggl.Phoebe.Reactive;
 using Toggl.Ross.Theme;
 using UIKit;
 
@@ -46,9 +51,18 @@ namespace Toggl.Ross.ViewControllers
         private const int menuOffset = 60;
         private Action<MenuOption> buttonSelector;
 
+        private IDisposable observer;
+
         public LeftViewController(Action<MenuOption> buttonSelector)
         {
             this.buttonSelector = buttonSelector;
+
+            observer = StoreManager.Singleton
+                            .Observe(x => x.State.User)
+                            .StartWith(StoreManager.Singleton.AppState.User)
+                            .ObserveOn(SynchronizationContext.Current)
+                            .DistinctUntilChanged(x => x.Id)
+                            .Subscribe(OnUserChanged);
         }
 
         public override void LoadView()
@@ -62,34 +76,57 @@ namespace Toggl.Ross.ViewControllers
                 reportsButton = CreateDrawerButton("LeftPanelMenuReports", Image.ReportsButton, Image.ReportsButtonPressed),
                 settingsButton = CreateDrawerButton("LeftPanelMenuSettings", Image.SettingsButton, Image.SettingsButtonPressed),
                 feedbackButton = CreateDrawerButton("LeftPanelMenuFeedback", Image.FeedbackButton, Image.FeedbackButtonPressed),
-                signOutButton = CreateDrawerButton("LeftPanelMenuSignOut", Image.SignoutButton, Image.SignoutButtonPressed, false),
-                loginButton = CreateDrawerButton("LeftPanelMenuLogin", Image.LoginButton, Image.LoginButtonPressed, false),
-                signUpButton = CreateDrawerButton("LeftPanelMenuSignUp", Image.SignUpButton, Image.SignUpButtonPressed, false),
+                signOutButton = CreateDrawerButton("LeftPanelMenuSignOut", Image.SignoutButton, Image.SignoutButtonPressed),
+                loginButton = CreateDrawerButton("LeftPanelMenuLogin", Image.LoginButton, Image.LoginButtonPressed),
+                signUpButton = CreateDrawerButton("LeftPanelMenuSignUp", Image.SignUpButton, Image.SignUpButtonPressed),
             };
 
             logButton.SetImage(Image.TimerButtonPressed, UIControlState.Normal);
             logButton.SetTitleColor(Color.LightishGreen, UIControlState.Normal);
 
-            UpdateLayoutIfNeeded();
-        }
+            View.AddSubview(usernameLabel = new UILabel().Apply(Style.LeftView.UserLabel));
+            View.AddSubview(emailLabel = new UILabel().Apply(Style.LeftView.EmailLabel));
 
-        private void UpdateLayoutIfNeeded()
-        {
-            if (NoUserHelper.IsLoggedIn)
+            userAvatarImage = new UIImageView();
+            userAvatarImage.Layer.CornerRadius = 30f;
+            userAvatarImage.Layer.MasksToBounds = true;
+            View.AddSubview(userAvatarImage);
+
+            separatorLineImage = new UIImageView(UIImage.FromFile("line.png"));
+            if (View.Frame.Height > 480)
             {
-                View.AddSubview(signOutButton);
-            }
-            else
-            {
-                View.AddSubview(loginButton);
-                View.AddSubview(signUpButton);
+                View.AddSubview(separatorLineImage);
             }
 
             View.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
             View.AddConstraints(MakeConstraints(View));
+            UpdateLayout();
         }
 
-        private UIButton CreateDrawerButton(string text, UIImage normalImage, UIImage pressedImage, bool addToView = true)
+        private void UpdateLayout()
+        {
+            if (!NoUserHelper.IsLoggedIn)
+            {
+                emailLabel.Hidden = true;
+				loginButton.Hidden = false;
+                signUpButton.Hidden = false;
+                signOutButton.Hidden = true;
+                usernameLabel.Hidden = true;
+                userAvatarImage.Hidden = true;
+                separatorLineImage.Hidden = true;
+                return;
+            }
+
+            emailLabel.Hidden = false;
+			loginButton.Hidden = true;
+			signUpButton.Hidden = true;
+            signOutButton.Hidden = false;
+            usernameLabel.Hidden = false;
+            userAvatarImage.Hidden = false;
+            separatorLineImage.Hidden = false;
+        }
+
+        private UIButton CreateDrawerButton(string text, UIImage normalImage, UIImage pressedImage)
         {
             var button = new UIButton();
             button.SetTitle(text.Tr(), UIControlState.Normal);
@@ -99,9 +136,6 @@ namespace Toggl.Ross.ViewControllers
             button.HorizontalAlignment = UIControlContentHorizontalAlignment.Left;
             button.Apply(Style.LeftView.Button);
             button.TouchUpInside += OnMenuButtonTouchUpInside;
-
-            if (!addToView) return button;
-
             View.AddSubview(button);
             return button;
         }
@@ -110,45 +144,7 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewDidLoad();
 
-            usernameLabel = new UILabel().Apply(Style.LeftView.UserLabel);
-            var imageStartingPoint = View.Frame.Width - menuOffset - 90f;
-            usernameLabel.Frame = new CGRect(40, View.Frame.Height - 110f, height: 50f, width: imageStartingPoint - 40f);
-            View.AddSubview(usernameLabel);
-            emailLabel = new UILabel().Apply(Style.LeftView.EmailLabel);
-            emailLabel.Frame = new CGRect(40f, View.Frame.Height - 80f, height: 50f, width: imageStartingPoint - 40f);
-            View.AddSubview(emailLabel);
-
-            userAvatarImage = new UIImageView(
-                new CGRect(
-                    imageStartingPoint,
-                    View.Frame.Height - 100f,
-                    60f,
-                    60f
-                ));
-
-            userAvatarImage.Layer.CornerRadius = 30f;
-            userAvatarImage.Layer.MasksToBounds = true;
-            View.AddSubview(userAvatarImage);
-
-            separatorLineImage = new UIImageView(UIImage.FromFile("line.png"));
-            separatorLineImage.Frame = new CGRect(0f, View.Frame.Height - 140f, height: 1f, width: View.Frame.Width - menuOffset);
-            if (View.Frame.Height > 480)
-            {
-                View.AddSubview(separatorLineImage);
-            }
-
-            if (NoUserHelper.IsLoggedIn)
-            {
-                userAvatarImage.Hidden = false;
-                separatorLineImage.Hidden = false;
-                // Set default values
-                ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
-            }
-            else
-            {
-                userAvatarImage.Hidden = true;
-                separatorLineImage.Hidden = true;
-            }
+			ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
         }
 
         public async void ConfigureUserData(string name, string email, string imageUrl)
@@ -217,19 +213,15 @@ namespace Toggl.Ross.ViewControllers
 
         public nfloat MaxDraggingX => View.Frame.Width - menuOffset;
 
-        private static IEnumerable<FluentLayout> MakeConstraints(UIView container)
+        private IEnumerable<FluentLayout> MakeConstraints(UIView container)
         {
             UIView prev = null;
             const float startTopMargin = 60.0f;
             const float topMargin = 7f;
 
-            foreach (var view in container.Subviews)
+            //Common buttons
+            foreach (var view in container.Subviews.OfType<UIButton>().Take(4))
             {
-                if (!(view is UIButton))
-                {
-                    continue;
-                }
-
                 if (prev == null)
                 {
                     yield return view.AtTopOf(container, topMargin + startTopMargin);
@@ -244,6 +236,39 @@ namespace Toggl.Ross.ViewControllers
 
                 prev = view;
             }
+
+            //Case for logged users
+            yield return signOutButton.Below(prev, topMargin);
+            yield return signOutButton.AtLeftOf(container, horizMargin);
+            yield return signOutButton.AtRightOf(container, horizMargin + 20);
+
+            //Case for non-logged users
+            yield return loginButton.Below(prev, topMargin);
+            yield return loginButton.AtLeftOf(container, horizMargin);
+            yield return loginButton.AtRightOf(container, horizMargin + 20);
+
+            yield return signUpButton.Below(loginButton, topMargin);
+            yield return signUpButton.AtLeftOf(container, horizMargin);
+            yield return signUpButton.AtRightOf(container, horizMargin + 20);
+
+            //Bottom part of the drawer
+            const int bottomInformationMargin = 33;
+
+            if (separatorLineImage.Superview != null)
+            {
+				yield return separatorLineImage.Above(userAvatarImage, 22);
+            }
+
+			yield return userAvatarImage.Width().EqualTo(60);
+			yield return userAvatarImage.Height().EqualTo(60);
+            yield return userAvatarImage.AtRightOf(container, startTopMargin + bottomInformationMargin);
+			yield return userAvatarImage.AtBottomOf(container, bottomInformationMargin);
+
+            yield return emailLabel.AtBottomOf(container, bottomInformationMargin + 5);
+            yield return emailLabel.AtLeftOf(container, bottomInformationMargin);
+
+            yield return usernameLabel.Above(emailLabel, 10);
+            yield return usernameLabel.AtLeftOf(container, bottomInformationMargin);
         }
 
         private async Task<UIImage> LoadImage(string imageUrl)
@@ -258,5 +283,8 @@ namespace Toggl.Ross.ViewControllers
             // load from bytes
             return UIImage.LoadFromData(NSData.FromArray(contents));
         }
+
+        private void OnUserChanged(IUserData data)
+            => UpdateLayout();
     }
 }

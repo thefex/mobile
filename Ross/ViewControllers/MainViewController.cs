@@ -197,8 +197,8 @@ namespace Toggl.Ross.ViewControllers
                     var message = "MainViewLoginConfirmationMessage".Tr();
 
                     var alert = UIAlertController.Create(title, message, UIAlertControllerStyle.Alert);
-                    alert.AddAction(UIAlertAction.Create(ok, UIAlertActionStyle.Default, action => PushViewController(new LoginViewController(), true)));
                     alert.AddAction(UIAlertAction.Create(cancel, UIAlertActionStyle.Default, null));
+					alert.AddAction(UIAlertAction.Create(ok, UIAlertActionStyle.Default, action => PushViewController(new LoginViewController(), true)));
                     PresentViewController(alert, true, null);
                     break;
 					
