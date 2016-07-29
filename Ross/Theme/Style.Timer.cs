@@ -59,7 +59,7 @@ namespace Toggl.Ross.Theme
             public static void TimerDurationLabel(UILabel v)
             {
                 v.Text = "00:00:00";
-                v.Font = Font.MinispacedDigitsLight(24);
+                v.Font = Font.MonospacedDigitsLight(24);
                 v.TextColor = Color.OffSteel;
                 v.TextAlignment = UITextAlignment.Right;
             }

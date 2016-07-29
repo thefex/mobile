@@ -77,7 +77,7 @@ namespace Toggl.Ross.Theme
             public static void DurationLabel(UILabel v)
             {
                 v.TextAlignment = UITextAlignment.Right;
-                v.Font = Font.MinispacedDigits(fontHeight);
+                v.Font = Font.MonospacedDigits(fontHeight);
                 v.TextColor = Color.OffSteel;
             }
 
