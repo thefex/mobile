@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Cirrious.FluentLayouts.Touch;
 using CoreGraphics;
 using Foundation;
-using Toggl.Phoebe.Reactive;
+using Toggl.Phoebe.Helpers;
 using Toggl.Ross.Theme;
 using UIKit;
 
@@ -46,9 +46,6 @@ namespace Toggl.Ross.ViewControllers
         private const int menuOffset = 60;
         private Action<MenuOption> buttonSelector;
 
-        public bool IsLoggedIn
-            => StoreManager.Singleton.AppState.User.Id != Guid.Empty;
-
         public LeftViewController(Action<MenuOption> buttonSelector)
         {
             this.buttonSelector = buttonSelector;
@@ -78,7 +75,7 @@ namespace Toggl.Ross.ViewControllers
 
         private void UpdateLayoutIfNeeded()
         {
-            if (IsLoggedIn)
+            if (NoUserHelper.IsLoggedIn)
             {
                 View.AddSubview(signOutButton);
             }
@@ -140,7 +137,7 @@ namespace Toggl.Ross.ViewControllers
                 View.AddSubview(separatorLineImage);
             }
 
-            if (IsLoggedIn)
+            if (NoUserHelper.IsLoggedIn)
             {
                 userAvatarImage.Hidden = false;
                 separatorLineImage.Hidden = false;

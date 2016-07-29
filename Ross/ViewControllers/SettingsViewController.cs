@@ -19,7 +19,6 @@ namespace Toggl.Ross.ViewControllers
         private Binding<bool, bool> askProjectBinding;
         private Binding<bool, bool> mobileTagBinding;
 
-
         public SettingsViewController()
         {
             Title = "SettingsTitle".Tr();

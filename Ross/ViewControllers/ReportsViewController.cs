@@ -8,7 +8,7 @@ using Toggl.Ross.Views;
 using UIKit;
 using XPlatUtils;
 using Toggl.Phoebe.Data.Models;
-using Toggl.Phoebe.Reactive;
+using Toggl.Phoebe.Helpers;
 
 namespace Toggl.Ross.ViewControllers
 {
@@ -46,7 +46,6 @@ namespace Toggl.Ross.ViewControllers
         static readonly nfloat navBarHeight = 64;
         static readonly nfloat selectorHeight = 50;
 
-
         public ReportsViewController()
         {
             Title = "ReportsTitle".Tr();
@@ -60,12 +59,9 @@ namespace Toggl.Ross.ViewControllers
             _timeSpaceIndex = 0;
         }
 
-        public bool IsLoggedIn
-            => StoreManager.Singleton.AppState.User.Id != Guid.Empty;
-
         public override void LoadView()
         {
-            View = IsLoggedIn ?
+            View = NoUserHelper.IsLoggedIn ?
                     new UIView().Apply(Style.Screen) :
                     new NoUserEmptyView(NoUserEmptyView.Screen.Reports, GoToLogin);
         }
@@ -74,7 +70,7 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewDidLoad();
 
-            if (!IsLoggedIn) return;
+            if (!NoUserHelper.IsLoggedIn) return;
 
             _zoomLevel = SummaryReportView.GetLastZoomViewed();
             View.BackgroundColor = UIColor.White;
@@ -111,7 +107,7 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewDidLayoutSubviews();
 
-            if (!IsLoggedIn) return;
+            if (!NoUserHelper.IsLoggedIn) return;
 
             topBorder.Frame = new CGRect(0.0f, 0.0f, View.Bounds.Width, 2.0f);
             dateSelectorView.Frame = new CGRect(0, View.Bounds.Height - selectorHeight, View.Bounds.Width, selectorHeight);
@@ -123,7 +119,7 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewWillAppear(animated);
 
-            if (!IsLoggedIn) return;
+            if (!NoUserHelper.IsLoggedIn) return;
 
             ((MainViewController)AppDelegate.TogglWindow.RootViewController).MenuEnabled = false;
             NavigationController.InteractivePopGestureRecognizer.Enabled = false;
@@ -132,14 +128,14 @@ namespace Toggl.Ross.ViewControllers
         public override void ViewDidAppear(bool animated)
         {
             base.ViewDidAppear(animated);
-            if (!IsLoggedIn) return;
+            if (!NoUserHelper.IsLoggedIn) return;
 
             TrackScreenView();
         }
 
         public override void ViewWillDisappear(bool animated)
         {
-            if (IsLoggedIn)
+            if (NoUserHelper.IsLoggedIn)
             {
                 ((MainViewController)AppDelegate.TogglWindow.RootViewController).MenuEnabled = true;
                 NavigationController.InteractivePopGestureRecognizer.Enabled = true;

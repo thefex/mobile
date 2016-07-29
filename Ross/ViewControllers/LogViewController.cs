@@ -399,24 +399,11 @@ namespace Toggl.Ross.ViewControllers
             // ATTENTION Needed condition to keep visible the list
             // while the first sync is finishing. Why? Because the scroll spinner
             // is used and we need the TableView visible.
-            if (ViewModel.LoadInfo.IsSyncing && ViewModel.Collection.Count == 0)
-            {
-                return;
-            }
+            if (ViewModel.LoadInfo.IsSyncing && ViewModel.Collection.Count == 0) return;
 
-            UIView emptyView = defaultEmptyView; // Default empty view.
-            var showWelcome = StoreManager.Singleton.AppState.User.Id == Guid.Empty;
             var hasItems = ViewModel.Collection.Count > 0;
 
-            // According to settings, show welcome message or no.
-            ((SimpleEmptyView)emptyView).Title = showWelcome ? "LogWelcomeTitle".Tr() : "LogEmptyTitle".Tr();
-
-            if (showWelcome)
-            {
-                emptyView = noUserEmptyView;
-            }
-
-            tableView.TableFooterView = hasItems ? new UIView() : emptyView;
+            tableView.TableFooterView = hasItems ? new UIView() : noUserEmptyView;
         }
 
         private void OnCountinueTimeEntry(int index) =>
