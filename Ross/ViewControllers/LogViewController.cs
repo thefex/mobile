@@ -5,11 +5,11 @@ using System.Linq;
 using System.Reactive.Linq;
 using CoreAnimation;
 using CoreGraphics;
-using Cirrious.FluentLayouts.Touch;
 using Foundation;
 using GalaSoft.MvvmLight.Helpers;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels;
 using Toggl.Phoebe.ViewModels.Timer;
@@ -95,49 +95,7 @@ namespace Toggl.Ross.ViewControllers
                 Message = "LogEmptyMessage".Tr(),
             };
 
-            noUserEmptyView = new UIView();
-
-			var iconHelloArrowUpView = new UIImageView(Image.IconHelloArrowUp);
-            var alreadyGotAnAccountView = new UIImageView(Image.AlreadyGotAnAccount);
-            var iconHelloTogglerView = new UIImageView(Image.IconHelloToggler);
-            var heyThereView = new UIImageView(Image.HeyThere);
-            var iconHelloArrowDownView = new UIImageView(Image.IconHelloArrowDown);
-            var newToTogglView = new UIImageView(Image.NewToToggl);
-
-			noUserEmptyView.Add(iconHelloArrowUpView);
-            noUserEmptyView.Add(alreadyGotAnAccountView);
-            noUserEmptyView.Add(iconHelloTogglerView);
-            noUserEmptyView.Add(heyThereView);
-            noUserEmptyView.Add(iconHelloArrowDownView);
-            noUserEmptyView.Add(newToTogglView);
-             
-			noUserEmptyView.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
-            noUserEmptyView.AddConstraints(
-
-                //Up arrow
-                iconHelloArrowUpView.AtLeftOf(noUserEmptyView, 15),
-
-                //Login label
-                alreadyGotAnAccountView.ToRightOf(iconHelloArrowUpView, 20),
-                alreadyGotAnAccountView.AtBottomOf(iconHelloArrowUpView),
-
-                //Toggler dude
-                iconHelloTogglerView.WithSameCenterX(noUserEmptyView),
-                iconHelloTogglerView.WithSameCenterY(noUserEmptyView),
-
-                //Hey there label
-                heyThereView.Below(iconHelloTogglerView, 10),
-                heyThereView.WithSameCenterX(noUserEmptyView),
-
-                //Down arrow
-                iconHelloArrowDownView.AtBottomOf(noUserEmptyView),
-                iconHelloArrowDownView.AtRightOf(noUserEmptyView, 86),
-
-                //Start tracking label
-                newToTogglView.Above(iconHelloArrowDownView),
-                newToTogglView.AtRightOf(noUserEmptyView, 58)
-            );
-
+            noUserEmptyView = new NoUserLogEmptyStateView();
 
             reloadView = new ReloadTableViewFooter
             {

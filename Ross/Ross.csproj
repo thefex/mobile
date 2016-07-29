@@ -492,6 +492,7 @@
     <Compile Include="Views\CircleView.cs" />
     <Compile Include="ViewControllers\AutocompleteViewController.cs" />
     <Compile Include="Views\NoUserEmptyView.cs" />
+    <Compile Include="Views\NoUserLogEmptyStateView.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
