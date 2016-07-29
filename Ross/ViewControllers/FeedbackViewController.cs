@@ -51,7 +51,7 @@ namespace Toggl.Ross.ViewControllers
         {
             if (!NoUserHelper.IsLoggedIn)
             {
-                View = new NoUserEmptyView(NoUserEmptyView.Screen.Feedback, GoToLogin);
+                View = new NoUserEmptyView(NoUserEmptyView.Screen.Feedback, GoToSignup);
                 return;
             }
 
@@ -109,8 +109,8 @@ namespace Toggl.Ross.ViewControllers
             ResetConstraints();
         }
 
-        private void GoToLogin()
-            => NavigationController.PushViewController(new LoginViewController(), true);
+        private void GoToSignup()
+            => NavigationController.PushViewController(new SignupViewController(), true);
 
         private void ResetConstraints()
         {

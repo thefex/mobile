@@ -42,8 +42,6 @@ namespace Toggl.Ross.ViewControllers
         private nint _timeSpaceIndex;
         private bool showStatus;
 
-        static readonly nfloat padding = 24;
-        static readonly nfloat navBarHeight = 64;
         static readonly nfloat selectorHeight = 50;
 
         public ReportsViewController()
@@ -63,7 +61,7 @@ namespace Toggl.Ross.ViewControllers
         {
             View = NoUserHelper.IsLoggedIn ?
                     new UIView().Apply(Style.Screen) :
-                    new NoUserEmptyView(NoUserEmptyView.Screen.Reports, GoToLogin);
+                    new NoUserEmptyView(NoUserEmptyView.Screen.Reports, GoToSignup);
         }
 
         public override void ViewDidLoad()
@@ -154,8 +152,8 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
-        private void GoToLogin()
-            => NavigationController.PushViewController(new LoginViewController(), true);
+        private void GoToSignup()
+            => NavigationController.PushViewController(new SignupViewController(), true);
        
         private void TrackScreenView()
         {
