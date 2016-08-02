@@ -127,6 +127,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Misc\IOldSettingsStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Analytics\RegisterSource.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Analytics\UserMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\NoUserHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Data\Models\Old\" />

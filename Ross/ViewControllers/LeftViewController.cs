@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cirrious.FluentLayouts.Touch;
 using CoreGraphics;
 using Foundation;
+using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
+using Toggl.Phoebe.Reactive;
 using Toggl.Ross.Theme;
 using UIKit;
 
@@ -17,17 +23,24 @@ namespace Toggl.Ross.ViewControllers
         private static string DefaultImage = "profile.png";
         private static string DefaultRemoteImage = "https://assets.toggl.com/images/profile.png";
 
-        public static readonly int TimerPageId = 0;
-        public static readonly int ReportsPageId = 1;
-        public static readonly int SettingsPageId = 2;
-        public static readonly int FeedbackPageId = 3;
-        public static readonly int LogoutPageId = 4;
+        public enum MenuOption
+        {
+            Timer = 0,
+            Reports = 1,
+            Settings = 2,
+            Feedback = 3,
+            Logout = 4,
+            Login = 5,
+            SignUp = 6
+        }
 
         private UIButton logButton;
         private UIButton reportsButton;
         private UIButton settingsButton;
         private UIButton feedbackButton;
         private UIButton signOutButton;
+        private UIButton loginButton;
+        private UIButton signUpButton;
         private UIButton[] menuButtons;
         private UILabel usernameLabel;
         private UILabel emailLabel;
@@ -36,12 +49,20 @@ namespace Toggl.Ross.ViewControllers
         private UIImageView separatorLineImage;
         private const int horizMargin = 15;
         private const int menuOffset = 60;
-        private Action<int> buttonSelector;
+        private Action<MenuOption> buttonSelector;
 
+        private IDisposable observer;
 
-        public LeftViewController(Action<int> buttonSelector)
+        public LeftViewController(Action<MenuOption> buttonSelector)
         {
             this.buttonSelector = buttonSelector;
+
+            observer = StoreManager.Singleton
+                            .Observe(x => x.State.User)
+                            .StartWith(StoreManager.Singleton.AppState.User)
+                            .ObserveOn(SynchronizationContext.Current)
+                            .DistinctUntilChanged(x => x.Id)
+                            .Subscribe(OnUserChanged);
         }
 
         public override void LoadView()
@@ -51,78 +72,79 @@ namespace Toggl.Ross.ViewControllers
 
             menuButtons = new[]
             {
-                (logButton = new UIButton()),
-                (reportsButton = new UIButton()),
-                (settingsButton = new UIButton()),
-                (feedbackButton = new UIButton()),
-                (signOutButton = new UIButton()),
+                logButton = CreateDrawerButton("LeftPanelMenuLog", Image.TimerButton, Image.TimerButtonPressed),
+                reportsButton = CreateDrawerButton("LeftPanelMenuReports", Image.ReportsButton, Image.ReportsButtonPressed),
+                settingsButton = CreateDrawerButton("LeftPanelMenuSettings", Image.SettingsButton, Image.SettingsButtonPressed),
+                feedbackButton = CreateDrawerButton("LeftPanelMenuFeedback", Image.FeedbackButton, Image.FeedbackButtonPressed),
+                signOutButton = CreateDrawerButton("LeftPanelMenuSignOut", Image.SignoutButton, Image.SignoutButtonPressed),
+                loginButton = CreateDrawerButton("LeftPanelMenuLogin", Image.LoginButton, Image.LoginButtonPressed),
+                signUpButton = CreateDrawerButton("LeftPanelMenuSignUp", Image.SignUpButton, Image.SignUpButtonPressed),
             };
-            logButton.SetTitle("LeftPanelMenuLog".Tr(), UIControlState.Normal);
-            logButton.SetImage(Image.TimerButton, UIControlState.Normal);
-            logButton.SetImage(Image.TimerButtonPressed, UIControlState.Highlighted);
 
-            reportsButton.SetTitle("LeftPanelMenuReports".Tr(), UIControlState.Normal);
-            reportsButton.SetImage(Image.ReportsButton, UIControlState.Normal);
-            reportsButton.SetImage(Image.ReportsButtonPressed, UIControlState.Highlighted);
+            logButton.SetImage(Image.TimerButtonPressed, UIControlState.Normal);
+            logButton.SetTitleColor(Color.LightishGreen, UIControlState.Normal);
 
-            settingsButton.SetTitle("LeftPanelMenuSettings".Tr(), UIControlState.Normal);
-            settingsButton.SetImage(Image.SettingsButton, UIControlState.Normal);
-            settingsButton.SetImage(Image.SettingsButtonPressed, UIControlState.Highlighted);
+            View.AddSubview(usernameLabel = new UILabel().Apply(Style.LeftView.UserLabel));
+            View.AddSubview(emailLabel = new UILabel().Apply(Style.LeftView.EmailLabel));
 
-            feedbackButton.SetTitle("LeftPanelMenuFeedback".Tr(), UIControlState.Normal);
-            feedbackButton.SetImage(Image.FeedbackButton, UIControlState.Normal);
-            feedbackButton.SetImage(Image.FeedbackButtonPressed, UIControlState.Highlighted);
+            userAvatarImage = new UIImageView();
+            userAvatarImage.Layer.CornerRadius = 30f;
+            userAvatarImage.Layer.MasksToBounds = true;
+            View.AddSubview(userAvatarImage);
 
-            signOutButton.SetTitle("LeftPanelMenuSignOut".Tr(), UIControlState.Normal);
-            signOutButton.SetImage(Image.SignoutButton, UIControlState.Normal);
-            signOutButton.SetImage(Image.SignoutButtonPressed, UIControlState.Highlighted);
-
-            logButton.HorizontalAlignment = reportsButton.HorizontalAlignment = settingsButton.HorizontalAlignment =
-                                                feedbackButton.HorizontalAlignment = signOutButton.HorizontalAlignment = UIControlContentHorizontalAlignment.Left;
-
-            foreach (var button in menuButtons)
+            separatorLineImage = new UIImageView(UIImage.FromFile("line.png"));
+            if (View.Frame.Height > 480)
             {
-                button.Apply(Style.LeftView.Button);
-                button.TouchUpInside += OnMenuButtonTouchUpInside;
-                View.AddSubview(button);
+                View.AddSubview(separatorLineImage);
             }
 
             View.SubviewsDoNotTranslateAutoresizingMaskIntoConstraints();
             View.AddConstraints(MakeConstraints(View));
+            UpdateLayout();
+        }
+
+        private void UpdateLayout()
+        {
+            if (!NoUserHelper.IsLoggedIn)
+            {
+                emailLabel.Hidden = true;
+				loginButton.Hidden = false;
+                signUpButton.Hidden = false;
+                signOutButton.Hidden = true;
+                usernameLabel.Hidden = true;
+                userAvatarImage.Hidden = true;
+                separatorLineImage.Hidden = true;
+                return;
+            }
+
+            emailLabel.Hidden = false;
+			loginButton.Hidden = true;
+			signUpButton.Hidden = true;
+            signOutButton.Hidden = false;
+            usernameLabel.Hidden = false;
+            userAvatarImage.Hidden = false;
+            separatorLineImage.Hidden = false;
+        }
+
+        private UIButton CreateDrawerButton(string text, UIImage normalImage, UIImage pressedImage)
+        {
+            var button = new UIButton();
+            button.SetTitle(text.Tr(), UIControlState.Normal);
+            button.SetImage(normalImage, UIControlState.Normal);
+            button.SetImage(pressedImage, UIControlState.Highlighted);
+            button.SetTitleColor(Color.LightishGreen, UIControlState.Highlighted);
+            button.HorizontalAlignment = UIControlContentHorizontalAlignment.Left;
+            button.Apply(Style.LeftView.Button);
+            button.TouchUpInside += OnMenuButtonTouchUpInside;
+            View.AddSubview(button);
+            return button;
         }
 
         public override void ViewDidLoad()
         {
             base.ViewDidLoad();
 
-            usernameLabel = new UILabel().Apply(Style.LeftView.UserLabel);
-            var imageStartingPoint = View.Frame.Width - menuOffset - 90f;
-            usernameLabel.Frame = new CGRect(40, View.Frame.Height - 110f, height: 50f, width: imageStartingPoint - 40f);
-            View.AddSubview(usernameLabel);
-            emailLabel = new UILabel().Apply(Style.LeftView.EmailLabel);
-            emailLabel.Frame = new CGRect(40f, View.Frame.Height - 80f, height: 50f, width: imageStartingPoint - 40f);
-            View.AddSubview(emailLabel);
-
-            userAvatarImage = new UIImageView(
-                new CGRect(
-                    imageStartingPoint,
-                    View.Frame.Height - 100f,
-                    60f,
-                    60f
-                ));
-            userAvatarImage.Layer.CornerRadius = 30f;
-            userAvatarImage.Layer.MasksToBounds = true;
-            View.AddSubview(userAvatarImage);
-
-            separatorLineImage = new UIImageView(UIImage.FromFile("line.png"));
-            separatorLineImage.Frame = new CGRect(0f, View.Frame.Height - 140f, height: 1f, width: View.Frame.Width - menuOffset);
-            if (View.Frame.Height > 480)
-            {
-                View.AddSubview(separatorLineImage);
-            }
-
-            // Set default values
-            ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
+			ConfigureUserData(DefaultUserName, DefaultUserEmail, DefaultImage);
         }
 
         public async void ConfigureUserData(string name, string email, string imageUrl)
@@ -159,55 +181,47 @@ namespace Toggl.Ross.ViewControllers
 
             if (sender == logButton)
             {
-                buttonSelector.Invoke(TimerPageId);
+                buttonSelector.Invoke(MenuOption.Timer);
             }
             else if (sender == reportsButton)
             {
-                buttonSelector.Invoke(ReportsPageId);
+                buttonSelector.Invoke(MenuOption.Reports);
             }
             else if (sender == settingsButton)
             {
-                buttonSelector.Invoke(SettingsPageId);
+                buttonSelector.Invoke(MenuOption.Settings);
             }
             else if (sender == feedbackButton)
             {
-                buttonSelector.Invoke(FeedbackPageId);
+                buttonSelector.Invoke(MenuOption.Feedback);
+            }
+            else if (sender == loginButton)
+            {
+                buttonSelector.Invoke(MenuOption.Login);
+            }
+            else if (sender == signUpButton)
+            {
+                buttonSelector.Invoke(MenuOption.SignUp);
             }
             else
             {
-                buttonSelector.Invoke(LogoutPageId);
+                buttonSelector.Invoke(MenuOption.Logout);
             }
         }
 
-        public nfloat MaxDraggingX
-        {
-            get
-            {
-                return View.Frame.Width - menuOffset;
-            }
-        }
+        public nfloat MinDraggingX => 0;
 
-        public nfloat MinDraggingX
-        {
-            get
-            {
-                return 0;
-            }
-        }
+        public nfloat MaxDraggingX => View.Frame.Width - menuOffset;
 
-        private static IEnumerable<FluentLayout> MakeConstraints(UIView container)
+        private IEnumerable<FluentLayout> MakeConstraints(UIView container)
         {
             UIView prev = null;
             const float startTopMargin = 60.0f;
             const float topMargin = 7f;
 
-            foreach (var view in container.Subviews)
+            //Common buttons
+            foreach (var view in container.Subviews.OfType<UIButton>().Take(4))
             {
-                if (!(view is UIButton))
-                {
-                    continue;
-                }
-
                 if (prev == null)
                 {
                     yield return view.AtTopOf(container, topMargin + startTopMargin);
@@ -222,6 +236,39 @@ namespace Toggl.Ross.ViewControllers
 
                 prev = view;
             }
+
+            //Case for logged users
+            yield return signOutButton.Below(prev, topMargin);
+            yield return signOutButton.AtLeftOf(container, horizMargin);
+            yield return signOutButton.AtRightOf(container, horizMargin + 20);
+
+            //Case for non-logged users
+            yield return loginButton.Below(prev, topMargin);
+            yield return loginButton.AtLeftOf(container, horizMargin);
+            yield return loginButton.AtRightOf(container, horizMargin + 20);
+
+            yield return signUpButton.Below(loginButton, topMargin);
+            yield return signUpButton.AtLeftOf(container, horizMargin);
+            yield return signUpButton.AtRightOf(container, horizMargin + 20);
+
+            //Bottom part of the drawer
+            const int bottomInformationMargin = 33;
+
+            if (separatorLineImage.Superview != null)
+            {
+				yield return separatorLineImage.Above(userAvatarImage, 22);
+            }
+
+			yield return userAvatarImage.Width().EqualTo(60);
+			yield return userAvatarImage.Height().EqualTo(60);
+            yield return userAvatarImage.AtRightOf(container, startTopMargin + bottomInformationMargin);
+			yield return userAvatarImage.AtBottomOf(container, bottomInformationMargin);
+
+            yield return emailLabel.AtBottomOf(container, bottomInformationMargin + 5);
+            yield return emailLabel.AtLeftOf(container, bottomInformationMargin);
+
+            yield return usernameLabel.Above(emailLabel, 10);
+            yield return usernameLabel.AtLeftOf(container, bottomInformationMargin);
         }
 
         private async Task<UIImage> LoadImage(string imageUrl)
@@ -236,5 +283,8 @@ namespace Toggl.Ross.ViewControllers
             // load from bytes
             return UIImage.LoadFromData(NSData.FromArray(contents));
         }
+
+        private void OnUserChanged(IUserData data)
+            => UpdateLayout();
     }
 }

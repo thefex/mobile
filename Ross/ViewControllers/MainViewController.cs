@@ -10,8 +10,6 @@ using System.Reactive.Linq;
 using System.Threading;
 using Toggl.Phoebe.Data.Models;
 using Toggl.Phoebe.Data;
-using Toggl.Phoebe.Logging;
-using XPlatUtils;
 
 namespace Toggl.Ross.ViewControllers
 {
@@ -35,7 +33,7 @@ namespace Toggl.Ross.ViewControllers
         private nfloat CurrentX { get { return View.Frame.X; } }
         private nfloat MaxDraggingX { get { return Width - menuOffset; } }
         private nfloat MinDraggingX { get { return 0; } }
-        private bool MenuOpen {  get { return 0 != CurrentX; }}
+        private bool MenuOpen { get { return 0 != CurrentX; } }
         private IDisposable stateObserver;
 
         public override void ViewDidLoad()
@@ -110,7 +108,7 @@ namespace Toggl.Ross.ViewControllers
             if (tryMigrateDatabase(userData))
                 return;
 
-            proceedToWelcomeOrLogViewController(userData);
+            proceedToLogViewController(userData);
         }
 
         private bool tryMigrateDatabase(IUserData userData)
@@ -127,84 +125,90 @@ namespace Toggl.Ross.ViewControllers
             return true;
         }
 
-        private void proceedToWelcomeOrLogViewController(IUserData userData)
+        private void proceedToLogViewController(IUserData userData)
         {
-            bool isUserLogged = userData.Id != Guid.Empty;
             bool emptyStack = ViewControllers.Length < 1;
 
-            if (isUserLogged)
+            MenuEnabled = true;
+
+            // TODO Rx @alfonso Keep this call here explicitly or init
+            // the state with the request if user is logged.
+            if (emptyStack)
+                RxChain.Send(new ServerRequest.GetChanges());
+
+            var logViewcontroller = new LogViewController();
+            SetViewControllers(new[] { logViewcontroller }, !emptyStack);
+
+            // move the logo to the same position of the title view
+            // and resize it to match sizes
+            var titleViewWidth = 72; // actual file image width
+            var titleViewHeight = 22; // actual file image height
+            var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
+            var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
+
+            UIView.Animate(0.35, 0.6, UIViewAnimationOptions.CurveEaseInOut, () =>
             {
-                MenuEnabled = true;
+                splashLogo.Frame = new CGRect(centerX, titleViewY, titleViewWidth, titleViewHeight);
+                splashBackground.Alpha = 0;
 
-                // TODO Rx @alfonso Keep this call here explicitly or init
-                // the state with the request if user is logged.
-                if (emptyStack)
-                    RxChain.Send(new ServerRequest.GetChanges());
-
-                var logViewcontroller = new LogViewController();
-                SetViewControllers(new[] { logViewcontroller }, !emptyStack);
-
-                // move the logo to the same position of the title view
-                // and resize it to match sizes
-                var titleViewWidth = 72; // actual file image width
-                var titleViewHeight = 22; // actual file image height
-                var titleViewY = 20 + (44 * .5) - titleViewHeight * .5; // 44 == NavigationBar height, 20 == status bar height
-                var centerX = View.Frame.Width * .5 - titleViewWidth * .5;
-
-                UIView.Animate(0.35, 0.6, UIViewAnimationOptions.CurveEaseInOut, () =>
-                {
-                    splashLogo.Frame = new CGRect(centerX, titleViewY, titleViewWidth, titleViewHeight);
-                    splashBackground.Alpha = 0;
-
-                }, () =>
-                {
-                    splashBackground.RemoveFromSuperview();
+            }, () =>
+            {
+                splashBackground.RemoveFromSuperview();
 
                     // set Toggl logo as header.
                     logViewcontroller.NavigationItem.TitleView = new UIImageView(Image.TogglLogo);
 
                     // give some time before hidding the splash logo because the LogViewController takes some time to load
                     UIView.Animate(0.28, 0, UIViewAnimationOptions.CurveLinear,
-                    () => { splashLogo.Alpha = 0; },
-                    () => { splashLogo.RemoveFromSuperview(); });
-                });
-            }
-            else
-            {
-                MenuEnabled = false;
-                splashLogo.RemoveFromSuperview();
-                splashBackground.RemoveFromSuperview();
-                SetViewControllers(new[] { new WelcomeViewController() }, !emptyStack);
-            }
+                () => { splashLogo.Alpha = 0; },
+                () => { splashLogo.RemoveFromSuperview(); });
+            });
 
             if (menu != null)
                 menu.ConfigureUserData(userData.Name, userData.Email, userData.ImageUrl);
         }
 
-        private void OnMenuButtonSelected(int btnId)
+        private void OnMenuButtonSelected(LeftViewController.MenuOption option)
         {
-            if (btnId == LeftViewController.TimerPageId)
+            switch (option)
             {
-                if (ViewControllers.Length > 1 && ViewControllers[0] is LogViewController)
-                {
+                case LeftViewController.MenuOption.Timer:
+                    if (ViewControllers.Length <= 1 || !(ViewControllers[0] is LogViewController)) break;
                     PopViewController(true);
-                }
-            }
-            else if (btnId == LeftViewController.ReportsPageId)
-            {
-                PushViewController(new ReportsViewController(), true);
-            }
-            else if (btnId == LeftViewController.SettingsPageId)
-            {
-                PushViewController(new SettingsViewController(), true);
-            }
-            else if (btnId == LeftViewController.FeedbackPageId)
-            {
-                PushViewController(new FeedbackViewController(), true);
-            }
-            else
-            {
-                RxChain.Send(new DataMsg.ResetState());
+                    break;
+                
+                case LeftViewController.MenuOption.Reports:
+                    PushViewController(new ReportsViewController(), true);
+                    break;
+                    
+                case LeftViewController.MenuOption.Settings:
+                    PushViewController(new SettingsViewController(), true);
+                    break;
+                
+                case LeftViewController.MenuOption.Feedback:
+                    PushViewController(new FeedbackViewController(), true);
+                    break;
+                    
+                case LeftViewController.MenuOption.Login:
+
+                    var ok = "MainViewLoginConfirmationOk".Tr();
+                    var title = "MainViewLoginConfirmationTitle".Tr();
+                    var cancel = "MainViewLoginConfirmationCancel".Tr();
+                    var message = "MainViewLoginConfirmationMessage".Tr();
+
+                    var alert = UIAlertController.Create(title, message, UIAlertControllerStyle.Alert);
+                    alert.AddAction(UIAlertAction.Create(cancel, UIAlertActionStyle.Default, null));
+					alert.AddAction(UIAlertAction.Create(ok, UIAlertActionStyle.Default, action => PushViewController(new LoginViewController(), true)));
+                    PresentViewController(alert, true, null);
+                    break;
+					
+                case LeftViewController.MenuOption.SignUp:
+                    PushViewController(new SignupViewController(), true);
+                    break;
+                    
+	            default:
+					RxChain.Send(new DataMsg.ResetState());
+                    break;
             }
 
             CloseMenu();

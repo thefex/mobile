@@ -8,13 +8,13 @@ using Toggl.Ross.Views;
 using UIKit;
 using XPlatUtils;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
 
 namespace Toggl.Ross.ViewControllers
 {
     public class ReportsViewController : UIViewController, InfiniteScrollView<ReportView>.IInfiniteScrollViewSource
     {
         private ZoomLevel _zoomLevel;
-
         public ZoomLevel ZoomLevel
         {
             get
@@ -23,10 +23,8 @@ namespace Toggl.Ross.ViewControllers
             }
             set
             {
-                if (_zoomLevel == value)
-                {
-                    return;
-                }
+                if (_zoomLevel == value) return;
+
                 _zoomLevel = value;
                 scrollView.RefreshVisibleView();
                 SummaryReportView.SaveReportsState(ZoomLevel);
@@ -44,13 +42,12 @@ namespace Toggl.Ross.ViewControllers
         private nint _timeSpaceIndex;
         private bool showStatus;
 
-        static readonly nfloat padding  = 24;
-        static readonly nfloat navBarHeight = 64;
         static readonly nfloat selectorHeight = 50;
-
 
         public ReportsViewController()
         {
+            Title = "ReportsTitle".Tr();
+
             EdgesForExtendedLayout = UIRectEdge.None;
             menuController = new ReportsMenuController();
             dataSource = new SummaryReportView();
@@ -62,12 +59,16 @@ namespace Toggl.Ross.ViewControllers
 
         public override void LoadView()
         {
-            View = new UIView().Apply(Style.Screen);
+            View = NoUserHelper.IsLoggedIn ?
+                    new UIView().Apply(Style.Screen) :
+                    new NoUserEmptyView(NoUserEmptyView.Screen.Reports, GoToSignup);
         }
 
         public override void ViewDidLoad()
         {
             base.ViewDidLoad();
+
+            if (!NoUserHelper.IsLoggedIn) return;
 
             _zoomLevel = SummaryReportView.GetLastZoomViewed();
             View.BackgroundColor = UIColor.White;
@@ -82,7 +83,7 @@ namespace Toggl.Ross.ViewControllers
                 scrollView.SetPageIndex(1, true);
             };
 
-            scrollView = new InfiniteScrollView<ReportView> (this);
+            scrollView = new InfiniteScrollView<ReportView>(this);
             scrollView.Delegate = new InfiniteScrollDelegate();
             scrollView.OnChangePage += (sender, e) => LoadReportData();
 
@@ -103,6 +104,9 @@ namespace Toggl.Ross.ViewControllers
         public override void ViewDidLayoutSubviews()
         {
             base.ViewDidLayoutSubviews();
+
+            if (!NoUserHelper.IsLoggedIn) return;
+
             topBorder.Frame = new CGRect(0.0f, 0.0f, View.Bounds.Width, 2.0f);
             dateSelectorView.Frame = new CGRect(0, View.Bounds.Height - selectorHeight, View.Bounds.Width, selectorHeight);
             scrollView.Frame = new CGRect(0.0f, 0.0f, View.Bounds.Width, View.Bounds.Height - selectorHeight);
@@ -112,6 +116,9 @@ namespace Toggl.Ross.ViewControllers
         public override void ViewWillAppear(bool animated)
         {
             base.ViewWillAppear(animated);
+
+            if (!NoUserHelper.IsLoggedIn) return;
+
             ((MainViewController)AppDelegate.TogglWindow.RootViewController).MenuEnabled = false;
             NavigationController.InteractivePopGestureRecognizer.Enabled = false;
         }
@@ -119,13 +126,19 @@ namespace Toggl.Ross.ViewControllers
         public override void ViewDidAppear(bool animated)
         {
             base.ViewDidAppear(animated);
+            if (!NoUserHelper.IsLoggedIn) return;
+
             TrackScreenView();
         }
 
         public override void ViewWillDisappear(bool animated)
         {
-            ((MainViewController)AppDelegate.TogglWindow.RootViewController).MenuEnabled = true;
-            NavigationController.InteractivePopGestureRecognizer.Enabled = true;
+            if (NoUserHelper.IsLoggedIn)
+            {
+                ((MainViewController)AppDelegate.TogglWindow.RootViewController).MenuEnabled = true;
+                NavigationController.InteractivePopGestureRecognizer.Enabled = true;
+            }
+
             base.ViewWillDisappear(animated);
         }
 
@@ -139,6 +152,9 @@ namespace Toggl.Ross.ViewControllers
             }
         }
 
+        private void GoToSignup()
+            => NavigationController.PushViewController(new SignupViewController(), true);
+       
         private void TrackScreenView()
         {
             var screen = "Reports";
@@ -155,7 +171,7 @@ namespace Toggl.Ross.ViewControllers
                     break;
             }
 
-            ServiceContainer.Resolve<ITracker> ().CurrentScreen = screen;
+            ServiceContainer.Resolve<ITracker>().CurrentScreen = screen;
         }
 
         private void ChangeReportState()
@@ -354,7 +370,7 @@ namespace Toggl.Ross.ViewControllers
 
             public override void Draw(CGRect rect)
             {
-                using(CGContext g = UIGraphics.GetCurrentContext())
+                using (CGContext g = UIGraphics.GetCurrentContext())
                 {
                     Color.TimeBarBoderColor.SetColor();
                     g.FillRect(new CGRect(0.0f, 0.0f, rect.Width, 1.0f / ContentScaleFactor));

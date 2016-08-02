@@ -123,10 +123,7 @@ namespace Toggl.Phoebe.ViewModels
         public void ContinueTimeEntry(int index)
         {
             var timeEntryHolder = timeEntryCollection.ElementAt(index) as ITimeEntryHolder;
-            if (timeEntryHolder == null)
-            {
-                return;
-            }
+            if (timeEntryHolder == null) return;
 
             if (timeEntryHolder.Entry.Data.State == TimeEntryState.Running)
             {

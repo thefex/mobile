@@ -9,6 +9,8 @@ using XPlatUtils;
 using Toggl.Ross.Theme;
 using Toggl.Phoebe.ViewModels;
 using Toggl.Phoebe.Reactive;
+using Toggl.Ross.Views;
+using Toggl.Phoebe.Helpers;
 
 namespace Toggl.Ross.ViewControllers
 {
@@ -47,6 +49,12 @@ namespace Toggl.Ross.ViewControllers
 
         public override void LoadView()
         {
+            if (!NoUserHelper.IsLoggedIn)
+            {
+                View = new NoUserEmptyView(NoUserEmptyView.Screen.Feedback, GoToSignup);
+                return;
+            }
+
             View = new UIView().Apply(Style.Screen);
 
             Add(moodLabel = new UILabel()
@@ -100,6 +108,9 @@ namespace Toggl.Ross.ViewControllers
             RebindSendButton();
             ResetConstraints();
         }
+
+        private void GoToSignup()
+            => NavigationController.PushViewController(new SignupViewController(), true);
 
         private void ResetConstraints()
         {
@@ -167,6 +178,8 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewWillAppear(animated);
 
+            if (!NoUserHelper.IsLoggedIn) return;
+
             // Create viewModel
             viewModel = new FeedbackVM(StoreManager.Singleton.AppState);
 
@@ -206,6 +219,8 @@ namespace Toggl.Ross.ViewControllers
         public override void ViewWillDisappear(bool animated)
         {
             base.ViewWillDisappear(animated);
+
+            if (!NoUserHelper.IsLoggedIn) return;
 
             NSNotificationCenter.DefaultCenter.RemoveObservers(notificationObjects);
             notificationObjects.Clear();

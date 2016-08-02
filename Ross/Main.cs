@@ -18,10 +18,7 @@ namespace Toggl.Ross
 
         public static void MarkLaunched()
         {
-            if (!startTimeMeasure.IsRunning)
-            {
-                return;
-            }
+            if (!startTimeMeasure.IsRunning) return;
 
             startTimeMeasure.Stop();
             ServiceContainer.Resolve<ITracker> ().SendAppInitTime(startTimeMeasure.Elapsed);

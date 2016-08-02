@@ -312,6 +312,36 @@
     <BundleResource Include="Resources\iconArrowDown.png" />
     <BundleResource Include="Resources\iconArrowDown%402x.png" />
     <BundleResource Include="Resources\iconArrowDown%403x.png" />
+    <BundleResource Include="Resources\alreadyGotAnAccou.png" />
+    <BundleResource Include="Resources\alreadyGotAnAccou%402x.png" />
+    <BundleResource Include="Resources\alreadyGotAnAccou%403x.png" />
+    <BundleResource Include="Resources\heyThere.png" />
+    <BundleResource Include="Resources\heyThere%402x.png" />
+    <BundleResource Include="Resources\heyThere%403x.png" />
+    <BundleResource Include="Resources\iconHelloArrowDown.png" />
+    <BundleResource Include="Resources\iconHelloArrowDown%402x.png" />
+    <BundleResource Include="Resources\iconHelloArrowDown%403x.png" />
+    <BundleResource Include="Resources\iconHelloArrowUp.png" />
+    <BundleResource Include="Resources\iconHelloArrowUp%402x.png" />
+    <BundleResource Include="Resources\iconHelloArrowUp%403x.png" />
+    <BundleResource Include="Resources\iconHelloToggler.png" />
+    <BundleResource Include="Resources\iconHelloToggler%402x.png" />
+    <BundleResource Include="Resources\iconHelloToggler%403x.png" />
+    <BundleResource Include="Resources\newToToggl.png" />
+    <BundleResource Include="Resources\newToToggl%402x.png" />
+    <BundleResource Include="Resources\newToToggl%403x.png" />
+    <BundleResource Include="Resources\LoginButton.png" />
+    <BundleResource Include="Resources\LoginButton%402x.png" />
+    <BundleResource Include="Resources\LoginButton%403x.png" />
+    <BundleResource Include="Resources\LoginButtonPressed.png" />
+    <BundleResource Include="Resources\LoginButtonPressed%402x.png" />
+    <BundleResource Include="Resources\LoginButtonPressed%403x.png" />
+    <BundleResource Include="Resources\SignUpButton.png" />
+    <BundleResource Include="Resources\SignUpButton%402x.png" />
+    <BundleResource Include="Resources\SignUpButton%403x.png" />
+    <BundleResource Include="Resources\SignUpButtonPressed.png" />
+    <BundleResource Include="Resources\SignUpButtonPressed%402x.png" />
+    <BundleResource Include="Resources\SignUpButtonPressed%403x.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Info.plist" />
@@ -461,6 +491,8 @@
     <Compile Include="Views\TimerButtonIcon.cs" />
     <Compile Include="Views\CircleView.cs" />
     <Compile Include="ViewControllers\AutocompleteViewController.cs" />
+    <Compile Include="Views\NoUserEmptyView.cs" />
+    <Compile Include="Views\NoUserLogEmptyStateView.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

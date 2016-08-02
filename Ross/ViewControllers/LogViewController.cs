@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using CoreAnimation;
 using CoreGraphics;
 using Foundation;
 using GalaSoft.MvvmLight.Helpers;
 using Toggl.Phoebe;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.Reactive;
 using Toggl.Phoebe.ViewModels;
 using Toggl.Phoebe.ViewModels.Timer;
@@ -32,7 +32,7 @@ namespace Toggl.Ross.ViewControllers
         readonly static NSString SectionCellId = new NSString("SectionCellId");
 
         private SimpleEmptyView defaultEmptyView;
-        private UIView obmEmptyView;
+        private UIView noUserEmptyView;
         private UIView reloadView;
         private UIActivityIndicatorView defaultFooterView;
         private StatusView statusView;
@@ -73,11 +73,11 @@ namespace Toggl.Ross.ViewControllers
 
             Add(floatingHeader = new FloatingSectionCell { Hidden = true});
 
-            timerBar = new TimerBar
+            Add(timerBar = new TimerBar
             {
                 Frame = new CGRect(0, this.View.Frame.Height - 72 - heightOfTopBars, this.View.Bounds.Width, 72)
-            };
-            Add(timerBar);
+            });
+
             timerBar.StartButtonHit += onTimerStartButtonHit;
 
             statusView = new StatusView
@@ -95,11 +95,7 @@ namespace Toggl.Ross.ViewControllers
                 Message = "LogEmptyMessage".Tr(),
             };
 
-            obmEmptyView = new OBMEmptyView
-            {
-                Title = "LogOBMEmptyTitle".Tr(),
-                Message = "LogOBMEmptyMessage".Tr(),
-            };
+            noUserEmptyView = new NoUserLogEmptyStateView();
 
             reloadView = new ReloadTableViewFooter
             {
@@ -118,26 +114,31 @@ namespace Toggl.Ross.ViewControllers
             // Create view model
             ViewModel = new LogTimeEntriesVM(StoreManager.Singleton.AppState);
 
-            var headerView = new TableViewRefreshView();
-            headerView.AdaptToTableView(tableView);
-            headerView.ValueChanged += (sender, e) => ViewModel.TriggerFullSync(); // TODO potential memory leak (need to unsubscribe)
+            if (NoUserHelper.IsLoggedIn)
+            {
+                var headerView = new TableViewRefreshView();
+                headerView.AdaptToTableView(tableView);
+
+                // TODO potential memory leak (need to unsubscribe)
+                headerView.ValueChanged += (sender, e)
+                    => ViewModel.TriggerFullSync();
+				
+                syncBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(() =>
+				{
+					if (ViewModel.IsFullSyncing) return;
+					headerView.EndRefreshing();
+				});
+            }
 
             // Bindings
-            syncBinding = this.SetBinding(() => ViewModel.IsFullSyncing).WhenSourceChanges(() =>
-            {
-                if (!ViewModel.IsFullSyncing)
-                {
-                    headerView.EndRefreshing();
-                }
-            });
+
             syncErrorBinding = this.SetBinding(() => ViewModel.HasSyncErrors).WhenSourceChanges(() =>
             {
                 StatusBarShown = ViewModel.HasSyncErrors;
-                if (ViewModel.HasSyncErrors)
-                {
-                    statusView.StatusFailText = StoreManager.Singleton.AppState.RequestInfo.ErrorInfo.Item1;
-                }
+                if (!ViewModel.HasSyncErrors) return;
+                statusView.StatusFailText = StoreManager.Singleton.AppState.RequestInfo.ErrorInfo.Item1;
             });
+           
             hasItemsBinding = this.SetBinding(() => ViewModel.Collection.Count).WhenSourceChanges(SetCollectionState);
             loadMoreBinding = this.SetBinding(() => ViewModel.LoadInfo).WhenSourceChanges(LoadMoreIfNeeded);
             loadInfoBinding = this.SetBinding(() => ViewModel.LoadInfo).WhenSourceChanges(SetFooterState);
@@ -145,6 +146,7 @@ namespace Toggl.Ross.ViewControllers
             {
                 ShowConstrainError(StoreManager.Singleton.AppState.RequestInfo.ErrorInfo);
             });
+
             collectionBinding = this.SetBinding(() => ViewModel.Collection).WhenSourceChanges(() =>
             {
                 var source = new TimeEntriesSource(this, ViewModel, floatingHeader);
@@ -157,7 +159,9 @@ namespace Toggl.Ross.ViewControllers
                 updateFloatingHeader();
                 ViewModel.Collection.CollectionChanged += (s, e) => updateFloatingHeader();
             });
+
             isRunningBinding = this.SetBinding(() => ViewModel.IsEntryRunning).WhenSourceChanges(SetStartStopButtonState);
+
             durationBinding = this.SetBinding(() => ViewModel.Duration).WhenSourceChanges(setDuration);
         }
 
@@ -174,7 +178,7 @@ namespace Toggl.Ross.ViewControllers
         {
             base.ViewDidLayoutSubviews();
             defaultEmptyView.Frame = new CGRect(0, (View.Frame.Size.Height - 200f) / 2, View.Frame.Size.Width, 200f);
-            obmEmptyView.Frame = new CGRect(0, 15f, View.Frame.Size.Width, View.Frame.Height - timerBar.Frame.Height - UIApplication.SharedApplication.StatusBarFrame.Height);
+            noUserEmptyView.Frame = new CGRect(0, 0, View.Frame.Size.Width, View.Frame.Height - timerBar.Frame.Height - UIApplication.SharedApplication.StatusBarFrame.Height);
             reloadView.Bounds = new CGRect(0f, 0f, View.Frame.Size.Width, 70f);
             reloadView.Center = new CGPoint(View.Center.X, reloadView.Center.Y);
             statusView.Frame = new CGRect(0, View.Frame.Height, View.Frame.Width, StatusBarHeight);
@@ -361,23 +365,10 @@ namespace Toggl.Ross.ViewControllers
             // ATTENTION Needed condition to keep visible the list
             // while the first sync is finishing. Why? Because the scroll spinner
             // is used and we need the TableView visible.
-            if (ViewModel.LoadInfo.IsSyncing && ViewModel.Collection.Count == 0)
-            {
-                return;
-            }
+            if (ViewModel.LoadInfo.IsSyncing && ViewModel.Collection.Count == 0) return;
 
-            UIView emptyView = defaultEmptyView; // Default empty view.
-            var showWelcome = ViewModel.WelcomeScreenShouldBeShown;
+            var emptyView = NoUserHelper.IsLoggedIn ? defaultEmptyView : noUserEmptyView;
             var hasItems = ViewModel.Collection.Count > 0;
-            var isInExperiment = ViewModel.ExperimentShouldBeShown;
-
-            // According to settings, show welcome message or no.
-            ((SimpleEmptyView)emptyView).Title = showWelcome ? "LogWelcomeTitle".Tr() : "LogEmptyTitle".Tr();
-
-            if (showWelcome && isInExperiment)
-            {
-                emptyView = obmEmptyView;
-            }
 
             tableView.TableFooterView = hasItems ? new UIView() : emptyView;
         }
@@ -779,12 +770,10 @@ namespace Toggl.Ross.ViewControllers
                     SetNeedsLayout();
                 }
 
-
                 // Set duration
                 duration = dataSource.GetDuration();
                 startTime = dataSource.GetStartTime();
                 isRunning = dataSource.Entry.Data.State == TimeEntryState.Running;
-
 
                 if (isRunning)
                 {
