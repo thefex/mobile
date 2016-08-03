@@ -24,7 +24,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>com.toggl.Emma</string>
 	<key>CFBundleShortVersionString</key>
-	<string>7.2.1</string>
+	<string>7.2.2</string>
 	<key>MinimumOSVersion</key>
 	<string>8.1</string>
 	<key>CFBundleVersion</key>

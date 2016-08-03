@@ -110,18 +110,18 @@ namespace Toggl.Ross.ViewControllers
                 button.BackgroundColor = UIColor.Clear.FromHex(ProjectData.HexColors[project.Color % ProjectData.HexColors.Length]);
                 button.TouchUpInside += (s, e) => OnItemSelected(project);
                 button.TitleEdgeInsets = new UIEdgeInsets(10, labelXMargin, 0, labelXMargin);
-    
+
                 var projectLabelText = project.Task != null ? $"{project.Name} - {project.Task.Name}" : project.Name;
                 var projectLabel = new UILabel(new CGRect(labelXMargin, 15, labelWidth, 20));
                 projectLabel.Text = projectLabelText;
                 projectLabel.TextColor = UIColor.White;
                 button.AddSubview(projectLabel);
-				
-				var clientLabel = new UILabel(new CGRect(labelXMargin, 45, labelWidth, 20));
-				clientLabel.Text = string.IsNullOrEmpty(project.ClientName) ? "ProjectNoClient".Tr() : project.ClientName;
-				clientLabel.TextColor = UIColor.White;
-				button.AddSubview(clientLabel);
-				
+
+                var clientLabel = new UILabel(new CGRect(labelXMargin, 45, labelWidth, 20));
+                clientLabel.Text = string.IsNullOrEmpty(project.ClientName) ? "ProjectNoClient".Tr() : project.ClientName;
+                clientLabel.TextColor = UIColor.White;
+                button.AddSubview(clientLabel);
+
                 headerView.AddSubview(button);
             }
 

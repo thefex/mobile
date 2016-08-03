@@ -13,12 +13,15 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Toggl.Phoebe.Data.Json;
+using Toggl.Phoebe.Logging;
 using XPlatUtils;
 
 namespace Toggl.Phoebe.Net
 {
     public class TogglRestClient : ITogglClient
     {
+        private static readonly string LogTag = "TogglRestClient";
+
         private static readonly DateTime UnixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         private readonly Uri v8Url;
         private readonly Uri v9Url;
@@ -903,13 +906,27 @@ namespace Toggl.Phoebe.Net
         }
         private async Task<OBMJson> getObm(Action<HttpRequestMessage> setupAuthentication)
         {
-            var url = new Uri(v9Url, "me/experiments/mobile");
-            var httpReq = createHttpGetMessage(url);
-            setupAuthentication(httpReq);
-            var httpResp = await SendAsync(httpReq).ConfigureAwait(false);
-            var respData = await httpResp.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var obm = JsonConvert.DeserializeObject<OBMJson>(respData);
-            return obm;
+            try
+            {
+                var url = new Uri(v9Url, "me/experiments/mobile");
+                var httpReq = createHttpGetMessage(url);
+                setupAuthentication(httpReq);
+                var httpResp = await SendAsync(httpReq).ConfigureAwait(false);
+                var respData = await httpResp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var obm = JsonConvert.DeserializeObject<OBMJson>(respData);
+                return obm;
+            }
+            catch (Exception e)
+            {
+                // this usually happens when the user tries logging in with invalid credentials.
+                // since the actual login request already throws,
+                // this task is never awaited in the current implementation,
+                // it will cause the process to be killed once the task throws in its finalizer
+                // (catching all is not an ideal solution, but prevents this)
+                ServiceContainer.Resolve<ILogger>()
+                .Warning(LogTag, e, "Fetching OBM data failed. Exception was caught and silently discarded.");
+                return null;
+            }
         }
 
         // TODO: For testing purposes only

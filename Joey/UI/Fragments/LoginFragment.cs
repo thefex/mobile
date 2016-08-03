@@ -179,13 +179,13 @@ namespace Toggl.Joey.UI.Fragments
                         EmailEditText.Text = PasswordEditText.Text = string.Empty;
 
                         // After succees login or register
-                        // check GooglePlayServices availability 
+                        // check GooglePlayServices availability
                         var resultCode = GoogleApiAvailability.Instance.IsGooglePlayServicesAvailable(Activity);
                         if (resultCode == ConnectionResult.Success)
                         {
                             // Start the registration intent service; try to get a token:
                             var intent = new Intent(Activity, typeof(GcmRegistrationIntentService));
-                            Activity.StartService(intent);                                                
+                            Activity.StartService(intent);
                         }
                         break;
 
