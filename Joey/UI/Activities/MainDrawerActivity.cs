@@ -44,7 +44,7 @@ namespace Toggl.Joey.UI.Activities
         private DrawerLayout DrawerLayout { get; set; }
         protected ActionBarDrawerToggle DrawerToggle { get; private set; }
         private FrameLayout DrawerSyncView { get; set; }
-        public Toolbar MainToolbar { get; set; }
+        private Toolbar MainToolbar { get; set; }
 
         bool userWithoutApiToken
         {
@@ -265,6 +265,10 @@ namespace Toggl.Joey.UI.Activities
             else if (e.Id == DrawerListAdapter.LogoutPageId)
             {
                 OpenPage(DrawerListAdapter.TimerPageId);
+                // Attention. At this remote point
+                // send a Reset message and unregister from
+                // GCM system.
+                RxChain.Send(new DataMsg.UnregisterPush());
                 RxChain.Send(new DataMsg.ResetState());
             }
             else if (e.Id == DrawerListAdapter.ReportsPageId)

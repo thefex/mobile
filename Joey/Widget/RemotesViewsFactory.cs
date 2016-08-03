@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Android.App;
 using Android.Content;
 using Android.Graphics;
 using Android.Widget;
-using Toggl.Phoebe;
-using XPlatUtils;
+using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
+using Toggl.Phoebe.Reactive;
+
 
 namespace Toggl.Joey.Widget
 {
@@ -21,6 +24,7 @@ namespace Toggl.Joey.Widget
     public class RemotesViewsFactory : Java.Lang.Object, RemoteViewsService.IRemoteViewsFactory
     {
         private Context context;
+        private IEnumerable<RichTimeEntry> entries;
 
         public RemotesViewsFactory(Context ctx)
         {
@@ -34,7 +38,14 @@ namespace Toggl.Joey.Widget
 
         public void OnCreate()
         {
-            //itemList.AddRange (UpdateService.LastEntries);
+        }
+
+        public void OnDataSetChanged()
+        {
+            entries = StoreManager.Singleton.AppState.TimeEntries.Values
+                      .Where(d => d.Data.State != TimeEntryState.Running && d.Data.DeletedAt == null)
+                      .OrderByDescending(d => d.Data.StartTime)
+                      .Take(3);
         }
 
         public void OnDestroy()
@@ -44,56 +55,65 @@ namespace Toggl.Joey.Widget
         public RemoteViews GetViewAt(int position)
         {
             var remoteView = new RemoteViews(context.PackageName, Resource.Layout.widget_list_item);
-            /*
-            var rowData = itemList [position];
+            var rowData = entries.ElementAt(position);
+            var isRunning = rowData.Data.State == TimeEntryState.Running;
 
             // set if is running
-            if (rowData.IsRunning) {
-                remoteView.SetImageViewResource (Resource.Id.WidgetContinueImageButton, Resource.Drawable.IcWidgetStop);
-            } else {
-                remoteView.SetImageViewResource (Resource.Id.WidgetContinueImageButton, Resource.Drawable.IcWidgetPlay);
+            if (isRunning)
+            {
+                remoteView.SetImageViewResource(Resource.Id.WidgetContinueImageButton, Resource.Drawable.IcWidgetStop);
+            }
+            else
+            {
+                remoteView.SetImageViewResource(Resource.Id.WidgetContinueImageButton, Resource.Drawable.IcWidgetPlay);
             }
 
             // set color
-            remoteView.SetInt (Resource.Id.WidgetColorView, "setColorFilter", Color.ParseColor (rowData.Color));
-            remoteView.SetOnClickFillInIntent (Resource.Id.WidgetContinueImageButton, ConstructFillIntent (rowData));
+            var color = ProjectData.HexColors[rowData.Info.ProjectData.Color];
+            remoteView.SetInt(Resource.Id.WidgetColorView, "setColorFilter", Color.ParseColor(color));
+            remoteView.SetOnClickFillInIntent(Resource.Id.WidgetContinueImageButton, GetFillIntent(isRunning: isRunning, id: rowData.Data.Id));
 
             // set content
-            remoteView.SetTextViewText (
+            remoteView.SetTextViewText(
                 Resource.Id.DescriptionTextView,
-                String.IsNullOrWhiteSpace (rowData.Description) ? context.Resources.GetString (Resource.String.RunningWidgetNoDescription) : rowData.Description);
-            remoteView.SetTextViewText (
+                string.IsNullOrWhiteSpace(rowData.Data.Description) ?
+                context.Resources.GetString(Resource.String.RunningWidgetNoDescription) :
+                rowData.Data.Description);
+            remoteView.SetTextViewText(
                 Resource.Id.ProjectTextView,
-                String.IsNullOrWhiteSpace (rowData.ProjectName) ? context.Resources.GetString (Resource.String.RunningWidgetNoProject) : rowData.ProjectName);
-            remoteView.SetTextViewText (Resource.Id.DurationTextView, rowData.TimeValue);
-            */
+                string.IsNullOrWhiteSpace(rowData.Info.ProjectData.Name) ?
+                context.Resources.GetString(Resource.String.RunningWidgetNoProject) :
+                rowData.Info.ProjectData.Name);
+
+            var duration = string.Format("{0:D2}:{1:mm}:{1:ss}",
+                                         (int)rowData.Data.GetDuration().TotalHours, rowData.Data.GetDuration());
+            remoteView.SetTextViewText(Resource.Id.DurationTextView, duration);
+
             return remoteView;
         }
-        /*
-        private Intent ConstructFillIntent (WidgetSyncManager.WidgetEntryData entryData)
-        {
-            var intent = new Intent ();
 
-            if (entryData.IsRunning) {
-                intent.SetAction (WidgetProvider.StartStopAction);
-            } else {
-                intent.SetAction (WidgetProvider.ContiueAction);
-                intent.PutExtra (WidgetProvider.TimeEntryIdParameter, entryData.Id);
+        private Intent GetFillIntent(bool isRunning, Guid id)
+        {
+            var intent = new Intent();
+            intent.PutExtra(WidgetProvider.TimeEntryIdParameter, id.ToString());
+
+            if (isRunning)
+            {
+                intent.SetAction(WidgetProvider.StopAction);
+            }
+            else
+            {
+                intent.SetAction(WidgetProvider.ContinueAction);
             }
 
             return intent;
-        }
-        */
-
-        public void OnDataSetChanged()
-        {
         }
 
         public int Count
         {
             get
             {
-                return 0;
+                return entries.Count();
             }
         }
 
@@ -109,7 +129,8 @@ namespace Toggl.Joey.Widget
         {
             get
             {
-                return (RemoteViews) null;
+                // TODO: return an spinner?
+                return null;
             }
         }
 

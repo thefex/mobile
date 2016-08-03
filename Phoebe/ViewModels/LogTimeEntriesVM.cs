@@ -166,7 +166,9 @@ namespace Toggl.Phoebe.ViewModels
         {
             // TODO: Add analytic event
             var te = Collection.ElementAt(index) as ITimeEntryHolder;
-            RxChain.Send(new DataMsg.TimeEntriesRemove(te.Entry.Data));
+            // Sanity check for fast delete in Android.
+            if (te != null)
+                RxChain.Send(new DataMsg.TimeEntriesRemove(te.Entry.Data));
         }
 
         #region Extra

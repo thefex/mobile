@@ -158,6 +158,7 @@ namespace Toggl.Phoebe.ViewModels
             }
         }
 
+        public bool IsTimeEntryChanged { get { return HasTimeEntryChanged(previousData.Data, richData.Data); } }
         public bool IsRunning { get { return richData.Data.State == TimeEntryState.Running; } }
         public string Description { get { return richData.Data.Description ?? string.Empty; } }
         public bool IsBillable { get { return richData.Data.IsBillable; } }
@@ -183,7 +184,9 @@ namespace Toggl.Phoebe.ViewModels
                 x.WorkspaceId = data.WorkspaceId;
                 x.WorkspaceRemoteId = data.WorkspaceRemoteId;
                 x.IsBillable = data.IsBillable;
-            }, nameof(Description) , nameof(ProjectName), nameof(ClientName), nameof(ProjectColorHex), nameof(IsPremium), nameof(IsBillable));
+                x.TaskId = data.TaskId;
+                x.TaskRemoteId = data.TaskRemoteId;
+            }, nameof(Description) , nameof(TaskName), nameof(ProjectName), nameof(ClientName), nameof(ProjectColorHex), nameof(IsPremium), nameof(IsBillable));
         }
 
         public void ChangeProjectAndTask(Guid projectId, Guid taskId)
@@ -354,6 +357,7 @@ namespace Toggl.Phoebe.ViewModels
             }, nameof(TaskName));
         }
 
+        // TODO: Consider use a ModifiedAt comparison only.
         private bool HasTimeEntryChanged(ITimeEntryData previous, ITimeEntryData current)
         {
             if (previous.StartTime != current.StartTime)

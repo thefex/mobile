@@ -2,7 +2,10 @@
 using Android.App;
 using Android.Content;
 using Android.Support.V4.Content;
-using Toggl.Phoebe;
+using Toggl.Phoebe.Analytics;
+using Toggl.Phoebe.Data;
+using Toggl.Phoebe.Logging;
+using Toggl.Phoebe.Reactive;
 using XPlatUtils;
 
 namespace Toggl.Joey.Widget
@@ -10,8 +13,6 @@ namespace Toggl.Joey.Widget
     [Service(Exported = false)]
     public sealed class WidgetStartStopService : Service
     {
-        private static readonly string Tag = "WidgetStartStopService";
-
         public WidgetStartStopService()
         {
         }
@@ -21,37 +22,48 @@ namespace Toggl.Joey.Widget
         {
         }
 
-        public override void OnStart(Intent intent, int startId)
-        {
-            /*
-            try {
-                var action = intent.Action;
-                var widgetManager = ServiceContainer.Resolve<WidgetSyncManager>();
-
-                if (action == WidgetProvider.StartStopAction) {
-                    await widgetManager.StartStopTimeEntry();
-                } else if (action == WidgetProvider.ContiueAction) {
-
-                    // Get entry Id string.
-                    var entryId = intent.GetStringExtra (WidgetProvider.TimeEntryIdParameter);
-                    Guid entryGuid;
-                    Guid.TryParse (entryId, out entryGuid);
-
-                    // Set correct Guid.
-                    var widgetUpdateService = ServiceContainer.Resolve<IWidgetUpdateService> ();
-                    widgetUpdateService.EntryIdStarted = entryGuid;
-                    await widgetManager.ContinueTimeEntry (entryGuid);
-                }
-            } finally {
-                WakefulBroadcastReceiver.CompleteWakefulIntent (intent);
-                StopSelf (startId);
-            }
-            */
-        }
-
         public override StartCommandResult OnStartCommand(Intent intent, StartCommandFlags flags, int startId)
         {
-            //OnStart (intent, startId);
+            try
+            {
+                var action = intent.Action;
+                var state = StoreManager.Singleton.AppState;
+
+                // Get entry Id string.
+                var entryId = intent.GetStringExtra(WidgetProvider.TimeEntryIdParameter);
+
+                RichTimeEntry entry;
+                Guid entryGuid;
+                Guid.TryParse(entryId, out entryGuid);
+
+                switch (action)
+                {
+                    case WidgetProvider.StartAction:
+                        RxChain.Send(new DataMsg.TimeEntryStart());
+                        ServiceContainer.Resolve<ITracker>().SendTimerStartEvent(TimerStartSource.WidgetStart);
+                        break;
+                    case WidgetProvider.StopAction:
+                        entry = state.TimeEntries[entryGuid];
+                        RxChain.Send(new DataMsg.TimeEntryStop(entry.Data));
+                        ServiceContainer.Resolve<ITracker>().SendTimerStopEvent(TimerStopSource.Widget);
+                        break;
+                    case WidgetProvider.ContinueAction:
+                        entry = state.TimeEntries[entryGuid];
+                        RxChain.Send(new DataMsg.TimeEntryContinue(entry.Data));
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                var logger = ServiceContainer.Resolve<ILogger>();
+                logger.Error(nameof(WidgetStartStopService), ex, "Error login stopping a TimeEntry from the widget.");
+            }
+            finally
+            {
+                WakefulBroadcastReceiver.CompleteWakefulIntent(intent);
+                StopSelf(startId);
+            }
+
             return StartCommandResult.Sticky;
         }
 

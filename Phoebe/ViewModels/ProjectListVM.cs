@@ -86,7 +86,6 @@ namespace Toggl.Phoebe.ViewModels
             ProjectList.WorkspaceId = WorkspaceList [newIndex].Id;
             CurrentWorkspaceIndex = newIndex;
             TopProjects = GetTopProjectsByWorkspace(CurrentWorkspaceId);
-            Console.WriteLine("here!!! " + TopProjects.Count());
         }
 
         private IEnumerable<CommonProjectData> GetTopProjectsByWorkspace(Guid workspacedId)

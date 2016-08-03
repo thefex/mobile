@@ -53,12 +53,6 @@ namespace Toggl.Ross.ViewControllers
             TableView.DeselectRow(indexPath, true);
         }
 
-        public override void DidReceiveMemoryWarning()
-        {
-            base.DidReceiveMemoryWarning();
-            // Release any cached data, images, etc that aren't in use.
-        }
-
         private class SuggestionCell : UITableViewCell
         {
             private const float HorizPadding = 15.0f;
@@ -123,6 +117,12 @@ namespace Toggl.Ross.ViewControllers
                     {
                         var clientData = StoreManager.Singleton.AppState.Clients[projectData.ClientId];
                         clientName = clientData.Name;
+                    }
+
+                    if (data.TaskId != Guid.Empty)
+                    {
+                        var taskData = StoreManager.Singleton.AppState.Tasks[data.TaskId];
+                        projectName = $"{projectName} - {taskData.Name}";
                     }
                 }
 

@@ -15,6 +15,26 @@ namespace Toggl.Phoebe.Reports
     public class SummaryReportView
     {
         private static readonly string Tag = "SummaryReportsView";
+
+        public static long Workspace
+        {
+            get
+            {
+                if (workspaceId == 0)
+                {
+                    return StoreManager.Singleton.AppState.User.DefaultWorkspaceRemoteId;
+                }
+                return workspaceId;
+            }
+            set
+            {
+                if (workspaceId == value) return;
+                workspaceId = value;
+            }
+        }
+
+        private static long workspaceId;
+
         private ReportData dataObject;
         private DayOfWeek startOfWeek;
         private IReportsClient reportClient;
@@ -22,6 +42,7 @@ namespace Toggl.Phoebe.Reports
         private List<ReportProject> projects;
 
         public ZoomLevel Period { get; set; }
+        public long WorkspaceId { get; set; }
 
         public async Task Load(IUserData userData, int backDate)
         {
@@ -55,7 +76,7 @@ namespace Toggl.Phoebe.Reports
             try
             {
                 _isError = false;
-                var json = await reportClient.GetReports(userData.ApiToken, userData.RemoteId.GetValueOrDefault(), startDate, endDate, userData.DefaultWorkspaceRemoteId);
+                var json = await reportClient.GetReports(userData.ApiToken, userData.RemoteId.GetValueOrDefault(), startDate, endDate, Workspace);
                 var mapper = new JsonMapper();
                 dataObject = mapper.Map<ReportData> (json);
             }
