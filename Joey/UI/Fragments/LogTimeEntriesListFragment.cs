@@ -145,6 +145,8 @@ namespace Toggl.Joey.UI.Fragments
             ViewModel.ReportExperiment(OBMExperimentManager.StartButtonActionKey,
                                        OBMExperimentManager.ClickActionValue);
 
+            logAdapter.DeleteSelectedItem();
+
             if (!ViewModel.IsEntryRunning)
             {
                 var te = await ViewModel.StartNewTimeEntryAsync();
@@ -201,6 +203,8 @@ namespace Toggl.Joey.UI.Fragments
 
         public override bool OnOptionsItemSelected(IMenuItem item)
         {
+            logAdapter.DeleteSelectedItem();
+
             var i = new Intent(Activity, typeof(EditTimeEntryActivity));
             i.PutStringArrayListExtra(
                 EditTimeEntryActivity.ExtraGroupedTimeEntriesGuids,

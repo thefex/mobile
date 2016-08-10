@@ -26,7 +26,7 @@ namespace Toggl.Joey.UI.Adapters
         public const int ViewTypeDateHeader = ViewTypeContent + 1;
         private static readonly int ContinueThreshold = 1;
         private DateTime lastTimeEntryContinuedTime;
-        private int lastUndoIndex = -1;
+        private ITimeEntryHolder lastUndoItem = null;
         private LogTimeEntriesVM viewModel;
         private RecyclerLoadState footerState = RecyclerLoadState.Loading;
 
@@ -74,9 +74,10 @@ namespace Toggl.Joey.UI.Adapters
             var timeEntryListItemHolder = holder as TimeEntryListItemHolder;
             if (timeEntryListItemHolder != null)
             {
-                timeEntryListItemHolder.Bind((ITimeEntryHolder) GetItem(position), viewModel.IsNoUserMode);
+                var itemForPosition = (ITimeEntryHolder) GetItem(position);
+                timeEntryListItemHolder.Bind(itemForPosition, viewModel.IsNoUserMode);
                 // Set correct Undo state.
-                if (position == lastUndoIndex)
+                if (lastUndoItem != null && itemForPosition == lastUndoItem)
                 {
                     timeEntryListItemHolder.SetUndoState();
                 }
@@ -153,7 +154,7 @@ namespace Toggl.Joey.UI.Adapters
                     }
                 }
             }
-            lastUndoIndex = -1;
+            lastUndoItem = null;
         }
 
         public void DeleteSelectedItem()
@@ -174,20 +175,21 @@ namespace Toggl.Joey.UI.Adapters
                     }
                 }
             }
-            lastUndoIndex = -1;
+            lastUndoItem = null;
         }
 
         public void SetItemToUndoPosition(RecyclerView.ViewHolder viewHolder)
         {
             // If another ViewHolder is visible and ready to Remove,
             // just Remove it.
-            if (lastUndoIndex > -1)
+            if (lastUndoItem != null)
             {
-                viewModel.RemoveTimeEntry(lastUndoIndex);
+                var itemIndex = viewModel.Collection.IndexOf(lastUndoItem);
+                viewModel?.RemoveTimeEntry(itemIndex);
             }
 
             // Save last selected ViewHolder index.
-            lastUndoIndex = viewHolder.LayoutPosition;
+            lastUndoItem = GetItem(viewHolder.LayoutPosition) as ITimeEntryHolder;
 
             // Important!
             // Refresh holder (and tell to ItemTouchHelper
