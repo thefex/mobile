@@ -105,13 +105,9 @@ namespace Toggl.Joey.UI.Fragments
             GoogleLoginText = view.FindViewById<TextView> (Resource.Id.GoogleLoginText).SetFont(Font.Roboto);
             GoogleIntroText = view.FindViewById<TextView> (Resource.Id.GoogleIntroText);
 
-            // ATTENTION Google button hidden temporarily
-            GoogleIntroText.Visibility = ViewStates.Gone;
-            GoogleLoginButton.Visibility = ViewStates.Gone;
-            GoogleLoginText.Visibility = ViewStates.Gone;
-            //GoogleLoginButton.Click += OnGoogleLoginButtonClick;
-            //GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
-            //GoogleIntroText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+            GoogleLoginButton.Click += OnGoogleLoginButtonClick;
+            GoogleLoginButton.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
+            GoogleIntroText.Visibility = hasGoogleAccounts ? ViewStates.Visible : ViewStates.Gone;
 
             EmailInputLayout.HintEnabled = false;
             EmailInputLayout.ErrorEnabled = true;
@@ -139,13 +135,14 @@ namespace Toggl.Joey.UI.Fragments
 
             // Google API client
             GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DefaultSignIn)
-            .RequestEmail()
-            .Build();
+                .RequestEmail()
+                .RequestServerAuthCode(Toggl.Phoebe.Build.BackendGoogleClientId)
+                .Build();
             mGoogleApiClient = new GoogleApiClient.Builder(Activity)
-            .AddConnectionCallbacks(this)
-            .AddOnConnectionFailedListener(this)
-            .AddApi(Auth.GOOGLE_SIGN_IN_API, gso)
-            .Build();
+                .AddConnectionCallbacks(this)
+                .AddOnConnectionFailedListener(this)
+                .AddApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .Build();
 
             ViewModel = new LoginVM();
             if (Arguments.GetBoolean(IS_SIGNUP_MODE))
@@ -425,7 +422,7 @@ namespace Toggl.Joey.UI.Fragments
                 if (result.IsSuccess)
                 {
                     GoogleSignInAccount acct = result.SignInAccount;
-                    ViewModel.TryLoginWithGoogle(acct.Id);
+                    ViewModel.TryLoginWithGoogle(acct.ServerAuthCode);
                 }
                 else
                 {

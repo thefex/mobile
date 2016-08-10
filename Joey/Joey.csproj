@@ -882,8 +882,8 @@
     <Content Include="FodyWeavers.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Resources\drawable-ldpi\" />
     <Folder Include="Resources\anim\" />
+    <Folder Include="Services\Google\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Chandler\Chandler.csproj">

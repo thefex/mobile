@@ -18,6 +18,7 @@ namespace Toggl.Phoebe
         public static readonly int GoogleAnalyticsPlanIndex = 1;
         public static readonly int GoogleAnalyticsExperimentIndex = 2;
         public static readonly string GcmSenderId = "{GMC_SENDER_ID}";
+        public static readonly string BackendGoogleClientId = "{BACKEND_GOOGLE_CLIENT_ID}";
 
 #if __ANDROID__
         public static readonly string AppIdentifier = "TogglJoey";
