@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -109,7 +109,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Net\ReportsRestClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Net\IReportsClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Reports\SummaryReportView.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Helpers\Settings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\SettingsVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\FeedbackVM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Net\IPushClient.cs" />

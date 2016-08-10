@@ -4,6 +4,7 @@ using System.Linq;
 using Android.App;
 using Android.Content;
 using Android.OS;
+using Android.Runtime;
 using Android.Support.Design.Widget;
 using Android.Support.V7.Widget;
 using Android.Views;
@@ -13,7 +14,9 @@ using Toggl.Joey.UI.Activities;
 using Toggl.Joey.UI.Adapters;
 using Toggl.Joey.UI.Views;
 using Toggl.Phoebe.Data.Models;
+using Toggl.Phoebe.Helpers;
 using Toggl.Phoebe.ViewModels;
+using Android.Support.V4.View;
 using Activity = Android.Support.V7.App.AppCompatActivity;
 using Fragment = Android.Support.V4.App.Fragment;
 using SearchView = Android.Support.V7.Widget.SearchView;
@@ -35,8 +38,8 @@ namespace Toggl.Joey.UI.Fragments
         private FloatingActionButton newProjectFab;
         private LinearLayout emptyStateLayout;
         private ProjectListVM viewModel;
-        private Binding<IEnumerable<ProjectListVM.CommonProjectData>,
-                IEnumerable<ProjectListVM.CommonProjectData>> topProjectBinding;
+        private Binding<ObservableRangeCollection<ProjectListVM.CommonProjectData>,
+                ObservableRangeCollection<ProjectListVM.CommonProjectData>> topProjectBinding;
 
 
         private Guid WorkspaceId
@@ -214,8 +217,10 @@ namespace Toggl.Joey.UI.Fragments
         public override void OnCreateOptionsMenu(IMenu menu, MenuInflater inflater)
         {
             inflater.Inflate(Resource.Menu.ProjectListToolbarMenu, menu);
-            var item = menu.FindItem(Resource.Id.projectSearch);
-            var searchView = Android.Runtime.Extensions.JavaCast<SearchView> (item.ActionView);
+            var searchMenuItem = menu.FindItem(Resource.Id.projectSearch);
+            MenuItemCompat.SetOnActionExpandListener(searchMenuItem, new SearchMenuItemExpandListener(viewModel));
+
+            var searchView = Android.Runtime.Extensions.JavaCast<SearchView> (searchMenuItem.ActionView);
             searchView.SetOnQueryTextListener(this);
             toolBar.SetOnMenuItemClickListener(this);
         }
@@ -265,7 +270,35 @@ namespace Toggl.Joey.UI.Fragments
         public void OnTabReselected(TabLayout.Tab tab)  { }
 
         public void OnTabUnselected(TabLayout.Tab tab) { }
+
+
         #endregion
+
+        class SearchMenuItemExpandListener : Java.Lang.Object, Android.Support.V4.View.MenuItemCompat.IOnActionExpandListener
+        {
+            private ProjectListVM viewModel;
+
+            public SearchMenuItemExpandListener(ProjectListVM viewModel)
+            {
+                this.viewModel = viewModel;
+            }
+
+            public SearchMenuItemExpandListener(IntPtr ptr, JniHandleOwnership transfer) : base(ptr, transfer)
+            {
+                
+            }
+
+            public bool OnMenuItemActionCollapse(IMenuItem item)
+            {
+                viewModel.IsSearchActive = false;
+                return true;
+            }
+
+            public bool OnMenuItemActionExpand(IMenuItem item)
+            {
+                return true;
+            }
+        }
     }
 }
 

@@ -27,6 +27,8 @@ namespace Toggl.Phoebe.ViewModels
         private IDisposable searchObservable;
         private readonly IEnumerable<CommonProjectData> allTopProjects;
 
+        private IEnumerable<CommonProjectData> cachedTopProjects = Enumerable.Empty<CommonProjectData>();
+
         public ProjectListVM(AppState appState, Guid workspaceId)
         {
             ServiceContainer.Resolve<ITracker> ().CurrentScreen = "Select Project";
@@ -41,7 +43,7 @@ namespace Toggl.Phoebe.ViewModels
             WorkspaceList = appState.Workspaces.Values.OrderBy(r => r.Name).ToList();
             CurrentWorkspaceIndex = WorkspaceList.IndexOf(p => p.Id == workspaceId);
             allTopProjects = GetMostUsedProjects(appState);
-            TopProjects = GetTopProjectsByWorkspace(workspaceId);
+            TopProjects = new ObservableRangeCollection<CommonProjectData>(GetTopProjectsByWorkspace(workspaceId));
 
             // Search stream
             searchObservable = Observable.FromEventPattern<string> (ev => onSearch += ev, ev => onSearch -= ev)
@@ -59,17 +61,49 @@ namespace Toggl.Phoebe.ViewModels
         }
 
         #region Observable properties
+        private bool isSearchActive;
+        private ObservableRangeCollection<CommonProjectData> topProjects;
+
+
         public List<IWorkspaceData> WorkspaceList { get; private set; }
         public ProjectsCollection ProjectList { get; private set; }
-        public IEnumerable<CommonProjectData> TopProjects { get; private set; }
+
+        public ObservableRangeCollection<CommonProjectData> TopProjects
+        {
+            get { return topProjects; }
+            private set
+            {
+                topProjects = value;
+                cachedTopProjects = topProjects.ToList();
+            }
+        }
+
         public int CurrentWorkspaceIndex { get; private set; }
         public Guid CurrentWorkspaceId { get; private set; }
         #endregion
 
         private event EventHandler<string> onSearch;
 
+
+        public bool IsSearchActive
+        {
+            get { return isSearchActive; }
+            set
+            {
+                if (isSearchActive == value)
+                    return;
+                isSearchActive = value;
+
+                if (isSearchActive)
+                    TopProjects.Clear();
+                else if (!TopProjects.Any())
+                    TopProjects.AddRange(cachedTopProjects);
+            }
+        }
+
         public void SearchByProjectName(string token)
         {
+            IsSearchActive = !string.IsNullOrEmpty(token);
             onSearch.Invoke(this, token);
         }
 
@@ -85,7 +119,7 @@ namespace Toggl.Phoebe.ViewModels
             CurrentWorkspaceId = WorkspaceList [newIndex].Id;
             ProjectList.WorkspaceId = WorkspaceList [newIndex].Id;
             CurrentWorkspaceIndex = newIndex;
-            TopProjects = GetTopProjectsByWorkspace(CurrentWorkspaceId);
+            TopProjects = new ObservableRangeCollection<CommonProjectData>(GetTopProjectsByWorkspace(CurrentWorkspaceId));
         }
 
         private IEnumerable<CommonProjectData> GetTopProjectsByWorkspace(Guid workspacedId)
