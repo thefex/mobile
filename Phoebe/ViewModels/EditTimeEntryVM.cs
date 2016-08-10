@@ -244,7 +244,7 @@ namespace Toggl.Phoebe.ViewModels
 
         public void ChangeTagList(IEnumerable<string> newTags)
         {
-            UpdateView(x => x.Tags = newTags.ToList(), nameof(Tags));
+            UpdateView(x => x.Tags = newTags.OrderBy(tag => tag).ToList(), nameof(Tags));
         }
 
         public void ChangeDescription(string description)

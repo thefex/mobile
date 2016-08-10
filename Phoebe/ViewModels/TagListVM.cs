@@ -41,7 +41,8 @@ namespace Toggl.Phoebe.ViewModels
         {
             var tagCollection = new ObservableRangeCollection<ITagData> ();
             var workspaceTags = appState.Tags.Values
-                                .Where(r => r.DeletedAt == null && r.WorkspaceId == workspaceId);
+                                .Where(r => r.DeletedAt == null && r.WorkspaceId == workspaceId)
+                                .OrderBy(tag => tag.Name);
             tagCollection.AddRange(workspaceTags);
             return tagCollection;
         }
