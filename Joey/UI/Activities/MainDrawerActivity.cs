@@ -34,6 +34,8 @@ namespace Toggl.Joey.UI.Activities
          Theme = "@style/Theme.Toggl.Main")]
     public class MainDrawerActivity : BaseActivity
     {
+        private const string MainFragmentTag = "MainPageFragmentTag";
+
         private DrawerListAdapter drawerAdapter;
         private IDisposable stateObserver;
 
@@ -223,7 +225,7 @@ namespace Toggl.Joey.UI.Activities
                 var fragmentClass = Java.Lang.Class.FromType(fragmentType);
                 var fragment = (Fragment)fragmentClass.NewInstance();
                 FragmentManager.BeginTransaction()
-                .Replace(Resource.Id.ContentFrameLayout, fragment)
+                .Replace(Resource.Id.ContentFrameLayout, fragment, MainFragmentTag)
                 .Commit();
             }
             catch (Exception ex)
@@ -238,7 +240,7 @@ namespace Toggl.Joey.UI.Activities
             try
             {
                 FragmentManager.BeginTransaction()
-                .Replace(Resource.Id.ContentFrameLayout, newFragment)
+                .Replace(Resource.Id.ContentFrameLayout, newFragment, MainFragmentTag)
                 .Commit();
             }
             catch (Exception ex)
@@ -293,6 +295,22 @@ namespace Toggl.Joey.UI.Activities
             }
 
             DrawerLayout.CloseDrawers();
+        }
+
+        public override void OnBackPressed()
+        {
+            if (!IsTimerFragmentCurrentlyPresent())
+                OpenPage(DrawerListAdapter.TimerPageId);
+            else
+                base.OnBackPressed();
+        }
+
+        private bool IsTimerFragmentCurrentlyPresent()
+        {
+            var currentlyPresentedFragment = FragmentManager.FindFragmentByTag(MainFragmentTag);
+
+            return currentlyPresentedFragment != null &&
+                   currentlyPresentedFragment.GetType() == typeof (LogTimeEntriesListFragment);
         }
     }
 }
