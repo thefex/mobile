@@ -22,6 +22,10 @@
         <item name="android:selectableItemBackgroundBorderless">@drawable/play_button_background</item>
     </style>
 
+    <style name="Theme.Toggl.App.EditTimeEntry" parent="Theme.Toggl.App">
+      <item name="android:windowBackground">@drawable/EditTimeEntryActivityBackground</item>
+    </style>
+
     <style name="Theme.Toggl.Main" parent="Theme.Toggl.App">
         <item name="colorControlNormal">#d9d9d9</item>
         <item name="colorControlActivated">#4dd965</item>

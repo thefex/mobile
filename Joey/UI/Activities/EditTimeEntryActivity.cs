@@ -12,7 +12,7 @@ namespace Toggl.Joey.UI.Activities
          Exported = false,
          WindowSoftInputMode = SoftInput.StateHidden,
          ScreenOrientation = ScreenOrientation.Portrait,
-         Theme = "@style/Theme.Toggl.App")]
+         Theme = "@style/Theme.Toggl.App.EditTimeEntry")]
     public class EditTimeEntryActivity : BaseActivity
     {
         private static readonly string groupfragmentTag = "editgroup_fragment";
