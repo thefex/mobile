@@ -9,7 +9,7 @@ namespace Toggl.Ross.Theme
         {
             public static void HeaderBackgroundView(UIView v)
             {
-                v.BackgroundColor = Color.Background;
+                v.BackgroundColor = UIColor.FromRGB(250,251,252);
             }
 
             public static void HeaderDateLabel(UILabel v)

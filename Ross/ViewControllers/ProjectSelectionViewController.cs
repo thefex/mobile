@@ -22,10 +22,13 @@ namespace Toggl.Ross.ViewControllers
         private readonly static NSString ProjectCellId = new NSString("ProjectCellId");
         private readonly static NSString TaskCellId = new NSString("TaskCellId");
 
-        private const float CellSpacing = 4f;
+        private const float CellSpacing = 1.5f;
         private Guid workspaceId;
         private ProjectListVM viewModel;
         private readonly IOnProjectSelectedHandler handler;
+        private bool isUserSearching;
+
+        public UISearchBar SearchBar { get; private set; }
 
         public ProjectSelectionViewController(EditTimeEntryViewController editView) : base(UITableViewStyle.Plain)
         {
@@ -67,66 +70,88 @@ namespace Toggl.Ross.ViewControllers
             }
 
             TableView.TableFooterView = null;
-
             UpdateTopProjectsHeader();
         }
+
+        private void BuildSearchBar()
+        {
+            
+
+            SearchBar = new UISearchBar(new CGRect(0, 0, View.Frame.Width, 44));
+            SearchBar.Placeholder = "Search".Tr();
+            SearchBar.BarTintColor = UIColor.FromRGB(250, 251, 252);
+
+            CGRect rect = SearchBar.Frame;
+            UIView lineView = new UIView(new CGRect(0, rect.Size.Height - 2, rect.Size.Width, 2));
+            lineView.BackgroundColor = UIColor.FromRGB(236, 237, 237);
+            SearchBar.AddSubview(lineView); // removes ugly UISearchBar black borders (which can't be removed normally..)
+
+
+            SearchBar.TextChanged += (sender, e) =>
+            {
+                SearchBar.ShowsCancelButton = true;
+                isUserSearching = true;
+                viewModel.SearchByProjectName(e.SearchText);
+            };
+
+            SearchBar.CancelButtonClicked += (sender, e) =>
+            {
+                SearchBar.Text = string.Empty;
+                viewModel.SearchByProjectName(string.Empty);
+
+                SearchBar.ShowsCancelButton = false;
+                isUserSearching = false;
+                SearchBar.ResignFirstResponder();
+            };
+
+            SearchBar.BackgroundImage = new UIImage();
+            SearchBar.BackgroundColor = UIColor.FromRGB(250, 251, 252);
+        }
+
 
         internal void UpdateTopProjectsHeader()
         {
             //Enumerates only once
             var topProjects = viewModel.TopProjects?.ToList();
+            BuildSearchBar();
+
 
             var numberOfProjects = topProjects?.Count ?? 0;
             if (numberOfProjects == 0)
             {
-                TableView.TableHeaderView = null;
+                TableView.TableHeaderView = SearchBar;
                 return;
             }
 
-            const int labelXMargin = 20;
-            const int labelYMargin = 5;
-            const int labelFrameHeight = 85;
+            const int labelXMargin = 0;
+            const float labelYMargin = CellSpacing;
+            const float labelFrameHeight = 60;
 
-            const int labelHeight = labelFrameHeight - labelYMargin;
-            var labelWidth = View.Frame.Width - labelXMargin * 2;
+            const float labelHeight = labelFrameHeight - labelYMargin;
+            float labelWidth = (float)( View.Frame.Width - labelXMargin * 2 );
+            const float headerLabelHeight = 42;
 
-            var headerRect = new CGRect(0, 0, labelWidth, labelFrameHeight * (numberOfProjects + 1));
-            var headerView = new UIView(headerRect);
+            var headerRect = new CGRect(0, 0, labelWidth, labelFrameHeight * (numberOfProjects) + headerLabelHeight + SearchBar.Frame.Height);
+            var headerView = new UIView(headerRect).Apply(Style.Log.HeaderBackgroundView);
+            headerView.AddSubview(SearchBar);
 
-            const int headerLabelHeight = 50;
-
-            var headerLabelRect = new CGRect(labelXMargin, labelYMargin, labelWidth, headerLabelHeight);
-            var headerLabel = new UILabel(headerLabelRect) { Text = TopProjectsKey.Tr() };
-
-            headerView.AddSubview(headerLabel);
+            var headerLabelView = new TopProjectsHeaderViewsBuilder().BuildTopProjectsHeaderSectionView(labelXMargin, labelYMargin+(float)SearchBar.Frame.Height, labelWidth, headerLabelHeight);
+            headerView.AddSubview(headerLabelView);
 
             for (int i = 0; i < numberOfProjects; i++)
             {
                 var project = topProjects[i];
 
-                var buttonRect = new CGRect(labelXMargin, labelFrameHeight * i + headerLabelHeight + labelYMargin, labelWidth, labelHeight);
-                var button = new UIButton(buttonRect);
+                var headerRowItemBuilder = new TopProjectsHeaderViewsBuilder();
 
-                button.BackgroundColor = UIColor.Clear.FromHex(ProjectData.HexColors[project.Color % ProjectData.HexColors.Length]);
-                button.TouchUpInside += (s, e) => OnItemSelected(project);
-                button.TitleEdgeInsets = new UIEdgeInsets(10, labelXMargin, 0, labelXMargin);
-
-                var projectLabelText = project.Task != null ? $"{project.Name} - {project.Task.Name}" : project.Name;
-                var projectLabel = new UILabel(new CGRect(labelXMargin, 15, labelWidth, 20));
-                projectLabel.Text = projectLabelText;
-                projectLabel.TextColor = UIColor.White;
-                button.AddSubview(projectLabel);
-
-                var clientLabel = new UILabel(new CGRect(labelXMargin, 45, labelWidth, 20));
-                clientLabel.Text = string.IsNullOrEmpty(project.ClientName) ? "ProjectNoClient".Tr() : project.ClientName;
-                clientLabel.TextColor = UIColor.White;
-                button.AddSubview(clientLabel);
-
-                headerView.AddSubview(button);
+                var headerItemFrame = new CGRect(0, labelFrameHeight * i + headerLabelHeight + labelYMargin + SearchBar.Frame.Height, labelWidth, labelHeight);
+                var headerItemRow = headerRowItemBuilder.BuildHeaderRowItem(headerItemFrame, project, () => OnItemSelected(project));
+                headerView.AddSubview(headerItemRow);
             }
 
             TableView.TableHeaderView = headerView;
         }
+
 
         protected void OnItemSelected(ICommonData m)
         {
@@ -196,6 +221,13 @@ namespace Toggl.Ross.ViewControllers
             {
                 this.owner = owner;
                 this.viewModel = viewModel;
+            }
+
+            public override void Scrolled(UIScrollView scrollView)
+            {
+                if (owner.SearchBar.IsFirstResponder)
+                    owner.SearchBar.ResignFirstResponder();
+                //owner.TableView.Frame = new CGRect(0, Math.Max(0, scrollView.ContentOffset.Y), owner.TableView.Frame.Width, owner.TableView.Frame.Height);
             }
 
             public override UITableViewCell GetCell(UITableView tableView, NSIndexPath indexPath)
@@ -456,6 +488,176 @@ namespace Toggl.Ross.ViewControllers
                 nameLabel.Text = taskName;
             }
         }
+
+
+        public class TopProjectsHeaderViewsBuilder
+        {
+            UIView rowItemView;
+
+            UIView textContentView;
+            UIView dotCircleView;
+            UILabel projectLabel;
+            UILabel clientLabel;
+            UILabel taskLabel;
+
+
+            private void BindData(ProjectListVM.CommonProjectData projectData)
+            {
+                var color = UIColor.Clear.FromHex(ProjectData.HexColors[projectData.Color % ProjectData.HexColors.Length]);
+                rowItemView.BackgroundColor = color;
+
+                projectLabel.Text = projectData.Name;
+                clientLabel.Text = projectData.ClientName;
+
+                if (projectData.Task != null)
+                    taskLabel.Text = projectData.Task.Name;         
+            }
+
+            public UIView BuildHeaderRowItem(CGRect rowFrame, ProjectListVM.CommonProjectData data, Action onRowTapped)
+            {
+                rowItemView = new UIView(rowFrame);
+
+                rowItemView.AddGestureRecognizer(new UITapGestureRecognizer(onRowTapped));
+                BuildViews();
+                BindData(data);
+                LayoutView();
+
+                return rowItemView;
+            }
+
+            private void BuildViews()
+            {
+                rowItemView.Add(textContentView = new UIView());
+                textContentView.Add(projectLabel = new UILabel().Apply(Style.ProjectList.ProjectLabel));
+                textContentView.Add(dotCircleView = new UIView());
+                textContentView.Add(clientLabel = new UILabel().Apply(Style.ProjectList.ClientLabel));
+                textContentView.Add(taskLabel = new UILabel().Apply(Style.ProjectList.ClientLabel));
+
+                
+
+                var maskLayer = new CAGradientLayer
+                {
+                    AnchorPoint = CGPoint.Empty,
+                    StartPoint = new CGPoint(0.0f, 0.0f),
+                    EndPoint = new CGPoint(1.0f, 0.0f),
+                    Colors = new[]
+                    {
+                            UIColor.FromWhiteAlpha(1, 1).CGColor,
+                            UIColor.FromWhiteAlpha(1, 1).CGColor,
+                            UIColor.FromWhiteAlpha(1, 0).CGColor,
+                        },
+                    Locations = new[]
+                    {
+                            NSNumber.FromFloat(0f),
+                            NSNumber.FromFloat(0.9f),
+                            NSNumber.FromFloat(1f),
+                        },
+                };
+
+                textContentView.Layer.Mask = maskLayer;
+            }
+
+            private void LayoutView()
+            {
+                var contentFrame = new CGRect(0, 0, rowItemView.Frame.Width, rowItemView.Frame.Height);
+
+                contentFrame.X += 13f;
+                contentFrame.Width -= 13f;
+                textContentView.Frame = contentFrame;
+                textContentView.Layer.Mask.Bounds = contentFrame;
+
+                contentFrame = new CGRect(CGPoint.Empty, contentFrame.Size);
+
+                var taskLabelBounds = GetBoundingRect(taskLabel);
+
+
+                nfloat taskNameLabelHeight = string.IsNullOrEmpty(taskLabel.Text) ? 0f : taskLabelBounds.Height;
+
+                if (clientLabel.Hidden)
+                {
+                    // Only display single item, so make it fill the whole text frame
+                    var bounds = GetBoundingRect(projectLabel);
+                    projectLabel.Frame = new CGRect(
+                        x: 0,
+                        y: (contentFrame.Height - bounds.Height - taskNameLabelHeight + projectLabel.Font.Descender) / 2f,
+                        width: contentFrame.Width,
+                        height: bounds.Height
+                    );
+                }
+                else
+                {
+                    // Carefully craft the layout
+                    var bounds = GetBoundingRect(projectLabel);
+                    projectLabel.Frame = new CGRect(
+                        x: 0,
+                        y: (contentFrame.Height - bounds.Height - taskNameLabelHeight + projectLabel.Font.Descender) / 2f,
+                        width: bounds.Width,
+                        height: bounds.Height
+                    );
+
+
+                    bool shouldHaveDotCircle = !string.IsNullOrWhiteSpace(clientLabel.Text);
+
+                    if (shouldHaveDotCircle)
+                    {
+                        dotCircleView.Layer.CornerRadius = 1.5f;
+                        dotCircleView.Layer.MasksToBounds = true;
+                        dotCircleView.BackgroundColor = UIColor.White;
+                        dotCircleView.Frame = new CGRect(projectLabel.Bounds.Right + 5f, (contentFrame.Height - bounds.Height - taskNameLabelHeight + projectLabel.Font.Descender) / 2f + bounds.Height / 2.0f - 1.5f, 3, 3);
+                    }
+                    const float clientLeftMargin = 5f;
+                    bounds = GetBoundingRect(clientLabel);
+
+                    double rightFrame = shouldHaveDotCircle ? dotCircleView.Frame.Right : projectLabel.Frame.Right;
+                    clientLabel.Frame = new CGRect(
+                        x: rightFrame + clientLeftMargin,
+                        y: (float)Math.Floor(projectLabel.Frame.Y + projectLabel.Font.Ascender - clientLabel.Font.Ascender),
+                        width: bounds.Width,
+                        height: bounds.Height
+                    );
+                }
+                taskLabel.Frame = new CGRect(0, projectLabel.Frame.Bottom + taskLabel.Font.Descender + 2.5f, taskLabelBounds.Width, taskLabelBounds.Height);
+
+            }
+
+            public UIView BuildTopProjectsHeaderSectionView(float leftMargin, float topMargin, float width, float height)
+            {
+                var labelContainer = new UIView();
+                var frame = new CGRect(leftMargin, topMargin, width, height);
+                labelContainer.Apply(Style.Log.HeaderBackgroundView);
+                labelContainer.Frame = frame;
+
+                float horizontalSpacing = 15f;
+
+                var label = new UILabel().Apply(Style.Log.HeaderDateLabel);
+                label.Text = TopProjectsKey.Tr();
+                label.Frame = new CGRect(
+                    x: horizontalSpacing,
+                    y: 0,
+                    width: (frame.Width - 3 * horizontalSpacing) / 2,
+                    height: frame.Height
+                );
+
+                labelContainer.Add(label);
+                return labelContainer;
+            }
+                
+
+            private CGRect GetBoundingRect(UILabel view)
+            {
+                var attrs = new UIStringAttributes()
+                {
+                    Font = view.Font,
+                };
+                var rect = ((NSString)(view.Text ?? string.Empty)).GetBoundingRect(
+                               new CGSize(float.MaxValue, float.MaxValue),
+                               NSStringDrawingOptions.UsesLineFragmentOrigin,
+                               attrs, null);
+                rect.Height = (float)Math.Ceiling(rect.Height);
+                return rect;
+            }
+        }
+
 
         class SectionHeaderView : UITableViewHeaderFooterView
         {

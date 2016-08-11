@@ -22,35 +22,35 @@ namespace Toggl.Ross.Theme
 
             public static void ProjectLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue", 17f);
+                v.Font = UIFont.FromName("HelveticaNeue", 15f);
                 v.TextAlignment = UITextAlignment.Left;
                 v.TextColor = Color.White;
             }
 
             public static void NoProjectLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue", 17f);
+                v.Font = UIFont.FromName("HelveticaNeue", 15f);
                 v.TextAlignment = UITextAlignment.Left;
                 v.TextColor = Color.LightestGray;
             }
 
             public static void NewProjectLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue", 17f);
+                v.Font = UIFont.FromName("HelveticaNeue", 15f);
                 v.TextAlignment = UITextAlignment.Center;
                 v.TextColor = Color.Gray;
             }
 
             public static void ClientLabel(UILabel v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue", 13f);
+                v.Font = UIFont.FromName("HelveticaNeue", 15f);
                 v.TextAlignment = UITextAlignment.Left;
-                v.TextColor = Color.White.ColorWithAlpha(0.75f);
+                v.TextColor = Color.White.ColorWithAlpha(0.8f);
             }
 
             public static void TasksButtons(UIButton v)
             {
-                v.Font = UIFont.FromName("HelveticaNeue-Medium", 17f);
+                v.Font = UIFont.FromName("HelveticaNeue-Medium", 15f);
                 v.SetBackgroundImage(TasksBackgroundDefault.Value, UIControlState.Normal);
                 v.SetBackgroundImage(TasksBackgroundHighlighted.Value, UIControlState.Highlighted);
             }

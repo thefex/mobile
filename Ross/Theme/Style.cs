@@ -16,6 +16,8 @@ namespace Toggl.Ross.Theme
             });
             UINavigationBar.Appearance.TintColor = Color.Gray;
             UINavigationBar.Appearance.BackgroundColor = Color.LightestGray;
+
+            UIBarButtonItem.AppearanceWhenContainedIn(typeof(UISearchBar)).TintColor = Color.LightishGreen;
         }
     }
 }
